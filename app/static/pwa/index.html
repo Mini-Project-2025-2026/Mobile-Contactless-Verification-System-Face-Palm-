@@ -263,7 +263,12 @@ function loadEnroll(){
 let CAM={stream:null,mode:null,modality:"face",shots:[],course:null,token:""};
 async function openCamera(facing){
   CAM.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false});
-  $("video").srcObject=CAM.stream; await $("video").play();
+  const v=$("video");
+  v.srcObject=CAM.stream;
+  // Mirror the front-camera PREVIEW only (natural selfie). Capture stays raw:
+  // grab() draws the un-mirrored video pixels, so biometric frames are true.
+  v.style.transform = (facing==="user") ? "scaleX(-1)" : "none";
+  await v.play();
 }
 function grab(q){ const v=$("video"),c=document.createElement("canvas"); c.width=v.videoWidth;c.height=v.videoHeight;
   c.getContext("2d").drawImage(v,0,0); return c.toDataURL("image/jpeg",q||0.6).split(",")[1]; }
