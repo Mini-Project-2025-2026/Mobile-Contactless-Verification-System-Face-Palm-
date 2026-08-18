@@ -217,6 +217,18 @@ def list_grants(student_id: str, _: str = Depends(current_admin), db: Session = 
     return sorted(out, key=lambda x: (x["used"] or x["expired"], x["expires_at"]))
 
 
+@router.post("/enroll-grants/{token}/revoke")
+def revoke_grant(token: str, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+    g = db.exec(select(EnrollGrant).where(EnrollGrant.token == token)).first()
+    if g is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown token")
+    if g.used_at is None:  # marking it used = revoked (validation rejects used tokens)
+        g.used_at = datetime.now(timezone.utc)
+        db.add(g)
+        db.commit()
+    return {"token": token, "revoked": True}
+
+
 # ---------- attendance ----------
 @router.get("/attendance")
 def session_attendance(session_id: int, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:

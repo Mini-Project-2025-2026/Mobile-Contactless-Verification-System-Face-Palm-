@@ -19,6 +19,9 @@ class Settings(BaseSettings):
 
     geofence_default_radius_m: float = 70.0
     min_verify_score: float = 0.40
+    # Reject a check-in whose GPS fix is less accurate than this many metres
+    # (0 = disabled). Guards against wildly-off fixes sneaking into the geofence.
+    max_gps_accuracy_m: float = 0.0
 
     # When true (set on the hosted demo), seed demo data on startup if absent.
     seed_on_start: bool = False

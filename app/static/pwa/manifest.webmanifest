@@ -1,8 +1,8 @@
 {
   "name": "Attendance Verify",
   "short_name": "Attendance",
-  "start_url": "/app",
-  "scope": "/app",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "background_color": "#0b1220",
   "theme_color": "#C41230",

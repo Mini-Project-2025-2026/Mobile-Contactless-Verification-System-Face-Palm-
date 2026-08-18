@@ -85,6 +85,17 @@ def verify(
             message="Enrol your face first (required) before you can mark attendance.",
         )
 
+    # 0) GPS quality floor — a fix less accurate than the limit can't be trusted
+    #    against a tight geofence (indoor hardening; 0 disables).
+    acc = req.gps.accuracy_m
+    if settings.max_gps_accuracy_m and acc is not None and acc > settings.max_gps_accuracy_m:
+        return VerifyResponse(
+            ok=False, status=_status_now(db, s.id, student.student_id),
+            marks_count=_marks_now(db, s.id, student.student_id),
+            marks_required=s.marks_required, distance_m=0.0, code="low_gps_accuracy",
+            message=f"Weak GPS signal (±{acc:.0f} m). Move to an open spot and try again.",
+        )
+
     # 1) Geofence — server-authoritative.
     in_range, distance = within_geofence(req.gps.lat, req.gps.lng, s.lat, s.lng, s.radius_m)
     distance = round(distance, 1)

@@ -132,11 +132,12 @@
         <h3 style="margin-top:0">Issue enrolment grant (one-time code)</h3>
         <p class="muted" style="margin-top:0">For re-enrolment or enrolling on a new device. First enrolment doesn't need one.</p>
         <div class="grid">
-          <div><label>Student</label><select id="gr_student"></select></div>
+          <div><label>Student</label><select id="gr_student" onchange="loadGrants()"></select></div>
           <div><label>Valid for (hours)</label><input id="gr_ttl" type="number" value="24"/></div>
         </div>
         <button class="btn" onclick="issueGrant()">Generate code</button>
         <div id="grantOut"></div>
+        <div id="grantList" style="margin-top:10px"></div>
       </div>
       <div class="card"><h3 style="margin-top:0">Students</h3><div id="studentList"></div></div>
     </div>
@@ -180,7 +181,7 @@ function tab(name){
   if(name==='overview')loadOverview();
   if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
   if(name==='courses')loadCourses();
-  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student')}
+  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
 }
 async function loadOverview(){
@@ -278,7 +279,22 @@ async function issueGrant(){
   try{
     const r=await api('/api/admin/enroll-grant',{method:'POST',body:JSON.stringify({student_id:val('gr_student'),ttl_hours:+val('gr_ttl')||24})});
     document.getElementById('grantOut').innerHTML='<div class="card" style="background:#fff7f8;margin-top:10px"><b>One-time code:</b> <span style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--red)">'+r.token+'</span><div class="muted">Give this to the student. Expires '+new Date(r.expires_at).toLocaleString()+'. Single use.</div></div>';
+    loadGrants();
   }catch(e){alert(e.message)}
+}
+async function loadGrants(){
+  const sid=val('gr_student'); if(!sid){document.getElementById('grantList').innerHTML='';return}
+  const rows=await api('/api/admin/enroll-grants?student_id='+encodeURIComponent(sid));
+  if(!rows.length){document.getElementById('grantList').innerHTML='<p class="muted">No codes issued for this student.</p>';return}
+  document.getElementById('grantList').innerHTML=tableRows(['Code','Status','Expires','Action'],rows.map(g=>{
+    const st=g.used?'<span class="badge closed">used/revoked</span>':(g.expired?'<span class="badge closed">expired</span>':'<span class="badge live">active</span>');
+    const act=(!g.used&&!g.expired)?`<button class="btn sec" style="margin:0;padding:6px 10px" onclick="revokeGrant('${g.token}')">Revoke</button>`:'—';
+    return [`<b>${g.token}</b>`,st,new Date(g.expires_at).toLocaleString(),act];
+  }));
+}
+async function revokeGrant(token){
+  await api('/api/admin/enroll-grants/'+token+'/revoke',{method:'POST'});
+  loadGrants();
 }
 // ---- sessions ----
 async function createSession(){
