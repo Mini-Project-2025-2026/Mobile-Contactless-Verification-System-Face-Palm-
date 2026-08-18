@@ -28,9 +28,15 @@ def _migrate() -> None:
     tables = set(insp.get_table_names())
 
     def add_col(table: str, col: str, ddl: str) -> None:
-        if table in tables and col not in {c["name"] for c in insp.get_columns(table)}:
+        if table not in tables or col in {c["name"] for c in insp.get_columns(table)}:
+            return
+        try:
             with engine.begin() as conn:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
+        except Exception:
+            # Another worker added it between inspect and ALTER (or it already
+            # exists). The column is present either way — safe to ignore.
+            pass
 
     add_col("student", "enroll_device_uid", "enroll_device_uid VARCHAR DEFAULT ''")
     add_col("session", "phase", "phase VARCHAR DEFAULT 'start'")
