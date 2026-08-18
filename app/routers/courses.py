@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from ..db import get_session
 from ..geo import within_geofence
-from ..models import Course, Enrollment, Session as ClassSession, Student
+from ..models import Attendance, AttendanceMark, Course, Enrollment, Session as ClassSession, Student
 from ..schemas import AvailableCourse
 from ..security import current_student
 
@@ -51,6 +51,16 @@ def available(
         if course is None:
             continue
         in_range, dist = within_geofence(lat, lng, s.lat, s.lng, s.radius_m)
+
+        # this student's per-phase progress for the session
+        att = db.exec(select(Attendance).where(
+            Attendance.session_id == s.id, Attendance.student_id == student.student_id)).first()
+        phases: set[str] = set()
+        if att is not None:
+            phases = {m.phase for m in db.exec(
+                select(AttendanceMark).where(AttendanceMark.attendance_id == att.id)).all()}
+        status = "present" if {"start", "end"} <= phases else ("partial" if phases else "absent")
+
         out.append(
             AvailableCourse(
                 session_id=s.id,
@@ -64,6 +74,10 @@ def available(
                 ends_at=ends,
                 center_lat=s.lat,
                 center_lng=s.lng,
+                phase=s.phase,
+                marked_start="start" in phases,
+                marked_end="end" in phases,
+                status=status,
             )
         )
     out.sort(key=lambda c: c.distance_m)

@@ -70,21 +70,43 @@ def _mock_verify(monkeypatch, *, success=True, user_id=SID, score=0.72, nonce="n
     )
 
 
-def test_double_mark_reaches_present(client, token, monkeypatch):
-    _mock_verify(monkeypatch, nonce="a")
+def _set_phase(phase):
+    with Session(engine) as db:
+        s = db.get(ClassSession, 1)
+        s.phase = phase
+        db.add(s)
+        db.commit()
+
+
+def test_two_phase_reaches_present(client, token, monkeypatch):
     gps = {"lat": LAT, "lng": LNG}
-
+    # start window (default phase) → partial
+    _mock_verify(monkeypatch, nonce="a")
     r1 = client.post("/api/checkin/verify", headers=_auth(token),
-                     json={"session_id": 1, "token": "t", "frames": ["x"], "gps": gps})
-    assert r1.status_code == 200, r1.text
-    assert r1.json()["status"] == "partial"
-    assert r1.json()["marks_count"] == 1
+                     json={"session_id": 1, "frames": ["x"], "gps": gps})
+    assert r1.json()["status"] == "partial" and r1.json()["marks_count"] == 1
 
-    _mock_verify(monkeypatch, nonce="b")  # a fresh (different) signed capture
+    # marking the start window again does NOT complete attendance
+    _mock_verify(monkeypatch, nonce="a2")
+    r_again = client.post("/api/checkin/verify", headers=_auth(token),
+                          json={"session_id": 1, "frames": ["x"], "gps": gps})
+    assert r_again.json()["code"] == "already_marked"
+    assert r_again.json()["status"] == "partial"
+
+    # lecturer opens the END window → second mark completes → present
+    _set_phase("end")
+    _mock_verify(monkeypatch, nonce="b")
     r2 = client.post("/api/checkin/verify", headers=_auth(token),
-                     json={"session_id": 1, "token": "t", "frames": ["x"], "gps": gps})
-    assert r2.json()["status"] == "present"
-    assert r2.json()["marks_count"] == 2
+                     json={"session_id": 1, "frames": ["x"], "gps": gps})
+    assert r2.json()["status"] == "present" and r2.json()["marks_count"] == 2
+
+
+def test_checkin_closed_phase_rejected(client, token, monkeypatch):
+    _set_phase("closed")
+    _mock_verify(monkeypatch)
+    r = client.post("/api/checkin/verify", headers=_auth(token),
+                    json={"session_id": 1, "frames": ["x"], "gps": {"lat": LAT, "lng": LNG}})
+    assert r.json()["code"] == "checkin_closed"
 
 
 def test_replayed_signature_not_double_counted(client, token, monkeypatch):

@@ -155,7 +155,7 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
             "lat": s.lat, "lng": s.lng, "radius_m": s.radius_m,
             "starts_at": _aware(s.starts_at).isoformat(), "ends_at": _aware(s.ends_at).isoformat(),
             "live": s.active and _aware(s.starts_at) <= now <= _aware(s.ends_at), "active": s.active,
-            "marks_required": s.marks_required, "checked_in": present,
+            "phase": s.phase, "marks_required": s.marks_required, "checked_in": present,
         })
     return sorted(out, key=lambda x: x["starts_at"], reverse=True)
 
@@ -182,9 +182,29 @@ def close_session(session_id: int, _: str = Depends(current_admin), db: Session 
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
     s.active = False
+    s.phase = "closed"
     db.add(s)
     db.commit()
     return {"session_id": session_id, "active": False}
+
+
+class PhaseIn(BaseModel):
+    phase: str  # "start" | "end" | "closed"
+
+
+@router.post("/sessions/{session_id}/phase")
+def set_phase(session_id: int, body: PhaseIn, _: str = Depends(current_admin),
+              db: Session = Depends(get_session)) -> dict:
+    """Open the start/end check-in window (or pause it). Present needs both windows."""
+    if body.phase not in ("start", "end", "closed"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "phase must be start|end|closed")
+    s = db.get(ClassSession, session_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
+    s.phase = body.phase
+    db.add(s)
+    db.commit()
+    return {"session_id": session_id, "phase": s.phase}
 
 
 # ---------- enrolment grants (one-time re-enrolment / new-device codes) ----------

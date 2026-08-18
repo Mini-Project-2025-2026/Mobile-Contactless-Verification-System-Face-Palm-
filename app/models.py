@@ -81,6 +81,9 @@ class Session(SQLModel, table=True):
     starts_at: datetime
     ends_at: datetime
     marks_required: int = 2
+    # Two-phase attendance: "start" window open at class start, admin opens "end"
+    # near class end; "closed" = no check-in accepted. Present needs both phases.
+    phase: str = "start"
     active: bool = True
     created_at: datetime = Field(default_factory=_now)
 
@@ -116,4 +119,5 @@ class AttendanceMark(SQLModel, table=True):
     distance_m: float = 0.0
     score: float = 0.0
     modality: Modality = Modality.face
+    phase: str = "start"  # which window this mark belongs to: "start" | "end"
     sig_nonce: str = Field(index=True)  # from the verify signature; blocks replay

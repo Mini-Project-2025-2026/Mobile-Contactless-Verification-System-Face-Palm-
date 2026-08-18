@@ -316,18 +316,24 @@ async function createSession(){
   if(lastAcc && lastAcc>120 && !confirm('Your GPS fix is weak (±'+Math.round(lastAcc)+' m). Students may be judged against an inaccurate centre. Create at this pin anyway?')) return;
   try{
     await api('/api/admin/sessions',{method:'POST',body:JSON.stringify({course_id:+val('s_course'),title:val('s_title'),lat:picked.lat,lng:picked.lng,radius_m:+val('s_radius'),duration_minutes:+val('s_dur'),marks_required:+val('s_marks')})});
-    loadSessions();alert('Session created at '+picked.lat.toFixed(5)+', '+picked.lng.toFixed(5)+' — now live for enrolled students.');
+    loadSessions();alert('Session created at '+picked.lat.toFixed(5)+', '+picked.lng.toFixed(5)+'.\n\nThe START check-in is now open. Near the end of class, tap “Open END check-in” on this session so students mark a second time to be counted present.');
   }catch(e){document.getElementById('sessErr').textContent=e.message}
 }
 async function loadSessions(){
   const ss=await api('/api/admin/sessions');
+  const phaseBadge=p=>p==='start'?'<span class="badge live">START check-in open</span>':(p==='end'?'<span class="badge out">END check-in open</span>':'<span class="badge closed">check-in closed</span>');
   document.getElementById('sessList').innerHTML=ss.length?ss.map(s=>
-    `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:8px 0">
-      <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'closed'}</span>
-      <div class="muted">${s.radius_m}m · ${s.checked_in} checked-in · ${new Date(s.ends_at).toLocaleString()}</div></div>
-      ${s.active?`<button class="btn sec" style="margin:0" onclick="closeSession(${s.id})">Close</button>`:''}
+    `<div style="border-bottom:1px solid var(--line);padding:10px 0">
+      <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'ended'}</span> ${phaseBadge(s.phase)}</div>
+      <div class="muted">${s.radius_m}m · ${s.checked_in} attendance record${s.checked_in===1?'':'s'} · ends ${new Date(s.ends_at).toLocaleString()}</div>
+      <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-start">
+        ${s.active&&s.phase==='start'?`<button class="btn" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'end')">Open END check-in</button>`:''}
+        ${s.active&&s.phase==='end'?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'start')">Reopen START</button>`:''}
+        ${s.active?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="closeSession(${s.id})">Close class</button>`:''}
+      </div>
     </div>`).join(''):'<p class="muted">No sessions yet.</p>';
 }
+async function setPhase(id,phase){ await api('/api/admin/sessions/'+id+'/phase',{method:'POST',body:JSON.stringify({phase})}); loadSessions(); }
 async function loadSessionsInto(id){
   const ss=await api('/api/admin/sessions');
   document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.id}">${s.course_code} · ${s.title||''} ${s.live?'(live)':''}</option>`).join('');

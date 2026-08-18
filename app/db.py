@@ -25,12 +25,16 @@ def _migrate() -> None:
     from sqlalchemy import inspect, text
 
     insp = inspect(engine)
-    if "student" not in insp.get_table_names():
-        return
-    cols = {c["name"] for c in insp.get_columns("student")}
-    if "enroll_device_uid" not in cols:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE student ADD COLUMN enroll_device_uid VARCHAR DEFAULT ''"))
+    tables = set(insp.get_table_names())
+
+    def add_col(table: str, col: str, ddl: str) -> None:
+        if table in tables and col not in {c["name"] for c in insp.get_columns(table)}:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
+
+    add_col("student", "enroll_device_uid", "enroll_device_uid VARCHAR DEFAULT ''")
+    add_col("session", "phase", "phase VARCHAR DEFAULT 'start'")
+    add_col("attendancemark", "phase", "phase VARCHAR DEFAULT 'start'")
 
 
 def get_session() -> Iterator[Session]:

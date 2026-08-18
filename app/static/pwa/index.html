@@ -197,18 +197,24 @@ async function loadHome(){
   let list=[]; try{ if(GPS)list=await api(`/api/courses/available?lat=${GPS.lat}&lng=${GPS.lng}`);}catch(e){}
   const c=list[0]; HOME_COURSE=c;
   if(!c){ $("h_body").innerHTML='<div class="card muted" style="text-align:center">No live class near you right now.</div>'; return; }
+  const phaseTag=c.phase==='start'?'<span class="badge in">START check-in open</span>':(c.phase==='end'?'<span class="badge out">END check-in open</span>':'<span class="badge">check-in closed</span>');
   $("h_body").innerHTML=`<div class="grad">
     <div class="row"><span class="badge" style="background:rgba(255,255,255,.16);color:#fff">KNUST · ATTENDANCE</span><b>${c.course_code}</b></div>
     <h2 style="color:#fff;margin:.3em 0">${c.course_title}</h2>
     <div class="chip"><div class="k">Session</div><div class="v">${c.session_title}</div></div>
     <div class="chip"><div class="k">Proximity</div><div class="v">${c.in_range?("Inside "+c.radius_m+" m zone"):(c.distance_m+" m away")}</div></div>
-  </div>
-  <div class="card">
-    <h3>Mark Your Attendance</h3><div class="muted">No code — your live face is the verification.</div>
-    ${!STATUS.can_mark?`<button class="btn" style="margin-top:10px" onclick="go('enroll')">Enrol to mark attendance →</button>`
-      :(c.in_range?`<button class="btn" style="margin-top:10px" onclick="startCheckin(HOME_COURSE)">Verify with Face →</button>`
-        :`<button class="btn" style="margin-top:10px" disabled>Move within ${c.radius_m} m to mark</button>`)}
-  </div>`;
+  </div>`+markCard(c,phaseTag);
+}
+function markCard(c,phaseTag){
+  const prog=`<div class="muted" style="margin-top:4px">Start ${c.marked_start?'✓':'○'} &nbsp; End ${c.marked_end?'✓':'○'} &nbsp; ${phaseTag}</div>`;
+  if(c.status==='present') return `<div class="card"><div class="result ok" style="font-size:20px">✓ Present</div><div class="muted" style="text-align:center">Marked at both start and end.</div></div>`;
+  if(!STATUS.can_mark) return `<div class="card"><h3>Mark Your Attendance</h3>${prog}<button class="btn" style="margin-top:10px" onclick="go('enroll')">Enrol to mark attendance →</button></div>`;
+  if(c.phase==='closed') return `<div class="card"><h3>Mark Your Attendance</h3>${prog}<div class="muted" style="margin-top:8px">Check-in isn't open right now — wait for your lecturer.</div></div>`;
+  const win=c.phase==='start'?'START':'END';
+  const alreadyThis=(c.phase==='start'&&c.marked_start)||(c.phase==='end'&&c.marked_end);
+  if(alreadyThis) return `<div class="card"><h3>Mark Your Attendance</h3>${prog}<div class="muted" style="margin-top:8px">${c.phase==='start'?'Start marked ✓ — return when the lecturer opens the END check-in.':'End marked ✓.'}</div></div>`;
+  if(!c.in_range) return `<div class="card"><h3>${win} check-in open</h3>${prog}<button class="btn" style="margin-top:10px" disabled>Move within ${c.radius_m} m to mark</button></div>`;
+  return `<div class="card"><h3>${win} check-in open</h3>${prog}<button class="btn" style="margin-top:10px" onclick="startCheckin(HOME_COURSE)">Mark ${win} with Face →</button></div>`;
 }
 
 // ---- map ----

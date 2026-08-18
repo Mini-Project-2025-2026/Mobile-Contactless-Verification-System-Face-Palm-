@@ -43,6 +43,10 @@ class AvailableCourse(BaseModel):
     ends_at: datetime
     center_lat: float
     center_lng: float
+    phase: str  # "start" | "end" | "closed" — which window is open now
+    marked_start: bool
+    marked_end: bool
+    status: str  # this student's status for the session: absent | partial | present
 
 
 # --- check-in ---
