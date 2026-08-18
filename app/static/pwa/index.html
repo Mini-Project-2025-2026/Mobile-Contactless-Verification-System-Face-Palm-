@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<title>Attendance Verify</title>
+<link rel="manifest" href="/app/manifest.webmanifest"/>
+<meta name="theme-color" content="#C41230"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Attendance"/>
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;--txt:#12151c}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
+  .hidden{display:none!important}
+  .screen{padding:16px;padding-bottom:88px;max-width:560px;margin:0 auto;min-height:100vh}
+  .grad{background:linear-gradient(120deg,var(--red),var(--red2));color:#fff;border-radius:20px;padding:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 4px 14px rgba(11,18,32,.05)}
+  h1{font-size:24px;margin:.2em 0}h2{font-size:20px}h3{margin-top:0}
+  label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin:8px 0 3px}
+  input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff}
+  .btn{background:var(--red);color:#fff;border:0;padding:15px;border-radius:12px;font-weight:800;font-size:16px;width:100%;cursor:pointer}
+  .btn:disabled{opacity:.5}
+  .btn.sec{background:#eef0f3;color:var(--txt)}
+  .btn.ghost{background:transparent;color:var(--muted);font-weight:600;padding:10px}
+  .muted{color:var(--muted);font-size:13px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .chip{background:rgba(255,255,255,.16);border-radius:10px;padding:9px 12px;margin-top:8px}
+  .chip .k{color:rgba(255,255,255,.75);font-size:12px}.chip .v{color:#fff;font-weight:700}
+  .badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+  .present{background:#e7f8ef;color:#16a34a}.partial{background:#fef3e2;color:#d97706}.absent{background:#fdecec;color:#dc2626}
+  .in{background:#e7f8ef;color:#16a34a}.out{background:#fef3e2;color:#d97706}
+  nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom))}
+  nav button{flex:1;background:0;border:0;color:var(--muted);font-weight:600;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  nav button.on{color:var(--red)}nav .g{font-size:20px}
+  #map{height:64vh;border-radius:14px}
+  .cam-wrap{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
+  video{flex:1;object-fit:cover;width:100%}
+  .cam-ui{position:absolute;left:0;right:0;bottom:0;padding:22px;padding-bottom:calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;background:linear-gradient(transparent,rgba(4,8,16,.55))}
+  .cam-ui .t{color:#fff;font-weight:800;text-align:center;font-size:18px}
+  .cam-ui .m{color:#e5e9f0;text-align:center}
+  .toggle{display:flex;background:rgba(255,255,255,.16);border-radius:999px;padding:4px;align-self:center}
+  .toggle button{border:0;background:0;color:#fff;font-weight:700;padding:8px 22px;border-radius:999px}
+  .toggle button.on{background:#fff;color:var(--red2)}
+  .grantInput{background:rgba(255,255,255,.12);color:#fff;border:0;text-align:center;letter-spacing:2px}
+  .result{font-size:24px;font-weight:900;text-align:center}
+  .ok{color:#4ade80}.bad{color:#fca5a5}
+  .banner{background:#FCE9EC;border:1px solid #F3C9D0;border-radius:12px;padding:12px}
+  .banner b{color:var(--red)}.banner div{color:var(--red);opacity:.85;font-size:12.5px}
+  .a2hs{position:fixed;left:12px;right:12px;bottom:96px;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;font-size:13px;z-index:40;display:flex;justify-content:space-between;gap:10px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="s-login" class="screen">
+  <div style="text-align:center;margin:8vh 0 16px">
+    <div style="width:64px;height:64px;border-radius:18px;background:var(--red);margin:0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:34px;font-weight:900">A</div>
+    <h1>Attendance Verify</h1><div class="muted">Sign in with your student ID</div>
+  </div>
+  <div class="card">
+    <label>Student ID</label><input id="l_id" inputmode="numeric" value=""/>
+    <label>Password</label><input id="l_pw" type="password"/>
+    <button class="btn" style="margin-top:12px" onclick="login()">Sign in</button>
+    <div class="muted" id="l_err" style="text-align:center;margin-top:8px;color:#dc2626"></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div id="s-home" class="screen hidden">
+  <div class="row"><div><div class="muted">Welcome back</div><h2 id="h_name" style="margin:0">Student</h2></div></div>
+  <div id="h_enrollBanner" class="banner hidden" style="margin-top:12px" onclick="go('enroll')">
+    <b>Enrol your face</b><div>Face is required before you can mark attendance · palm is optional. Tap to set up →</div>
+  </div>
+  <div id="h_body" style="margin-top:12px"></div>
+</div>
+
+<!-- MAP -->
+<div id="s-map" class="screen hidden">
+  <div class="row" style="margin-bottom:8px"><h2 style="margin:0">Nearby classes</h2><span id="m_pill" class="badge out">—</span></div>
+  <div id="map"></div>
+  <button class="btn sec" style="margin-top:10px" onclick="loadMap()">↻ Refresh</button>
+</div>
+
+<!-- PROFILE -->
+<div id="s-profile" class="screen hidden">
+  <div class="grad">
+    <div class="row"><div><h2 style="margin:0;color:#fff" id="p_name">—</h2><div style="color:rgba(255,255,255,.8)" id="p_ref"></div></div></div>
+    <div class="chip"><div class="k">Programme</div><div class="v" id="p_prog">—</div></div>
+    <div class="row" style="gap:8px">
+      <div class="chip" style="flex:1"><div class="k">Year</div><div class="v" id="p_year">—</div></div>
+      <div class="chip" style="flex:1"><div class="k">Class</div><div class="v" id="p_class">—</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="row" style="cursor:pointer" onclick="go('enroll')"><div><b>Biometric enrolment</b><div class="muted" id="p_bio">—</div></div><span>›</span></div>
+  </div>
+  <div class="card"><div class="row" style="cursor:pointer" onclick="go('history')"><b>My Attendance</b><span>›</span></div></div>
+  <button class="btn sec" onclick="logout()">Log out</button>
+</div>
+
+<!-- HISTORY -->
+<div id="s-history" class="screen hidden">
+  <div class="row"><h2 style="margin:0">My Attendance</h2><button class="btn ghost" onclick="go('profile')">Back</button></div>
+  <div id="hist_body"></div>
+</div>
+
+<!-- ENROLL hub -->
+<div id="s-enroll" class="screen hidden">
+  <div class="row"><h2 style="margin:0">Biometric enrolment</h2><button class="btn ghost" onclick="go('home')">Close</button></div>
+  <div class="card">
+    <div class="row"><span id="e_face">• Face <b style="color:#dc2626">required</b></span><span id="e_palm">• Palm <b class="muted">optional</b></span></div>
+  </div>
+  <div id="e_msg" class="muted" style="text-align:center"></div>
+  <button id="e_faceBtn" class="btn" onclick="startEnroll('face')">Enrol face (required)</button>
+  <button id="e_palmBtn" class="btn hidden" onclick="startEnroll('palm')">Add palm (optional)</button>
+</div>
+
+<!-- CAMERA (enroll + checkin share this) -->
+<div id="cam" class="cam-wrap hidden">
+  <video id="video" playsinline muted></video>
+  <div class="cam-ui">
+    <div id="cam_toggle" class="toggle hidden">
+      <button data-m="face" class="on" onclick="setCamModality('face')">Face</button>
+      <button data-m="palm" onclick="setCamModality('palm')">Palm</button>
+    </div>
+    <div id="cam_title" class="t"></div>
+    <div id="cam_msg" class="m"></div>
+    <input id="cam_grant" class="grantInput hidden" placeholder="ENTER ADMIN CODE"/>
+    <div id="cam_result" class="hidden"></div>
+    <button id="cam_action" class="btn" onclick="camAction()"></button>
+    <button class="btn ghost" style="color:#cbd2dd" onclick="closeCam()">Cancel</button>
+  </div>
+</div>
+
+<div id="a2hs" class="a2hs hidden">
+  <span>📲 Install: tap Share, then “Add to Home Screen”.</span>
+  <span onclick="document.getElementById('a2hs').classList.add('hidden')" style="cursor:pointer">✕</span>
+</div>
+
+<nav id="nav" class="hidden">
+  <button data-s="home" class="on" onclick="go('home')"><span class="g">⌂</span>Home</button>
+  <button data-s="map" onclick="go('map')"><span class="g">◎</span>Map</button>
+  <button data-s="profile" onclick="go('profile')"><span class="g">◍</span>Profile</button>
+</nav>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+if("serviceWorker" in navigator) navigator.serviceWorker.register("/app/sw.js",{scope:"/app/"}).catch(()=>{});
+const TK="av.jwt", DK="av.device";
+const $=id=>document.getElementById(id);
+function deviceId(){ let d=localStorage.getItem(DK); if(!d){d="web-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);localStorage.setItem(DK,d);} return d; }
+async function api(path,opts={},auth=true){
+  const h={"Content-Type":"application/json",...(opts.headers||{})};
+  if(auth){const t=localStorage.getItem(TK); if(t)h.Authorization="Bearer "+t;}
+  const r=await fetch(path,{...opts,headers:h});
+  const txt=await r.text(); const b=txt?JSON.parse(txt):{};
+  if(!r.ok) throw new Error(b.detail||b.message||r.statusText);
+  return b;
+}
+let STATUS={can_mark:false,palm_enrolled:false}, GPS=null, NAME="", MAP=null;
+
+// ---- auth ----
+async function login(){
+  $("l_err").textContent="";
+  try{
+    const r=await api("/api/auth/login",{method:"POST",body:JSON.stringify({student_id:$("l_id").value.trim(),password:$("l_pw").value,device_uid:deviceId(),platform:"ios-pwa",device_name:"iPhone (PWA)"})},false);
+    localStorage.setItem(TK,r.access_token); NAME=r.name; await boot();
+  }catch(e){ $("l_err").textContent=e.message; }
+}
+function logout(){ localStorage.removeItem(TK); location.reload(); }
+
+// ---- navigation ----
+function go(s){
+  ["login","home","map","profile","history","enroll"].forEach(x=>$("s-"+x).classList.toggle("hidden",x!==s));
+  $("nav").classList.toggle("hidden",s==="login");
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.s===s));
+  if(s==="home")loadHome(); if(s==="map")setTimeout(loadMap,60); if(s==="profile")loadProfile();
+  if(s==="history")loadHistory(); if(s==="enroll")loadEnroll();
+}
+
+// ---- home ----
+async function getGps(){
+  return new Promise(res=>{
+    if(!navigator.geolocation)return res(null);
+    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude,accuracy_m:p.coords.accuracy}),()=>res(null),{enableHighAccuracy:true,timeout:8000});
+  });
+}
+async function loadHome(){
+  $("h_name").textContent=NAME||"Student";
+  await refreshStatus();
+  $("h_enrollBanner").classList.toggle("hidden",STATUS.can_mark);
+  GPS=await getGps();
+  let list=[]; try{ if(GPS)list=await api(`/api/courses/available?lat=${GPS.lat}&lng=${GPS.lng}`);}catch(e){}
+  const c=list[0];
+  if(!c){ $("h_body").innerHTML='<div class="card muted" style="text-align:center">No live class near you right now.</div>'; return; }
+  $("h_body").innerHTML=`<div class="grad">
+    <div class="row"><span class="badge" style="background:rgba(255,255,255,.16);color:#fff">KNUST · ATTENDANCE</span><b>${c.course_code}</b></div>
+    <h2 style="color:#fff;margin:.3em 0">${c.course_title}</h2>
+    <div class="chip"><div class="k">Session</div><div class="v">${c.session_title}</div></div>
+    <div class="chip"><div class="k">Proximity</div><div class="v">${c.in_range?("Inside "+c.radius_m+" m zone"):(c.distance_m+" m away")}</div></div>
+  </div>
+  <div class="card">
+    <h3>Mark Your Attendance</h3><div class="muted">No code — your live face is the verification.</div>
+    ${!STATUS.can_mark?`<button class="btn" style="margin-top:10px" onclick="go('enroll')">Enrol to mark attendance →</button>`
+      :(c.in_range?`<button class="btn" style="margin-top:10px" onclick='startCheckin(${JSON.stringify(c)})'>Verify with Face →</button>`
+        :`<button class="btn" style="margin-top:10px" disabled>Move within ${c.radius_m} m to mark</button>`)}
+  </div>`;
+}
+
+// ---- map ----
+async function loadMap(){
+  GPS=await getGps(); const center=GPS||{lat:6.6745,lng:-1.5716};
+  let list=[]; try{ if(GPS)list=await api(`/api/courses/available?lat=${GPS.lat}&lng=${GPS.lng}`);}catch(e){}
+  const anyIn=list.some(s=>s.in_range);
+  $("m_pill").className="badge "+(anyIn?"in":"out"); $("m_pill").textContent=anyIn?"Inside class area":"Outside class area";
+  if(!MAP){ MAP=L.map("map",{zoomControl:false}).setView([center.lat,center.lng],16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
+  } else { MAP.setView([center.lat,center.lng],16); MAP.eachLayer(l=>{if(l instanceof L.Circle||l instanceof L.Marker||l instanceof L.CircleMarker)MAP.removeLayer(l);});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(MAP); }
+  L.circleMarker([center.lat,center.lng],{radius:7,color:"#2563eb",fillColor:"#2563eb",fillOpacity:1}).addTo(MAP);
+  list.forEach(s=>{
+    L.circle([s.center_lat,s.center_lng],{radius:s.radius_m,color:"#C41230",fillColor:"#C41230",fillOpacity:.12,weight:2}).addTo(MAP);
+    const m=L.marker([s.center_lat,s.center_lng]).addTo(MAP).bindTooltip(s.course_code+(s.in_range?" · tap to check in":" · out of range"));
+    m.on("click",()=>{ if(s.in_range&&STATUS.can_mark)startCheckin(s); else if(!STATUS.can_mark)go("enroll"); });
+  });
+  setTimeout(()=>MAP.invalidateSize(),80);
+}
+
+// ---- profile / history ----
+async function loadProfile(){
+  try{const p=await api("/api/profile");
+    $("p_name").textContent=p.name; $("p_ref").textContent="Reference: "+(p.reference_no||"—");
+    $("p_prog").textContent=p.programme||"—"; $("p_year").textContent=p.year_group||"—"; $("p_class").textContent=p.class_group||"—";
+    NAME=p.name;
+  }catch(e){}
+  await refreshStatus();
+  $("p_bio").textContent=(STATUS.can_mark?"Face enrolled":"Not enrolled")+(STATUS.palm_enrolled?" · palm enrolled":"");
+}
+async function loadHistory(){
+  let d=[]; try{d=await api("/api/attendance/history");}catch(e){}
+  $("hist_body").innerHTML=d.length?d.map(sem=>`<h3>${sem.semester}</h3>`+sem.items.map(i=>
+    `<div class="card"><div class="row"><div><b>${i.course_code} · ${i.session_title}</b><div class="muted">${new Date(i.date).toLocaleString()}</div></div><span class="badge ${i.status}">${i.status}</span></div></div>`).join("")).join(""):'<div class="card muted">No attendance records yet.</div>';
+}
+
+async function refreshStatus(){ try{STATUS=await api("/api/enroll/status");}catch(e){} }
+
+// ---- enroll ----
+function loadEnroll(){
+  refreshStatus().then(()=>{
+    $("e_face").innerHTML=(STATUS.can_mark?"✓":"•")+" Face <b style='color:#dc2626'>required</b>";
+    $("e_palm").innerHTML=(STATUS.palm_enrolled?"✓":"•")+" Palm <b class='muted'>optional</b>";
+    $("e_faceBtn").classList.toggle("hidden",STATUS.can_mark);
+    $("e_palmBtn").classList.toggle("hidden",!(STATUS.can_mark&&!STATUS.palm_enrolled));
+    $("e_msg").textContent=STATUS.can_mark&&STATUS.palm_enrolled?"Face and palm enrolled. You're all set.":"";
+  });
+}
+
+// ---- camera (shared) ----
+let CAM={stream:null,mode:null,modality:"face",shots:[],course:null,token:""};
+async function openCamera(facing){
+  CAM.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing},audio:false});
+  $("video").srcObject=CAM.stream; await $("video").play();
+}
+function grab(q){ const v=$("video"),c=document.createElement("canvas"); c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext("2d").drawImage(v,0,0); return c.toDataURL("image/jpeg",q||0.6).split(",")[1]; }
+function closeCam(){ if(CAM.stream)CAM.stream.getTracks().forEach(t=>t.stop()); CAM.stream=null; $("cam").classList.add("hidden");
+  $("cam_result").classList.add("hidden"); $("cam_grant").classList.add("hidden"); }
+function showCamResult(html){ const r=$("cam_result"); r.className=""; r.innerHTML=html; }
+
+// enroll capture
+async function startEnroll(modality){
+  CAM.mode="enroll"; CAM.modality=modality; CAM.shots=[];
+  $("cam_toggle").classList.add("hidden"); $("cam_grant").classList.add("hidden"); $("cam_grant").value="";
+  $("cam_result").classList.add("hidden");
+  $("cam_title").textContent="Enrol your "+modality+(modality==="face"?" (required)":" (optional)");
+  $("cam_msg").textContent=modality==="face"?"Face the camera. Capture 3 clear shots.":"Show your open palm to the back camera. 3 shots.";
+  $("cam").classList.remove("hidden");
+  try{ await openCamera(modality==="face"?"user":"environment"); }catch(e){ $("cam_msg").textContent="Camera error: "+e.message+" (needs iOS 16.4+)"; }
+  updateCamAction();
+}
+// checkin capture
+async function startCheckin(course){
+  CAM.mode="checkin"; CAM.course=course; CAM.modality="face"; CAM.shots=[];
+  $("cam_grant").classList.add("hidden"); $("cam_result").classList.add("hidden");
+  $("cam_toggle").classList.toggle("hidden",!STATUS.palm_enrolled);
+  document.querySelectorAll("#cam_toggle button").forEach(b=>b.classList.toggle("on",b.dataset.m==="face"));
+  $("cam_title").textContent=course.course_code+" · "+course.session_title;
+  $("cam_msg").textContent="Turn your head slowly left and right";
+  $("cam").classList.remove("hidden");
+  try{ await openCamera("user"); }catch(e){ $("cam_msg").textContent="Camera error: "+e.message+" (needs iOS 16.4+)"; }
+  updateCamAction();
+}
+async function setCamModality(m){
+  CAM.modality=m; document.querySelectorAll("#cam_toggle button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+  $("cam_msg").textContent=m==="face"?"Turn your head slowly left and right":"Show your open palm to the back camera";
+  if(CAM.stream)CAM.stream.getTracks().forEach(t=>t.stop());
+  try{ await openCamera(m==="face"?"user":"environment"); }catch(e){}
+}
+function updateCamAction(){
+  const a=$("cam_action");
+  if(CAM.mode==="enroll"){ a.textContent=CAM.shots.length>=3?("Enrol "+CAM.modality):("Capture sample ("+CAM.shots.length+"/3)"); }
+  else { a.textContent="Start "+CAM.modality+" check"; }
+}
+async function camAction(){
+  const a=$("cam_action"); a.disabled=true;
+  try{
+    if(CAM.mode==="enroll"){
+      if(CAM.shots.length<3){ CAM.shots.push(grab(0.6)); updateCamAction(); a.disabled=false; return; }
+      const body={modality:CAM.modality,images:CAM.shots}; const g=$("cam_grant").value.trim(); if(g)body.grant_token=g;
+      const r=await api("/api/enroll",{method:"POST",body:JSON.stringify(body)});
+      if(r.ok){ showCamResult(`<div class="result ok">✓ Enrolled</div><div class="m">${r.message}</div>`); setTimeout(()=>{closeCam();go("enroll");},1400); }
+      else if(r.code==="grant_required"){ $("cam_grant").classList.remove("hidden"); $("cam_msg").textContent=r.message; CAM.shots=[]; updateCamAction(); }
+      else { $("cam_msg").textContent=r.message; CAM.shots=[]; updateCamAction(); }
+    } else {
+      // checkin
+      $("cam_msg").textContent="Verifying…";
+      let r;
+      if(CAM.modality==="face"){
+        const ch=await api("/api/checkin/challenge",{method:"POST",body:JSON.stringify({session_id:CAM.course.session_id})});
+        const frames=[]; for(let i=0;i<5;i++){ frames.push(grab(0.5)); await new Promise(x=>setTimeout(x,450)); }
+        r=await api("/api/checkin/verify",{method:"POST",body:JSON.stringify({session_id:CAM.course.session_id,modality:"face",token:ch.token,frames,gps:GPS})});
+      } else {
+        const img=grab(0.6);
+        r=await api("/api/checkin/verify",{method:"POST",body:JSON.stringify({session_id:CAM.course.session_id,modality:"palm",image:img,gps:GPS})});
+      }
+      if(r.ok){ showCamResult(`<div class="result ok">${r.status==="present"?"✓ Present":"✓ Mark "+r.marks_count+"/"+r.marks_required}</div><div class="m">${r.message}</div>`); }
+      else { showCamResult(`<div class="result bad">✕ Not counted</div><div class="m">${r.message}</div>`); }
+      a.textContent="Done"; a.onclick=()=>{a.onclick=camAction;closeCam();go("home");};
+    }
+  }catch(e){ showCamResult(`<div class="result bad">⚠ ${e.message}</div>`); a.textContent="Close"; a.onclick=()=>{a.onclick=camAction;closeCam();}; }
+  a.disabled=false;
+}
+
+// ---- boot ----
+function isStandalone(){ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone; }
+async function boot(){
+  if(!localStorage.getItem(TK)){ go("login"); return; }
+  try{ const p=await api("/api/profile"); NAME=p.name; }catch(e){ if((""+e).includes("401")||(""+e).includes("token")){logout();return;} }
+  go("home");
+  if(!isStandalone() && /iphone|ipad|ipod/i.test(navigator.userAgent)) $("a2hs").classList.remove("hidden");
+}
+boot();
+</script>
+</body>
+</html>

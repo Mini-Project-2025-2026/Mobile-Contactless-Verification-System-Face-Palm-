@@ -1,18 +1,22 @@
 """FastAPI application entrypoint."""
 from __future__ import annotations
 
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import init_db
 from .routers import admin, attendance, auth, checkin, courses, devices, enroll, profile, sessions
 
-_ADMIN_HTML = (Path(__file__).parent / "static" / "admin.html")
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+_STATIC = Path(__file__).parent / "static"
+_ADMIN_HTML = _STATIC / "admin.html"
 
 
 @asynccontextmanager
@@ -59,3 +63,7 @@ def health() -> dict:
 def admin_console() -> str:
     """Serve the admin single-page console."""
     return _ADMIN_HTML.read_text(encoding="utf-8")
+
+
+# Installable iPhone/Android PWA (login, enrol, geofence check-in) served at /app.
+app.mount("/app", StaticFiles(directory=str(_STATIC / "pwa"), html=True), name="pwa")
