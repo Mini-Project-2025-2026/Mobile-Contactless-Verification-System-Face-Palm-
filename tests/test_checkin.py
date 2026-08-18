@@ -12,6 +12,7 @@ from sqlmodel import Session, SQLModel, select
 
 from app import biometric
 from app.biometric import VerifyResult, Challenge
+from app.config import settings
 from app.db import engine
 from app.main import app
 from app.models import Course, Enrollment, Session as ClassSession, Student
@@ -117,3 +118,32 @@ def test_bad_signature_is_gateway_error(client, token, monkeypatch):
     r = client.post("/api/checkin/verify", headers=_auth(token),
                     json={"session_id": 1, "frames": ["x"], "gps": {"lat": LAT, "lng": LNG}})
     assert r.status_code == 502
+
+
+def test_face_required_when_no_face(client, token, monkeypatch):
+    with Session(engine) as db:
+        s = db.exec(select(Student).where(Student.student_id == SID)).first()
+        s.enrolled_modality = "palm"  # palm only, no face
+        db.add(s)
+        db.commit()
+    _mock_verify(monkeypatch)
+    r = client.post("/api/checkin/verify", headers=_auth(token),
+                    json={"session_id": 1, "modality": "palm", "image": "x", "gps": {"lat": LAT, "lng": LNG}})
+    assert r.json()["code"] == "face_required"
+    assert r.json()["ok"] is False
+
+
+def test_low_gps_accuracy_rejected(client, token, monkeypatch):
+    monkeypatch.setattr(settings, "max_gps_accuracy_m", 50.0)
+    _mock_verify(monkeypatch)
+    r = client.post("/api/checkin/verify", headers=_auth(token),
+                    json={"session_id": 1, "frames": ["x"], "gps": {"lat": LAT, "lng": LNG, "accuracy_m": 200}})
+    assert r.json()["code"] == "low_gps_accuracy"
+
+
+def test_good_gps_accuracy_allowed(client, token, monkeypatch):
+    monkeypatch.setattr(settings, "max_gps_accuracy_m", 50.0)
+    _mock_verify(monkeypatch, nonce="acc-ok")
+    r = client.post("/api/checkin/verify", headers=_auth(token),
+                    json={"session_id": 1, "frames": ["x"], "gps": {"lat": LAT, "lng": LNG, "accuracy_m": 12}})
+    assert r.json()["ok"] is True

@@ -158,10 +158,10 @@ async function api(path,opts={},auth=true){
   if(auth){const t=localStorage.getItem(TK); if(t)h.Authorization="Bearer "+t;}
   const r=await fetch(path,{...opts,headers:h});
   const txt=await r.text(); const b=txt?JSON.parse(txt):{};
-  if(!r.ok) throw new Error(b.detail||b.message||r.statusText);
+  if(!r.ok){ const err=new Error(b.detail||b.message||r.statusText); err.status=r.status; throw err; }
   return b;
 }
-let STATUS={can_mark:false,palm_enrolled:false}, GPS=null, NAME="", MAP=null;
+let STATUS={can_mark:false,palm_enrolled:false}, GPS=null, NAME="", MAP=null, HOME_COURSE=null;
 
 // ---- auth ----
 async function login(){
@@ -195,7 +195,7 @@ async function loadHome(){
   $("h_enrollBanner").classList.toggle("hidden",STATUS.can_mark);
   GPS=await getGps();
   let list=[]; try{ if(GPS)list=await api(`/api/courses/available?lat=${GPS.lat}&lng=${GPS.lng}`);}catch(e){}
-  const c=list[0];
+  const c=list[0]; HOME_COURSE=c;
   if(!c){ $("h_body").innerHTML='<div class="card muted" style="text-align:center">No live class near you right now.</div>'; return; }
   $("h_body").innerHTML=`<div class="grad">
     <div class="row"><span class="badge" style="background:rgba(255,255,255,.16);color:#fff">KNUST · ATTENDANCE</span><b>${c.course_code}</b></div>
@@ -206,7 +206,7 @@ async function loadHome(){
   <div class="card">
     <h3>Mark Your Attendance</h3><div class="muted">No code — your live face is the verification.</div>
     ${!STATUS.can_mark?`<button class="btn" style="margin-top:10px" onclick="go('enroll')">Enrol to mark attendance →</button>`
-      :(c.in_range?`<button class="btn" style="margin-top:10px" onclick='startCheckin(${JSON.stringify(c)})'>Verify with Face →</button>`
+      :(c.in_range?`<button class="btn" style="margin-top:10px" onclick="startCheckin(HOME_COURSE)">Verify with Face →</button>`
         :`<button class="btn" style="margin-top:10px" disabled>Move within ${c.radius_m} m to mark</button>`)}
   </div>`;
 }
@@ -339,7 +339,7 @@ async function camAction(){
 function isStandalone(){ return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone; }
 async function boot(){
   if(!localStorage.getItem(TK)){ go("login"); return; }
-  try{ const p=await api("/api/profile"); NAME=p.name; }catch(e){ if((""+e).includes("401")||(""+e).includes("token")){logout();return;} }
+  try{ const p=await api("/api/profile"); NAME=p.name; }catch(e){ if(e.status===401){logout();return;} }
   go("home");
   if(!isStandalone() && /iphone|ipad|ipod/i.test(navigator.userAgent)) $("a2hs").classList.remove("hidden");
 }

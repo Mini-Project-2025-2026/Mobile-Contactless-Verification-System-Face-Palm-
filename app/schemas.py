@@ -45,17 +45,6 @@ class AvailableCourse(BaseModel):
     center_lng: float
 
 
-class CreateSessionRequest(BaseModel):
-    course_id: int
-    title: str = ""
-    lat: float
-    lng: float
-    radius_m: float | None = None
-    starts_at: datetime
-    ends_at: datetime
-    marks_required: int = 2
-
-
 # --- check-in ---
 class ChallengeRequest(BaseModel):
     session_id: int

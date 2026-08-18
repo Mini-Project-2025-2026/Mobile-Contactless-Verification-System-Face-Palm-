@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import init_db
-from .routers import admin, attendance, auth, checkin, courses, devices, enroll, profile, sessions
+from .routers import admin, attendance, auth, checkin, courses, devices, enroll, profile
 
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 _STATIC = Path(__file__).parent / "static"
@@ -45,7 +45,6 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(courses.router)
-app.include_router(sessions.router)
 app.include_router(checkin.router)
 app.include_router(attendance.router)
 app.include_router(devices.router)
