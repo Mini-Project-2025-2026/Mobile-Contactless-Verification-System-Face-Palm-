@@ -27,5 +27,10 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "cLLeB"
 
+    # If true, a student may only use ONE device (hard lock at login). Default
+    # false: biometric verification prevents proxy attendance, so we relax the
+    # login lock and instead bind the ENROLMENT device (re-enrol needs a grant).
+    enforce_login_device: bool = False
+
 
 settings = Settings()

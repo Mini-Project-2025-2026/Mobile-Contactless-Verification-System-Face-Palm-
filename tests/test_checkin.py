@@ -26,7 +26,8 @@ def fresh_db():
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
     with Session(engine) as db:
-        db.add(Student(student_id=SID, name="Ama", password_hash=hash_password("pw"), semester="2025/2026-1"))
+        db.add(Student(student_id=SID, name="Ama", password_hash=hash_password("pw"),
+                       semester="2025/2026-1", enrolled_modality="face"))
         course = Course(code="CS101", title="Intro", semester="2025/2026-1", lecturer_name="Dr. Osei")
         db.add(course)
         db.commit()

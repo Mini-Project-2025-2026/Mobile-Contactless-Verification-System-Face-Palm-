@@ -53,12 +53,19 @@ def current_admin(authorization: str = Header(default="")) -> str:
     return claims.get("sub", "admin")
 
 
+def current_device_uid(authorization: str = Header(default="")) -> str:
+    """The device_uid carried in the caller's token (used for enrolment binding)."""
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
+    return _decode(authorization.split(" ", 1)[1].strip()).get("dev", "")
+
+
 def current_student(
     authorization: str = Header(default=""),
     db: Session = Depends(get_session),
 ) -> Student:
-    """Resolve the caller from a bearer token AND confirm their device is the
-    active registered one (enforces the one-device policy on every request)."""
+    """Resolve the caller from a bearer token. When `enforce_login_device` is on,
+    also require the request to come from the active registered device."""
     if not authorization.lower().startswith("bearer "):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
     claims = _decode(authorization.split(" ", 1)[1].strip())
@@ -69,10 +76,11 @@ def current_student(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "unknown student")
 
     device = db.exec(select(Device).where(Device.device_uid == device_uid)).first()
-    if not device or device.student_id != student_id or not device.active:
+    if settings.enforce_login_device and (not device or device.student_id != student_id or not device.active):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "device_not_registered")
 
-    device.last_seen = datetime.now(timezone.utc)
-    db.add(device)
-    db.commit()
+    if device is not None:
+        device.last_seen = datetime.now(timezone.utc)
+        db.add(device)
+        db.commit()
     return student

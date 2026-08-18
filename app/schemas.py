@@ -125,6 +125,7 @@ class EnrollRequest(BaseModel):
     modality: Modality = Modality.face
     images: list[str] = Field(default_factory=list, description="base64 JPEG/PNG samples")
     source: str = "auto"
+    grant_token: str = ""  # admin one-time token, required for re-enrolment / new device
 
 
 class EnrollResponse(BaseModel):
@@ -134,6 +135,7 @@ class EnrollResponse(BaseModel):
     samples: int
     modality: Modality
     message: str
+    code: str = "ok"  # ok | grant_required | no_biometric
 
 
 class EnrollStatus(BaseModel):

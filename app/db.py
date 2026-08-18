@@ -16,6 +16,21 @@ def init_db() -> None:
     from . import models  # noqa: F401  (registers tables)
 
     SQLModel.metadata.create_all(engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Lightweight additive migration: add columns introduced after first deploy.
+    create_all() creates missing TABLES but never adds columns to existing ones."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "student" not in insp.get_table_names():
+        return
+    cols = {c["name"] for c in insp.get_columns("student")}
+    if "enroll_device_uid" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE student ADD COLUMN enroll_device_uid VARCHAR DEFAULT ''"))
 
 
 def get_session() -> Iterator[Session]:

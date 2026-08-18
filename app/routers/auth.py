@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
+from ..config import settings
 from ..db import get_session
 from ..models import Device, Student
 from ..schemas import LoginRequest, TokenResponse
@@ -24,8 +25,9 @@ def login(req: LoginRequest, db: Session = Depends(get_session)) -> TokenRespons
         select(Device).where(Device.student_id == student.student_id, Device.active == True)  # noqa: E712
     ).first()
 
-    if active and active.device_uid != req.device_uid:
-        # One-device policy: a different phone is already bound.
+    if settings.enforce_login_device and active and active.device_uid != req.device_uid:
+        # Hard one-device policy (opt-in). Default is relaxed — biometric verify
+        # prevents proxy at check-in, and enrolment is protected separately.
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "device_conflict: another device is registered. Request a device change.",

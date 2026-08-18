@@ -5,6 +5,7 @@ Auth: POST /api/admin/login with the configured admin credentials returns a
 """
 from __future__ import annotations
 
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +14,7 @@ from sqlmodel import Session, select
 
 from ..config import settings
 from ..db import get_session
-from ..models import Attendance, Course, Enrollment, Session as ClassSession, Student
+from ..models import Attendance, Course, EnrollGrant, Enrollment, Session as ClassSession, Student
 from ..security import create_admin_token, current_admin, hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -184,6 +185,36 @@ def close_session(session_id: int, _: str = Depends(current_admin), db: Session 
     db.add(s)
     db.commit()
     return {"session_id": session_id, "active": False}
+
+
+# ---------- enrolment grants (one-time re-enrolment / new-device codes) ----------
+class GrantIn(BaseModel):
+    student_id: str
+    ttl_hours: int = Field(default=24, ge=1, le=720)
+
+
+@router.post("/enroll-grant", status_code=201)
+def issue_grant(body: GrantIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+    if not db.exec(select(Student).where(Student.student_id == body.student_id)).first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown student")
+    token = secrets.token_urlsafe(6).replace("_", "").replace("-", "")[:8].upper()
+    expires = datetime.now(timezone.utc) + timedelta(hours=body.ttl_hours)
+    db.add(EnrollGrant(token=token, student_id=body.student_id, expires_at=expires))
+    db.commit()
+    return {"student_id": body.student_id, "token": token, "expires_at": expires.isoformat(),
+            "note": "Give this one-time code to the student to re-enrol or enrol on a new device."}
+
+
+@router.get("/enroll-grants")
+def list_grants(student_id: str, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
+    rows = db.exec(select(EnrollGrant).where(EnrollGrant.student_id == student_id)).all()
+    now = datetime.now(timezone.utc)
+    out = []
+    for g in rows:
+        exp = g.expires_at if g.expires_at.tzinfo else g.expires_at.replace(tzinfo=timezone.utc)
+        out.append({"token": g.token, "expires_at": exp.isoformat(),
+                    "used": g.used_at is not None, "expired": exp < now})
+    return sorted(out, key=lambda x: (x["used"] or x["expired"], x["expires_at"]))
 
 
 # ---------- attendance ----------

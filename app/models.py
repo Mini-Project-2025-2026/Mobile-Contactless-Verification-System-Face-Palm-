@@ -40,6 +40,7 @@ class Student(SQLModel, table=True):
     enrolled_at: datetime | None = None
     enrolled_modality: str = ""
     enrolled_samples: int = 0
+    enroll_device_uid: str = ""  # device bound at first enrolment
     created_at: datetime = Field(default_factory=_now)
 
 
@@ -94,6 +95,17 @@ class Attendance(SQLModel, table=True):
     best_score: float = 0.0
     first_marked_at: datetime | None = None
     last_marked_at: datetime | None = None
+
+
+class EnrollGrant(SQLModel, table=True):
+    """Admin-issued one-time token that permits a re-enrolment or an enrolment
+    from a new device. Single-use, expiring."""
+    id: int | None = Field(default=None, primary_key=True)
+    token: str = Field(index=True, unique=True)
+    student_id: str = Field(index=True)
+    created_at: datetime = Field(default_factory=_now)
+    expires_at: datetime
+    used_at: datetime | None = None
 
 
 class AttendanceMark(SQLModel, table=True):

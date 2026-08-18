@@ -1,31 +1,46 @@
 """In-app biometric enrolment: a student registers their own face/palm.
 
-Policy (enforced here, not in the biometric service): **face is compulsory,
-palm is optional**. `can_mark` becomes true only once a face template exists.
-If both are enrolled, either can be presented at check-in — the biometric
-service auto-detects the modality and matches the right template.
+Policy (enforced here, not in the biometric service):
+  * **Face is compulsory, palm optional** — `can_mark` is true only once a face
+    template exists. If both exist, either can be presented at check-in.
+  * **First enrolment binds the device.** Adding a not-yet-enrolled modality
+    (e.g. optional palm) from that same device is free.
+  * **Re-enrolment (redoing an existing modality) or enrolling from a different
+    device requires an admin-issued one-time grant token** (single-use, expiring),
+    which then re-binds the enrolment device.
 
-Enrolled modalities are tracked in the existing `enrolled_modality` column as a
-comma-joined set (e.g. "face" or "face,palm") — no schema change required.
+Enrolled modalities live in `enrolled_modality` as a comma-joined set.
 """
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from .. import biometric
 from ..db import get_session
-from ..models import Modality, Student
+from ..models import EnrollGrant, Modality, Student
 from ..schemas import EnrollRequest, EnrollResponse, EnrollStatus
-from ..security import current_student
+from ..security import current_device_uid, current_student
 
 router = APIRouter(prefix="/api/enroll", tags=["enroll"])
 
 
 def _modalities(student: Student) -> set[str]:
     return {m for m in (student.enrolled_modality or "").split(",") if m}
+
+
+def _valid_grant(db: Session, student_id: str, token: str) -> EnrollGrant | None:
+    if not token:
+        return None
+    g = db.exec(select(EnrollGrant).where(EnrollGrant.token == token)).first()
+    if not g or g.student_id != student_id or g.used_at is not None:
+        return None
+    exp = g.expires_at if g.expires_at.tzinfo else g.expires_at.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        return None
+    return g
 
 
 @router.get("/status", response_model=EnrollStatus)
@@ -39,10 +54,30 @@ def enroll_status(student: Student = Depends(current_student)) -> EnrollStatus:
 def enroll(
     req: EnrollRequest,
     student: Student = Depends(current_student),
+    device_uid: str = Depends(current_device_uid),
     db: Session = Depends(get_session),
 ) -> EnrollResponse:
     if not req.images:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "no images provided")
+
+    mods = _modalities(student)
+    first_ever = not mods
+    has_mod = req.modality.value in mods
+    same_device = bool(student.enroll_device_uid) and device_uid == student.enroll_device_uid
+
+    # Decide whether an admin grant is needed.
+    if first_ever or (same_device and not has_mod):
+        need_grant, grant = False, None
+    else:
+        grant = _valid_grant(db, student.student_id, req.grant_token)
+        need_grant = True
+        if grant is None:
+            reason = ("Re-enrolling your " + req.modality.value) if has_mod else "Enrolling from a new device"
+            return EnrollResponse(
+                ok=False, enrolled=0, of=len(req.images), samples=0, modality=req.modality,
+                code="grant_required",
+                message=f"{reason} needs a one-time code from your admin.",
+            )
 
     try:
         result = biometric.enroll_user(student.student_id, req.images, source=req.source)
@@ -52,14 +87,20 @@ def enroll(
     if result.enrolled <= 0:
         return EnrollResponse(
             ok=False, enrolled=0, of=result.of, samples=result.samples, modality=req.modality,
+            code="no_biometric",
             message=f"No usable {req.modality.value} detected — retake in good lighting, filling the frame.",
         )
 
-    mods = _modalities(student)
+    # Persist: modalities, first-enrolment timestamp, device binding, grant use.
     mods.add(req.modality.value)
     student.enrolled_modality = ",".join(sorted(mods))
     student.enrolled_at = student.enrolled_at or datetime.now(timezone.utc)
     student.enrolled_samples = max(student.enrolled_samples, result.samples)
+    if first_ever or need_grant:
+        student.enroll_device_uid = device_uid  # bind / re-bind
+    if grant is not None:
+        grant.used_at = datetime.now(timezone.utc)
+        db.add(grant)
     db.add(student)
     db.commit()
 
@@ -71,5 +112,5 @@ def enroll(
                else "Palm enrolled. Face is still required before you can mark attendance.")
     return EnrollResponse(
         ok=True, enrolled=result.enrolled, of=result.of, samples=result.samples,
-        modality=req.modality, message=msg,
+        modality=req.modality, message=msg, code="ok",
     )

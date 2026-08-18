@@ -128,6 +128,16 @@
         </div>
         <button class="btn" onclick="enrollCourse()">Enrol</button>
       </div>
+      <div class="card">
+        <h3 style="margin-top:0">Issue enrolment grant (one-time code)</h3>
+        <p class="muted" style="margin-top:0">For re-enrolment or enrolling on a new device. First enrolment doesn't need one.</p>
+        <div class="grid">
+          <div><label>Student</label><select id="gr_student"></select></div>
+          <div><label>Valid for (hours)</label><input id="gr_ttl" type="number" value="24"/></div>
+        </div>
+        <button class="btn" onclick="issueGrant()">Generate code</button>
+        <div id="grantOut"></div>
+      </div>
       <div class="card"><h3 style="margin-top:0">Students</h3><div id="studentList"></div></div>
     </div>
 
@@ -170,7 +180,7 @@ function tab(name){
   if(name==='overview')loadOverview();
   if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
   if(name==='courses')loadCourses();
-  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student')}
+  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student')}
   if(name==='attendance')loadSessionsInto('at_session');
 }
 async function loadOverview(){
@@ -263,6 +273,12 @@ async function createStudent(){
 async function enrollCourse(){
   await api('/api/admin/enroll-course',{method:'POST',body:JSON.stringify({student_id:val('en_student'),course_id:+val('en_course')})});
   loadStudents();alert('Enrolled.');
+}
+async function issueGrant(){
+  try{
+    const r=await api('/api/admin/enroll-grant',{method:'POST',body:JSON.stringify({student_id:val('gr_student'),ttl_hours:+val('gr_ttl')||24})});
+    document.getElementById('grantOut').innerHTML='<div class="card" style="background:#fff7f8;margin-top:10px"><b>One-time code:</b> <span style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--red)">'+r.token+'</span><div class="muted">Give this to the student. Expires '+new Date(r.expires_at).toLocaleString()+'. Single use.</div></div>';
+  }catch(e){alert(e.message)}
 }
 // ---- sessions ----
 async function createSession(){
