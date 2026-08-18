@@ -137,6 +137,6 @@ class EnrollResponse(BaseModel):
 
 
 class EnrollStatus(BaseModel):
-    enrolled: bool
-    samples: int
-    modality: str
+    face_enrolled: bool
+    palm_enrolled: bool
+    can_mark: bool  # true once the compulsory face enrolment exists

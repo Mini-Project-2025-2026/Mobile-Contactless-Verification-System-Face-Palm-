@@ -20,5 +20,5 @@ def me(student: Student = Depends(current_student)) -> Profile:
         year_group=student.year_group,
         class_group=student.class_group,
         semester=student.semester,
-        enrolled=student.enrolled_at is not None,
+        enrolled="face" in (student.enrolled_modality or "").split(","),
     )
