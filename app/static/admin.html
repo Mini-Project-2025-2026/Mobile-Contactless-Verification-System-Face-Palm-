@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Attendance Verify — Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:#12151c}
+  header{background:linear-gradient(120deg,var(--red),var(--red2));color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0;font-weight:800}
+  header button{background:rgba(255,255,255,.2);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{background:#fff;border:1px solid var(--line);padding:9px 14px;border-radius:999px;cursor:pointer;font-weight:600}
+  .tabs button.on{background:var(--red);color:#fff;border-color:var(--red)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(11,18,32,.04)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin:8px 0 3px}
+  input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:14px}
+  .btn{background:var(--red);color:#fff;border:0;padding:11px 16px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:10px}
+  .btn.sec{background:#eef0f3;color:#12151c}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .present{background:#e7f8ef;color:#16a34a}.partial{background:#fef3e2;color:#d97706}.absent{background:#fdecec;color:#dc2626}
+  .live{background:#e7f8ef;color:#16a34a}.closed{background:#eef0f3;color:#6b7280}
+  #map{height:300px;border-radius:12px;margin-top:8px}
+  .stat{display:inline-block;min-width:120px}.stat b{font-size:24px;display:block;color:var(--red)}
+  .muted{color:var(--muted);font-size:13px}
+  .hidden{display:none}
+  #login{max-width:360px;margin:8vh auto}
+  .err{color:#dc2626;font-size:13px;margin-top:6px;min-height:16px}
+</style>
+</head>
+<body>
+
+<div id="login" class="card">
+  <h2 style="margin-top:0">Admin sign in</h2>
+  <label>Username</label><input id="u" value="admin"/>
+  <label>Password</label><input id="p" type="password"/>
+  <button class="btn" style="width:100%" onclick="login()">Sign in</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app" class="hidden">
+  <header><h1>Attendance Verify · Admin</h1><button onclick="logout()">Sign out</button></header>
+  <div class="wrap">
+    <div class="tabs">
+      <button data-t="overview" class="on" onclick="tab('overview')">Overview</button>
+      <button data-t="sessions" onclick="tab('sessions')">Sessions</button>
+      <button data-t="courses" onclick="tab('courses')">Courses</button>
+      <button data-t="students" onclick="tab('students')">Students</button>
+      <button data-t="attendance" onclick="tab('attendance')">Attendance</button>
+    </div>
+
+    <div id="v-overview" class="view">
+      <div class="card" id="stats"></div>
+    </div>
+
+    <div id="v-sessions" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create geofenced session</h3>
+        <div class="grid">
+          <div><label>Course</label><select id="s_course"></select></div>
+          <div><label>Title</label><input id="s_title" placeholder="Lecture 6"/></div>
+          <div><label>Radius (m)</label><input id="s_radius" type="number" value="70"/></div>
+          <div><label>Duration (min)</label><input id="s_dur" type="number" value="90"/></div>
+          <div><label>Marks required</label><input id="s_marks" type="number" value="2"/></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0;width:100%" onclick="useMyLocation()">📍 Use my location</button></div>
+        </div>
+        <label>Location (drag the pin, or tap the map). Lat/Lng: <span id="s_coords" class="muted">—</span></label>
+        <div id="map"></div>
+        <button class="btn" onclick="createSession()">Create session here</button>
+        <div class="err" id="sessErr"></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Sessions</h3><div id="sessList"></div></div>
+    </div>
+
+    <div id="v-courses" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create course</h3>
+        <div class="grid">
+          <div><label>Code</label><input id="c_code" placeholder="CS201"/></div>
+          <div><label>Title</label><input id="c_title" placeholder="Data Structures"/></div>
+          <div><label>Semester</label><input id="c_sem" value="2025/2026-1"/></div>
+          <div><label>Lecturer</label><input id="c_lect" placeholder="Dr. Mensah"/></div>
+        </div>
+        <button class="btn" onclick="createCourse()">Add course</button>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Courses</h3><div id="courseList"></div></div>
+    </div>
+
+    <div id="v-students" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create student</h3>
+        <div class="grid">
+          <div><label>Student ID</label><input id="st_id" placeholder="20512346"/></div>
+          <div><label>Name</label><input id="st_name" placeholder="Kofi Owusu"/></div>
+          <div><label>Password</label><input id="st_pw" value="passw0rd"/></div>
+          <div><label>Programme</label><input id="st_prog" placeholder="Computer Science"/></div>
+          <div><label>Year Group</label><input id="st_year" placeholder="2023/2024"/></div>
+          <div><label>Class Group</label><input id="st_class" placeholder="1"/></div>
+        </div>
+        <button class="btn" onclick="createStudent()">Add student</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Enrol student in course</h3>
+        <div class="grid">
+          <div><label>Student</label><select id="en_student"></select></div>
+          <div><label>Course</label><select id="en_course"></select></div>
+        </div>
+        <button class="btn" onclick="enrollCourse()">Enrol</button>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Students</h3><div id="studentList"></div></div>
+    </div>
+
+    <div id="v-attendance" class="view hidden">
+      <div class="card">
+        <label>Session</label><select id="at_session" onchange="loadAttendance()"></select>
+        <div id="attList" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const TOKEN_KEY="av_admin_token";
+let map, marker, circle, picked={lat:6.6745,lng:-1.5716};
+function tok(){return localStorage.getItem(TOKEN_KEY)}
+async function api(path,opts={}){
+  const h={"Content-Type":"application/json",...(opts.headers||{})};
+  if(tok())h["Authorization"]="Bearer "+tok();
+  const r=await fetch(path,{...opts,headers:h});
+  const t=await r.text(); const b=t?JSON.parse(t):{};
+  if(!r.ok)throw new Error(b.detail||b.message||r.statusText);
+  return b;
+}
+async function login(){
+  document.getElementById('loginErr').textContent="";
+  try{
+    const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({username:U().value,password:P().value})});
+    localStorage.setItem(TOKEN_KEY,r.access_token); showApp();
+  }catch(e){document.getElementById('loginErr').textContent=e.message}
+}
+function logout(){localStorage.removeItem(TOKEN_KEY);location.reload()}
+const U=()=>document.getElementById('u'),P=()=>document.getElementById('p');
+function showApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');tab('overview')}
+function tab(name){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+  document.getElementById('v-'+name).classList.remove('hidden');
+  if(name==='overview')loadOverview();
+  if(name==='sessions'){loadCoursesInto('s_course');loadSessions();setTimeout(initMap,80)}
+  if(name==='courses')loadCourses();
+  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student')}
+  if(name==='attendance')loadSessionsInto('at_session');
+}
+async function loadOverview(){
+  const o=await api('/api/admin/overview');
+  document.getElementById('stats').innerHTML=
+    stat('Students',o.students)+stat('Courses',o.courses)+stat('Sessions',o.sessions)+stat('Live now',o.live_sessions)+stat('Attendance rows',o.attendance_records);
+}
+const stat=(l,v)=>`<div class="stat"><b>${v}</b><span class="muted">${l}</span></div>`;
+
+// ---- map ----
+function initMap(){
+  if(map){map.invalidateSize();return}
+  map=L.map('map').setView([picked.lat,picked.lng],16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  marker=L.marker([picked.lat,picked.lng],{draggable:true}).addTo(map);
+  circle=L.circle([picked.lat,picked.lng],{radius:+document.getElementById('s_radius').value||70,color:'#C41230',fillColor:'#C41230',fillOpacity:.12}).addTo(map);
+  marker.on('drag',e=>setPicked(e.target.getLatLng()));
+  map.on('click',e=>{marker.setLatLng(e.latlng);setPicked(e.latlng)});
+  document.getElementById('s_radius').addEventListener('input',()=>circle.setRadius(+document.getElementById('s_radius').value||70));
+  setPicked(picked);
+}
+function setPicked(ll){picked={lat:ll.lat,lng:ll.lng};circle.setLatLng(ll);document.getElementById('s_coords').textContent=ll.lat.toFixed(5)+', '+ll.lng.toFixed(5)}
+function useMyLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const ll={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    map.setView([ll.lat,ll.lng],17);marker.setLatLng(ll);setPicked(ll);
+  },err=>alert('Location error: '+err.message),{enableHighAccuracy:true});
+}
+
+// ---- courses ----
+async function loadCourses(){
+  const cs=await api('/api/admin/courses');
+  document.getElementById('courseList').innerHTML=cs.length?tableRows(['Code','Title','Semester','Lecturer'],cs.map(c=>[c.code,c.title,c.semester,c.lecturer_name||'—'])):'<p class="muted">No courses yet.</p>';
+}
+async function loadCoursesInto(id){
+  const cs=await api('/api/admin/courses');
+  document.getElementById(id).innerHTML=cs.map(c=>`<option value="${c.id}">${c.code} — ${c.title}</option>`).join('');
+}
+async function createCourse(){
+  await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
+  loadCourses();
+}
+// ---- students ----
+async function loadStudents(){
+  const ss=await api('/api/admin/students');
+  document.getElementById('studentList').innerHTML=ss.length?tableRows(['ID','Name','Programme','Biometric','Courses'],ss.map(s=>[s.student_id,s.name,s.programme||'—',s.biometric_enrolled?'✓ enrolled':'—',s.course_ids.length])):'<p class="muted">No students yet.</p>';
+}
+async function loadStudentsInto(id){
+  const ss=await api('/api/admin/students');
+  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.student_id}">${s.student_id} — ${s.name}</option>`).join('');
+}
+async function createStudent(){
+  try{await api('/api/admin/students',{method:'POST',body:JSON.stringify({student_id:val('st_id'),name:val('st_name'),password:val('st_pw'),programme:val('st_prog'),year_group:val('st_year'),class_group:val('st_class')})});
+  loadStudents();loadStudentsInto('en_student');}catch(e){alert(e.message)}
+}
+async function enrollCourse(){
+  await api('/api/admin/enroll-course',{method:'POST',body:JSON.stringify({student_id:val('en_student'),course_id:+val('en_course')})});
+  loadStudents();alert('Enrolled.');
+}
+// ---- sessions ----
+async function createSession(){
+  document.getElementById('sessErr').textContent="";
+  try{
+    await api('/api/admin/sessions',{method:'POST',body:JSON.stringify({course_id:+val('s_course'),title:val('s_title'),lat:picked.lat,lng:picked.lng,radius_m:+val('s_radius'),duration_minutes:+val('s_dur'),marks_required:+val('s_marks')})});
+    loadSessions();alert('Session created — it is now live for enrolled students.');
+  }catch(e){document.getElementById('sessErr').textContent=e.message}
+}
+async function loadSessions(){
+  const ss=await api('/api/admin/sessions');
+  document.getElementById('sessList').innerHTML=ss.length?ss.map(s=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:8px 0">
+      <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'closed'}</span>
+      <div class="muted">${s.radius_m}m · ${s.checked_in} checked-in · ${new Date(s.ends_at).toLocaleString()}</div></div>
+      ${s.active?`<button class="btn sec" style="margin:0" onclick="closeSession(${s.id})">Close</button>`:''}
+    </div>`).join(''):'<p class="muted">No sessions yet.</p>';
+}
+async function loadSessionsInto(id){
+  const ss=await api('/api/admin/sessions');
+  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.id}">${s.course_code} · ${s.title||''} ${s.live?'(live)':''}</option>`).join('');
+  loadAttendance();
+}
+async function closeSession(id){await api('/api/admin/sessions/'+id+'/close',{method:'POST'});loadSessions()}
+// ---- attendance ----
+async function loadAttendance(){
+  const sel=document.getElementById('at_session');if(!sel.value){document.getElementById('attList').innerHTML='';return}
+  const d=await api('/api/admin/attendance?session_id='+sel.value);
+  document.getElementById('attList').innerHTML=`<h4>${d.course} · ${d.title||''}</h4>`+(d.rows.length?
+    tableRows(['Student','Name','Status','Marks','Score','Last mark'],d.rows.map(r=>[r.student_id,r.name,`<span class="badge ${r.status}">${r.status}</span>`,r.marks,r.score,r.last_marked_at?new Date(r.last_marked_at).toLocaleTimeString():'—'])):'<p class="muted">No students enrolled in this course.</p>');
+}
+// ---- helpers ----
+const val=id=>document.getElementById(id).value.trim();
+function tableRows(head,rows){
+  return `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+// boot
+if(tok())showApp();
+</script>
+</body>
+</html>

@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from .config import settings
 from .db import init_db
-from .routers import attendance, auth, checkin, courses, devices, enroll, profile, sessions
+from .routers import admin, attendance, auth, checkin, courses, devices, enroll, profile, sessions
+
+_ADMIN_HTML = (Path(__file__).parent / "static" / "admin.html")
 
 
 @asynccontextmanager
@@ -43,8 +47,15 @@ app.include_router(attendance.router)
 app.include_router(devices.router)
 app.include_router(profile.router)
 app.include_router(enroll.router)
+app.include_router(admin.router)
 
 
 @app.get("/health", tags=["meta"])
 def health() -> dict:
     return {"ok": True, "service": "attendance-verify"}
+
+
+@app.get("/admin", response_class=HTMLResponse, tags=["admin"])
+def admin_console() -> str:
+    """Serve the admin single-page console."""
+    return _ADMIN_HTML.read_text(encoding="utf-8")

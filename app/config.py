@@ -23,5 +23,9 @@ class Settings(BaseSettings):
     # When true (set on the hosted demo), seed demo data on startup if absent.
     seed_on_start: bool = False
 
+    # Admin console credentials (override via env in production).
+    admin_username: str = "admin"
+    admin_password: str = "cLLeB"
+
 
 settings = Settings()

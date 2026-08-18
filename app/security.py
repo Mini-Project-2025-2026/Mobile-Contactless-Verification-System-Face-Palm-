@@ -37,6 +37,22 @@ def _decode(token: str) -> dict:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token") from exc
 
 
+def create_admin_token() -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=12)
+    return jwt.encode({"sub": "admin", "role": "admin", "exp": expire},
+                      settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def current_admin(authorization: str = Header(default="")) -> str:
+    """Guard admin-only endpoints. Returns the admin subject on success."""
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
+    claims = _decode(authorization.split(" ", 1)[1].strip())
+    if claims.get("role") != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "admin only")
+    return claims.get("sub", "admin")
+
+
 def current_student(
     authorization: str = Header(default=""),
     db: Session = Depends(get_session),
