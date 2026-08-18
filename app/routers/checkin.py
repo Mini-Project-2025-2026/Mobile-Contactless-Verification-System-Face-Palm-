@@ -74,6 +74,17 @@ def verify(
     s = _load_open_session(db, req.session_id)
     _require_enrolled(db, student.student_id, s.course_id)
 
+    # Face is compulsory: no attendance can be marked (by any modality) until a
+    # face template exists. Palm alone is not enough. Enforced server-side so it
+    # holds even outside the app.
+    if "face" not in (student.enrolled_modality or "").split(","):
+        return VerifyResponse(
+            ok=False, status=_status_now(db, s.id, student.student_id),
+            marks_count=_marks_now(db, s.id, student.student_id),
+            marks_required=s.marks_required, distance_m=0.0, code="face_required",
+            message="Enrol your face first (required) before you can mark attendance.",
+        )
+
     # 1) Geofence — server-authoritative.
     in_range, distance = within_geofence(req.gps.lat, req.gps.lng, s.lat, s.lng, s.radius_m)
     distance = round(distance, 1)
