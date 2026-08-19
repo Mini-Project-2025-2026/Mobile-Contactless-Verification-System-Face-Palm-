@@ -53,6 +53,21 @@
   .banner{background:#FCE9EC;border:1px solid #F3C9D0;border-radius:12px;padding:12px}
   .banner b{color:var(--red)}.banner div{color:var(--red);opacity:.85;font-size:12.5px}
   .a2hs{position:fixed;left:12px;right:12px;bottom:96px;background:#111827;color:#fff;border-radius:12px;padding:12px 14px;font-size:13px;z-index:40;display:flex;justify-content:space-between;gap:10px}
+  /* pull to refresh: an installed PWA has no browser spinner of its own, so the
+     pull has to answer for itself or a hard swipe looks like nothing happened */
+  body{overscroll-behavior-y:contain}
+  #ptr{position:fixed;left:0;right:0;top:calc(var(--safe-top) + 4px);z-index:45;display:flex;flex-direction:column;align-items:center;gap:5px;
+       pointer-events:none;opacity:0;transform:translateY(-14px)}
+  #ptr .ring{width:34px;height:34px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(11,18,32,.16);display:flex;align-items:center;justify-content:center}
+  #ptr .ring::after{content:"";width:17px;height:17px;border-radius:50%;border:2.5px solid var(--red);border-top-color:transparent;transform:rotate(var(--spin,0deg))}
+  #ptr .lbl{font-size:11px;font-weight:700;color:var(--muted);background:rgba(245,246,248,.9);padding:2px 8px;border-radius:999px}
+  #ptr.ready .ring{background:var(--red)}
+  #ptr.ready .ring::after{border-color:#fff;border-top-color:transparent}
+  #ptr.go{opacity:1!important;transform:translateY(0)!important;transition:opacity .2s,transform .2s}
+  #ptr.go .ring::after{animation:ptrspin .7s linear infinite}
+  #ptr.done .ring{background:var(--red)}
+  #ptr.done .ring::after{content:"✓";border:0;color:#fff;font-size:15px;font-weight:900;animation:none;width:auto;height:auto}
+  @keyframes ptrspin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -137,6 +152,8 @@
     <button class="btn ghost" style="color:#cbd2dd" onclick="closeCam()">Cancel</button>
   </div>
 </div>
+
+<div id="ptr"><div class="ring"></div><div class="lbl">Pull to refresh</div></div>
 
 <div id="a2hs" class="a2hs hidden">
   <span>📲 Install: tap Share, then “Add to Home Screen”.</span>
@@ -443,6 +460,74 @@ function showInsetReadout(top,bottom){
 applySafeArea();
 addEventListener("orientationchange",()=>setTimeout(applySafeArea,150));
 addEventListener("resize",applySafeArea);
+
+// ---- pull to refresh ----
+/* Standalone iOS gives a swipe-down nothing at all: no browser chrome, no
+   spinner. This draws the gesture so a hard pull visibly does something. */
+const PTR_TRIGGER=70, PTR_MAX=120;
+let ptr={y0:0,dy:0,tracking:false,busy:false};
+function ptrScrollTop(){ return (document.scrollingElement||document.documentElement).scrollTop; }
+function ptrBlocked(){
+  return ptr.busy || !$("cam").classList.contains("hidden") || !$("s-login").classList.contains("hidden");
+}
+function ptrDraw(){
+  const el=$("ptr"), p=Math.min(1,ptr.dy/PTR_TRIGGER), ready=ptr.dy>=PTR_TRIGGER;
+  el.style.transition="none";
+  el.style.opacity=Math.min(1,p*1.2);
+  el.style.transform=`translateY(${ptr.dy*0.5}px) scale(${0.7+0.3*p})`;
+  el.style.setProperty("--spin",(ptr.dy*3)+"deg");
+  el.classList.toggle("ready",ready);
+  el.querySelector(".lbl").textContent=ready?"Release to refresh":"Pull to refresh";
+}
+function ptrReset(){
+  const el=$("ptr");
+  ptr.dy=0;
+  el.className="";
+  el.style.transition="opacity .2s,transform .2s";
+  el.style.opacity=0; el.style.transform="translateY(-14px)";
+}
+function currentScreen(){
+  return ["home","map","profile","history","enroll"].find(x=>!$("s-"+x).classList.contains("hidden"));
+}
+async function ptrRefresh(){
+  ptr.busy=true;
+  const el=$("ptr");
+  el.className="go"; el.style.transition=""; el.style.transform=""; el.style.opacity="";
+  el.style.setProperty("--spin","0deg");   // start the spin from upright
+  el.querySelector(".lbl").textContent="Refreshing…";
+  const screen=currentScreen();
+  const started=Date.now();
+  try{
+    if(screen==="home") await loadHome();
+    else if(screen==="map") await loadMap();
+    else if(screen==="profile") await loadProfile();
+    else if(screen==="history") await loadHistory();
+    else if(screen==="enroll") loadEnroll();
+  }catch(e){}
+  // hold the spinner long enough to be seen, then confirm before it leaves
+  await new Promise(r=>setTimeout(r,Math.max(0,600-(Date.now()-started))));
+  el.className="go done";
+  el.querySelector(".lbl").textContent="Up to date";
+  setTimeout(()=>{ ptrReset(); ptr.busy=false; },700);
+}
+addEventListener("touchstart",e=>{
+  if(ptrBlocked()||ptrScrollTop()>0) return;
+  if(e.target.closest&&e.target.closest("#map")) return;   // dragging the map is not a pull
+  ptr.y0=e.touches[0].clientY; ptr.dy=0; ptr.tracking=true;
+},{passive:true});
+addEventListener("touchmove",e=>{
+  if(!ptr.tracking) return;
+  const dy=e.touches[0].clientY-ptr.y0;
+  if(dy<=0||ptrScrollTop()>0){ if(ptr.dy){ptrReset();} ptr.tracking=false; return; }
+  e.preventDefault();                       // take the rubber band over
+  ptr.dy=Math.min(PTR_MAX,dy*0.55);         // resistance, so it feels pulled
+  ptrDraw();
+},{passive:false});
+addEventListener("touchend",()=>{
+  if(!ptr.tracking) return;
+  ptr.tracking=false;
+  if(ptr.dy>=PTR_TRIGGER) ptrRefresh(); else ptrReset();
+});
 
 // ---- boot ----
 async function boot(){
