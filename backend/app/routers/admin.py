@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment, guard, reporting
+from .. import biometric, enrolment, guard, queries, reporting
 from ..config import settings
 from ..db import get_session
 from ..models import (
@@ -53,14 +53,18 @@ def admin_login(body: AdminLogin, request: Request) -> dict:
 @router.get("/overview")
 def overview(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
     moment = now()
-    sessions = db.exec(select(ClassSession)).all()
-    live = sum(1 for s in sessions if s.active and _aware(s.starts_at) <= moment <= _aware(s.ends_at))
+    # Only "live" needs the rows themselves (it depends on the clock); the rest
+    # are counts, and counting by loading every row is what this screen did on
+    # every refresh, across five tables at once.
+    live = sum(1 for s in db.exec(select(ClassSession).where(
+        ClassSession.active == True)).all()  # noqa: E712
+        if _aware(s.starts_at) <= moment <= _aware(s.ends_at))
     return {
-        "students": len(db.exec(select(Student)).all()),
-        "courses": len(db.exec(select(Course)).all()),
-        "sessions": len(sessions),
+        "students": queries.count(db, Student),
+        "courses": queries.count(db, Course),
+        "sessions": queries.count(db, ClassSession),
         "live_sessions": live,
-        "attendance_records": len(db.exec(select(Attendance)).all()),
+        "attendance_records": queries.count(db, Attendance),
     }
 
 
@@ -79,11 +83,11 @@ def list_courses(_: str = Depends(current_admin), db: Session = Depends(get_sess
     A session is only visible to students enrolled in its course, so the count
     is what tells you whether anyone will see the class you are about to open.
     """
+    sizes = queries.count_by(db, Enrollment, Enrollment.course_id)
     out = []
     for c in db.exec(select(Course)).all():
         row = c.model_dump()
-        row["students"] = len(db.exec(
-            select(Enrollment.student_id).where(Enrollment.course_id == c.id)).all())
+        row["students"] = sizes.get(c.id, 0)
         out.append(row)
     return out
 
@@ -113,15 +117,17 @@ class StudentIn(BaseModel):
 
 @router.get("/students")
 def list_students(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
-    out = []
-    for s in db.exec(select(Student)).all():
-        course_ids = db.exec(select(Enrollment.course_id).where(Enrollment.student_id == s.student_id)).all()
-        out.append({
+    by_student = queries.collect_by(db, Enrollment, Enrollment.student_id, Enrollment.course_id)
+    return [
+        {
             "student_id": s.student_id, "name": s.name, "programme": s.programme,
             "year_group": s.year_group, "class_group": s.class_group,
-            "biometric_enrolled": s.enrolled_at is not None, "course_ids": list(course_ids),
-        })
-    return out
+            "active": s.active,
+            "biometric_enrolled": s.enrolled_at is not None,
+            "course_ids": by_student.get(s.student_id, []),
+        }
+        for s in db.exec(select(Student)).all()
+    ]
 
 
 @router.post("/students", status_code=201)
@@ -172,24 +178,31 @@ class SessionIn(BaseModel):
 @router.get("/sessions")
 def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
     moment = now()
+    sessions = db.exec(select(ClassSession)).all()
+    courses = {c.id: c for c in db.exec(select(Course)).all()}
+    class_sizes = queries.count_by(db, Enrollment, Enrollment.course_id)
+
+    # One pass over this list's attendance rows, instead of a query per session.
+    by_session: dict[int, list] = {}
+    for row in queries.fetch_in(db, Attendance, Attendance.session_id, [s.id for s in sessions]):
+        by_session.setdefault(row.session_id, []).append(row.status)
+
     out = []
-    for s in db.exec(select(ClassSession)).all():
-        c = db.get(Course, s.course_id)
-        rows = db.exec(select(Attendance).where(Attendance.session_id == s.id)).all()
+    for s in sessions:
+        c = courses.get(s.course_id)
+        statuses = by_session.get(s.id, [])
         # Split the rows so the console can say who is still short of present:
         # a session that ends while stuck in START leaves every one of them partial.
-        partial = sum(1 for a in rows if a.status == AttendanceStatus.partial)
-        present = sum(1 for a in rows if a.status == AttendanceStatus.present)
         out.append({
             "id": s.id, "course_code": c.code if c else "?", "title": s.title,
             "lat": s.lat, "lng": s.lng, "radius_m": s.radius_m,
             "starts_at": _aware(s.starts_at).isoformat(), "ends_at": _aware(s.ends_at).isoformat(),
             "live": s.active and _aware(s.starts_at) <= moment <= _aware(s.ends_at), "active": s.active,
-            "phase": s.phase, "marks_required": s.marks_required, "checked_in": len(rows),
-            "partial": partial, "present": present,
+            "phase": s.phase, "marks_required": s.marks_required, "checked_in": len(statuses),
+            "partial": sum(1 for st in statuses if st == AttendanceStatus.partial),
+            "present": sum(1 for st in statuses if st == AttendanceStatus.present),
             # who can even see this session: nobody, if the course has no students
-            "enrolled": len(db.exec(
-                select(Enrollment.student_id).where(Enrollment.course_id == s.course_id)).all()),
+            "enrolled": class_sizes.get(s.course_id, 0),
         })
     return sorted(out, key=lambda x: x["starts_at"], reverse=True)
 
@@ -432,16 +445,17 @@ class ProgrammePasswordIn(BaseModel):
 def list_programmes(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
     """Every programme in use, its class size, and whether it can sign in yet."""
     creds = {c.programme for c in db.exec(select(ProgrammeCredential)).all()}
-    seen: dict[str, dict] = {}
-    for st in db.exec(select(Student)).all():
-        if not st.programme:
-            continue
-        key = norm_programme(st.programme)
-        row = seen.setdefault(key, {"programme": st.programme, "key": key, "students": 0})
-        row["students"] += 1
-    for row in seen.values():
-        row["password_set"] = row["key"] in creds
-    return sorted(seen.values(), key=lambda r: r["programme"].lower())
+    sizes = queries.count_by(db, Student, Student.programme_key,
+                             Student.programme_key != "")
+    # One readable spelling per programme, taken from the students themselves.
+    labels = dict(db.exec(select(Student.programme_key, Student.programme).where(
+        Student.programme_key != "")).all())
+    return sorted(
+        ({"programme": labels.get(key, key), "key": key, "students": total,
+          "password_set": key in creds}
+         for key, total in sizes.items()),
+        key=lambda r: r["programme"].lower(),
+    )
 
 
 @router.post("/programmes/password")
@@ -513,17 +527,21 @@ def session_attendance(session_id: int, _: str = Depends(current_admin), db: Ses
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
     course = db.get(Course, s.course_id)
     enrolled = db.exec(select(Enrollment.student_id).where(Enrollment.course_id == s.course_id)).all()
+    # A lecture hall is hundreds of students, and this was two queries for each.
+    names = {st.student_id: st.name
+             for st in queries.fetch_in(db, Student, Student.student_id, enrolled)}
+    marked = {a.student_id: a for a in db.exec(select(Attendance).where(
+        Attendance.session_id == session_id)).all()}
     rows = []
     for sid in enrolled:
-        stu = db.exec(select(Student).where(Student.student_id == sid)).first()
-        att = db.exec(select(Attendance).where(
-            Attendance.session_id == session_id, Attendance.student_id == sid)).first()
+        att = marked.get(sid)
         rows.append({
-            "student_id": sid, "name": stu.name if stu else sid,
+            "student_id": sid, "name": names.get(sid, sid),
             "status": att.status.value if att else "absent",
             "marks": att.marks_count if att else 0,
             "score": round(att.best_score, 3) if att else 0.0,
-            "last_marked_at": (att.last_marked_at.isoformat() if att and att.last_marked_at else None),
+            "last_marked_at": (_aware(att.last_marked_at).isoformat()
+                               if att and att.last_marked_at else None),
         })
     rows.sort(key=lambda r: (r["status"] != "present", r["name"]))
     return {"session_id": session_id, "course": course.code if course else "?", "title": s.title, "rows": rows}

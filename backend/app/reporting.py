@@ -18,6 +18,7 @@ import io
 
 from sqlmodel import Session, select
 
+from . import queries
 from .models import (
     Attendance,
     AttendanceMark,
@@ -48,17 +49,21 @@ def build(db: Session, course_id: int) -> dict | None:
     student_ids = db.exec(
         select(Enrollment.student_id).where(Enrollment.course_id == course_id)).all()
     students = sorted(
-        (s for s in db.exec(select(Student)).all() if s.student_id in set(student_ids)),
+        queries.fetch_in(db, Student, Student.student_id, student_ids),
         key=lambda s: (s.name or "", s.student_id),
     )
 
+    # Scoped to this course. Reading every attendance row in the database and
+    # then discarding other courses' made one lecturer's report cost grow with
+    # every other lecturer's attendance.
     session_ids = [s.id for s in sessions]
     attendance = {
         (a.session_id, a.student_id): a
-        for a in db.exec(select(Attendance)).all() if a.session_id in set(session_ids)
+        for a in queries.fetch_in(db, Attendance, Attendance.session_id, session_ids)
     }
     marks_by_attendance: dict[int, list[AttendanceMark]] = {}
-    for mark in db.exec(select(AttendanceMark)).all():
+    for mark in queries.fetch_in(db, AttendanceMark, AttendanceMark.attendance_id,
+                                 [a.id for a in attendance.values()]):
         marks_by_attendance.setdefault(mark.attendance_id, []).append(mark)
 
     classes = [{
