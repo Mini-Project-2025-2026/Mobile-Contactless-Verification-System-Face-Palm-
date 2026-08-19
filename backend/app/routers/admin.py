@@ -477,6 +477,41 @@ def set_programme_password(body: ProgrammePasswordIn, _: str = Depends(current_a
     return {"programme": key, "updated": True, "students_on_programme": students}
 
 
+# ---------- consent (the lawful basis for holding a face) ----------
+@router.get("/consent")
+def consent_position(_: str = Depends(current_admin)) -> dict:
+    """How many students have consented, how many have withdrawn, and to what."""
+    try:
+        return biometric.consent_summary()
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            f"biometric_unavailable: {exc}") from exc
+
+
+class ConsentRecordIn(BaseModel):
+    student_id: str
+    #: "operator" is consent gathered on paper and entered here. A student who
+    #: agrees in the app records "self", which is the stronger form — this
+    #: endpoint deliberately cannot claim that on their behalf.
+    note: str = ""
+
+
+@router.post("/consent/record", status_code=201)
+def record_paper_consent(body: ConsentRecordIn, actor: str = Depends(current_admin),
+                         db: Session = Depends(get_session)) -> dict:
+    """Record consent gathered offline, e.g. on a signed form at registration."""
+    if not db.exec(select(Student).where(Student.student_id == body.student_id)).first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown student")
+    try:
+        receipt = biometric.record_consent(body.student_id, method="operator")
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            f"biometric_unavailable: {exc}") from exc
+    return {"student_id": body.student_id, "status": "granted",
+            "method": receipt.method, "version": receipt.version,
+            "note": body.note}
+
+
 # ---------- enrolment grants (one-time re-enrolment / new-device codes) ----------
 class GrantIn(BaseModel):
     student_id: str

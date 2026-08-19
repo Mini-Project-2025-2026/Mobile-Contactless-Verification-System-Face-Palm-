@@ -131,6 +131,28 @@ class EnrollResponse(BaseModel):
     code: str = "ok"  # ok | grant_required | no_biometric
 
 
+class ConsentStatementOut(BaseModel):
+    """The wording a campus asks its students to agree to, and its standing."""
+    text: str
+    version: int
+    text_sha256: str
+    #: True when the tenant refuses enrolment without consent on record.
+    required_before_enrolment: bool
+    #: True when withdrawing stops verification immediately, rather than only
+    #: marking the data for erasure.
+    withdrawal_stops_verification: bool
+
+
+class ConsentReceiptOut(BaseModel):
+    recorded: bool
+    status: str                    # none | granted | withdrawn
+    granted_at: int = 0
+    method: str = ""               # self | operator | import
+    version: int = 0
+    text_sha256: str = ""
+    withdrawn_at: int | None = None
+
+
 class EnrollStatus(BaseModel):
     face_enrolled: bool
     palm_enrolled: bool

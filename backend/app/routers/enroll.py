@@ -42,6 +42,32 @@ def _valid_grant(db: Session, student_id: str, token: str) -> EnrollGrant | None
     return g
 
 
+def _consent_refusal(student_id: str, images: int, modality: Modality) -> EnrollResponse | None:
+    """Refuse enrolment when this campus requires consent and none is on record.
+
+    A service that cannot be asked does not block enrolment: an outage in the
+    consent lookup must not stop a student enrolling on the day their class
+    starts. The service records consent on every enrol path anyway, so the
+    record still lands — this gate is about campuses that want it FIRST, and
+    about showing the student what they are agreeing to.
+    """
+    try:
+        policy = biometric.consent_policy()
+        if not policy.require_consent:
+            return None
+        receipt = biometric.consent_receipt(student_id)
+    except biometric.BiometricError:
+        return None
+    if receipt is not None and receipt.granted:
+        return None
+    return EnrollResponse(
+        ok=False, enrolled=0, of=images, samples=0, modality=modality,
+        code="consent_required",
+        message=("Please read and agree to the biometric consent statement before "
+                 "enrolling. You can withdraw it at any time."),
+    )
+
+
 @router.get("/status", response_model=EnrollStatus)
 def enroll_status(
     student: Student = Depends(current_student),
@@ -78,6 +104,12 @@ def enroll(
             code="modality_unavailable",
             message="Palm is not enabled for this campus. Your face enrolment is all you need.",
         )
+
+    # Consent before capture, where this campus requires it. Enrolling a face
+    # with no lawful basis on record is not a thing to do and then apologise for.
+    refusal = _consent_refusal(student.student_id, len(req.images), req.modality)
+    if refusal is not None:
+        return refusal
 
     # Sync first: an existing template must count as "already enrolled" here too,
     # or a forgotten cache would hand out a grant-free re-enrolment.

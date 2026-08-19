@@ -344,6 +344,164 @@ def identify_person(*, frames: list[str] | None = None, token: str = "",
     return _read_verdict(data, expect_token=token if frames else "")
 
 
+# --- consent and data-subject rights --------------------------------------
+@dataclass(frozen=True)
+class ConsentPolicy:
+    """The statement this tenant's enrollees agree to, and how it is enforced."""
+    text: str
+    version: int
+    text_sha256: str
+    #: A withdrawal flips an otherwise-granted verify to refused, immediately.
+    enforce_withdrawal: bool
+    #: Enrolment is not permitted until consent is on record.
+    require_consent: bool
+
+
+@dataclass(frozen=True)
+class ConsentReceipt:
+    """What one person agreed to, when, how, and whether it still stands."""
+    user_id: str
+    status: str          # "granted" | "withdrawn"
+    granted_at: int
+    method: str          # operator | self | import
+    version: int
+    text_sha256: str
+    withdrawn_at: int | None = None
+
+    @property
+    def granted(self) -> bool:
+        return self.status == "granted"
+
+
+def consent_policy() -> ConsentPolicy:
+    """The tenant's active consent statement (GET /v1/consent)."""
+    data = _json("GET", "/v1/consent", timeout=10.0)
+    policy = data.get("policy") or {}
+    return ConsentPolicy(
+        text=str(policy.get("text") or ""),
+        version=int(policy.get("version") or 1),
+        text_sha256=str(policy.get("text_sha256") or ""),
+        enforce_withdrawal=bool(policy.get("enforce_withdrawal", True)),
+        require_consent=bool(policy.get("require_consent", False)),
+    )
+
+
+def consent_summary() -> dict:
+    """How many people have consented, and how many have withdrawn."""
+    return _json("GET", "/v1/consent", timeout=10.0)
+
+
+def consent_receipt(user_id: str) -> ConsentReceipt | None:
+    """One person's receipt, or None when nothing is on record for them."""
+    try:
+        response = request("GET", f"/v1/consent/{user_id}", timeout=10.0)
+    except RequestFailed as exc:
+        raise BiometricError(str(exc)) from exc
+    if response.status_code == 404:
+        return None
+    try:
+        response.raise_for_status()
+        data = (response.json() or {}).get("receipt") or {}
+    except Exception as exc:
+        raise BiometricError(f"consent receipt request failed: {exc}") from exc
+    if not data:
+        return None
+    return ConsentReceipt(
+        user_id=str(data.get("user_id") or user_id),
+        status=str(data.get("status") or "granted"),
+        granted_at=int(data.get("granted_at") or 0),
+        method=str(data.get("method") or ""),
+        version=int(data.get("consent_version") or 1),
+        text_sha256=str(data.get("consent_text_sha256") or ""),
+        withdrawn_at=data.get("withdrawn_at"),
+    )
+
+
+def record_consent(user_id: str, *, method: str = "self") -> ConsentReceipt:
+    """Record that this person agreed (POST /v1/consent/record).
+
+    `method` is how it was given: "self" when the person tapped agree in the
+    app — the strongest form — or "operator" for consent gathered on paper and
+    entered by an administrator.
+    """
+    data = _json("POST", "/v1/consent/record",
+                 json={"user_id": user_id, "method": method}, timeout=10.0,
+                 idempotency_key=new_idempotency_key("consent", user_id, method))
+    return ConsentReceipt(
+        user_id=user_id,
+        status="granted",
+        granted_at=int(data.get("granted_at") or 0),
+        method=str(data.get("method") or method),
+        version=int(data.get("version") or 1),
+        text_sha256=str(data.get("text_sha256") or ""),
+    )
+
+
+def withdraw_consent(user_id: str) -> bool:
+    """Honour a withdrawal (POST /v1/consent/withdraw).
+
+    The service blocks verification for this person from that moment, and their
+    templates become due for erasure through the normal delete path.
+    """
+    try:
+        response = request("POST", "/v1/consent/withdraw", json={"user_id": user_id},
+                           timeout=10.0)
+    except RequestFailed as exc:
+        raise BiometricError(str(exc)) from exc
+    if response.status_code == 404:
+        return False
+    try:
+        response.raise_for_status()
+    except Exception as exc:
+        raise BiometricError(f"consent withdrawal failed: {exc}") from exc
+    return True
+
+
+def export_user_record(user_id: str) -> dict | None:
+    """Everything the service holds about one person (POST /v1/users/export).
+
+    Metadata only — never the template itself, which stays encrypted at rest.
+    This is what a data-subject access request is answered with.
+    """
+    try:
+        response = request("POST", "/v1/users/export", json={"user_id": user_id},
+                           timeout=20.0)
+    except RequestFailed as exc:
+        raise BiometricError(str(exc)) from exc
+    if response.status_code == 404:
+        return None
+    try:
+        response.raise_for_status()
+        return response.json()
+    except Exception as exc:
+        raise BiometricError(f"user export failed: {exc}") from exc
+
+
+def delete_users(user_ids: list[str]) -> dict:
+    """Erase people's biometric records (POST /v1/users/delete).
+
+    The service also revokes any credential it issued them: a card carries its
+    own copy of the template, so deleting the stored one would otherwise leave a
+    removed person's QR still verifying.
+    """
+    if not user_ids:
+        raise BiometricError("delete_users requires at least one user_id")
+    return _json("POST", "/v1/users/delete", json={"user_ids": user_ids}, timeout=30.0,
+                 idempotency_key=new_idempotency_key("delete", *user_ids[:3],
+                                                     str(len(user_ids))))
+
+
+def templates_status(user_id: str = "") -> dict:
+    """Template-protection standing, tenant-wide or for one person."""
+    params = {"user_id": user_id} if user_id else None
+    return _json("GET", "/v1/templates/status", params=params, timeout=15.0)
+
+
+def usage_summary() -> dict:
+    """This tenant's metered usage against its plan (GET /v1/usage)."""
+    return _json("GET", "/v1/usage", timeout=10.0)
+
+
 # --- roster ---------------------------------------------------------------
 @dataclass(frozen=True)
 class UserStatus:

@@ -22,7 +22,17 @@ from .middleware import (
     RequestContextMiddleware,
     SecurityHeadersMiddleware,
 )
-from .routers import admin, attendance, auth, checkin, courses, devices, enroll, profile
+from .routers import (
+    admin,
+    attendance,
+    auth,
+    checkin,
+    consent,
+    courses,
+    devices,
+    enroll,
+    profile,
+)
 
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 _STATIC = Path(__file__).parent / "static"
@@ -96,6 +106,7 @@ app.include_router(attendance.router)
 app.include_router(devices.router)
 app.include_router(profile.router)
 app.include_router(enroll.router)
+app.include_router(consent.router)
 app.include_router(admin.router)
 
 
