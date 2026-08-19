@@ -8,11 +8,11 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment, reporting
+from .. import biometric, enrolment, guard, reporting
 from ..config import settings
 from ..db import get_session
 from ..models import (
@@ -39,9 +39,13 @@ class AdminLogin(BaseModel):
 
 
 @router.post("/login")
-def admin_login(body: AdminLogin) -> dict:
-    if body.username != settings.admin_username or body.password != settings.admin_password:
+def admin_login(body: AdminLogin, request: Request) -> dict:
+    attempt = guard.before_admin_login(request)
+    if not guard.check_credentials(body.username, body.password,
+                                   settings.admin_username, settings.admin_password):
+        guard.after_admin_login(attempt, ok=False)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid admin credentials")
+    guard.after_admin_login(attempt, ok=True)
     return {"access_token": create_admin_token(), "token_type": "bearer"}
 
 

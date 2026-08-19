@@ -58,6 +58,19 @@ class Settings(BaseSettings):
     # (0 = disabled). Guards against wildly-off fixes sneaking into the geofence.
     max_gps_accuracy_m: float = 0.0
 
+    #: Failed sign-ins tolerated per (identity, client address) inside the
+    #: window, then a lockout. A programme password is shared by a whole cohort
+    #: and read out in a lecture hall, so guessing it is the cheapest attack on
+    #: this system; this is what makes guessing slow. Failures are counted, not
+    #: requests, so a student who mistypes twice is unaffected.
+    login_attempts: int = 8
+    login_window_s: int = 300
+    login_lockout_s: int = 900
+    #: The console has one username and one password, so it gets a tighter bound.
+    admin_login_attempts: int = 5
+    admin_login_window_s: int = 300
+    admin_login_lockout_s: int = 1800
+
     #: Largest accepted request body. Enrolment posts base64 photographs, so the
     #: ceiling has to clear a handful of them — but not a video file.
     max_request_bytes: int = 12 * 1024 * 1024

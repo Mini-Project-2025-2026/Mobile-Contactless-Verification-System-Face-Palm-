@@ -1,9 +1,10 @@
 """Student login with one-device binding."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
+from .. import guard
 from ..config import settings
 from ..db import get_session
 from ..models import Device, ProgrammeCredential, Student, norm_programme
@@ -24,10 +25,18 @@ def _password_ok(db: Session, student: Student, raw: str) -> bool:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_session)) -> TokenResponse:
+def login(req: LoginRequest, request: Request, db: Session = Depends(get_session)) -> TokenResponse:
+    # A programme password is shared by a cohort and read out in a lecture hall.
+    # Guessing it is the cheapest attack on this system, so guessing is bounded.
+    attempt = guard.before_student_login(request, req.student_id)
+
     student = db.exec(select(Student).where(Student.student_id == req.student_id)).first()
-    if not student or not _password_ok(db, student, req.password):
+    if not student or not student.active or not _password_ok(db, student, req.password):
+        guard.after_student_login(attempt, ok=False)
+        # One message for "no such student" and for "wrong password": telling
+        # them apart turns this endpoint into a roll of who is registered.
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid student id or password")
+    guard.after_student_login(attempt, ok=True)
 
     active = db.exec(
         select(Device).where(Device.student_id == student.student_id, Device.active == True)  # noqa: E712
