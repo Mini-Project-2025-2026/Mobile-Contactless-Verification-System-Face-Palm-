@@ -112,3 +112,31 @@ def test_the_kiosk_holds_no_student_session():
     html = PAGES["kiosk"]
     assert "/api/auth/login" not in html
     assert "/api/enroll" not in html
+
+
+# --- the admin console must reach what the backend grew ----------------------
+def test_the_console_drives_the_new_admin_surface():
+    html = PAGES["admin"]
+    for path in ("/api/admin/verification", "/api/admin/templates",
+                 "/api/admin/students/erase-biometrics", "/api/admin/audit"):
+        assert path in html, f"admin console never calls {path}"
+
+
+def test_the_console_can_hand_a_class_to_a_kiosk():
+    html = PAGES["admin"]
+    assert "/kiosk" in html
+    assert "openKiosk" in html
+
+
+def test_every_console_tab_has_a_view_and_a_route():
+    """A tab with no view, or a view with no tab, is dead UI."""
+    import re
+    html = PAGES["admin"]
+    tabs = set(re.findall(r"data-t=\"([a-z]+)\"", html))
+    views = set(re.findall(r"id=\"v-([a-z]+)\"", html))
+    assert tabs == views, f"tabs {tabs ^ views} have no counterpart"
+
+
+def test_an_inert_score_floor_is_called_out_in_the_console():
+    """A floor that rejects nothing must not look like a working control."""
+    assert "local_floor_is_inert" in PAGES["admin"]

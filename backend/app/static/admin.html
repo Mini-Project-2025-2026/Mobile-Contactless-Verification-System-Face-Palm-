@@ -59,10 +59,65 @@
       <button data-t="students" onclick="tab('students')">Students</button>
       <button data-t="attendance" onclick="tab('attendance')">Attendance</button>
       <button data-t="reports" onclick="tab('reports')">End of semester</button>
+      <button data-t="service" onclick="tab('service')">Verification</button>
+      <button data-t="audit" onclick="tab('audit')">Activity</button>
     </div>
 
     <div id="v-overview" class="view">
       <div class="card" id="stats"></div>
+    </div>
+
+    <div id="v-service" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Verification service</h3>
+        <div id="svc_state" class="muted">Loading…</div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Thresholds in force</h3>
+        <p class="muted" style="margin-top:0">
+          The service decides whether a capture matches. This app can add a
+          stricter floor on top — but a floor set BELOW the service's own
+          threshold rejects nothing, while looking like a working control.
+        </p>
+        <div id="svc_policy"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Stored templates</h3>
+        <p class="muted" style="margin-top:0">Which protection domain templates live in. Read this before exam week.</p>
+        <button class="btn sec" style="margin-top:0" onclick="loadTemplates()">Check</button>
+        <pre id="svc_templates" class="muted" style="white-space:pre-wrap;font-size:12px"></pre>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Erase a student's biometric record</h3>
+        <p class="muted" style="margin-top:0">
+          Removes the template here and at the service, and revokes any credential
+          issued from it. <b>Attendance already recorded is kept</b> — it is an
+          academic record, not biometric data. The student must enrol in person
+          to mark attendance again.
+        </p>
+        <div class="grid">
+          <div><label>Student ID</label><input id="er_id" placeholder="20512345"/></div>
+          <div><label>Type it again to confirm</label><input id="er_confirm" placeholder="20512345"/></div>
+        </div>
+        <button class="btn" onclick="eraseBiometrics()">Erase biometric record</button>
+        <div id="er_msg" class="muted"></div>
+      </div>
+    </div>
+
+    <div id="v-audit" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Activity</h3>
+        <p class="muted" style="margin-top:0">
+          Every console action that changed an academic record. When a mark is
+          disputed at the end of a semester, this is the answer.
+        </p>
+        <div class="grid">
+          <div><label>Action (optional)</label><input id="au_action" placeholder="grant.issue"/></div>
+          <div><label>Target (optional)</label><input id="au_target" placeholder="student:20512345"/></div>
+        </div>
+        <button class="btn sec" onclick="loadAudit()">Show</button>
+        <div style="overflow:auto"><table id="au_table"><tbody></tbody></table></div>
+      </div>
     </div>
 
     <div id="v-sessions" class="view hidden">
@@ -248,6 +303,8 @@ function tab(name){
   if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('bc_course');loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
   if(name==='reports'){loadCoursesInto('rp_course').then(loadReport)}
+  if(name==='service')loadService();
+  if(name==='audit')loadAudit();
 }
 async function loadOverview(){
   const o=await api('/api/admin/overview');
@@ -552,10 +609,97 @@ async function loadSessions(){
         ${s.active&&s.phase==='start'?`<button class="btn" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'end')">Open END check-in</button>`:''}
         ${s.active&&s.phase==='end'?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'start')">Reopen START</button>`:''}
         <button class="btn sec" style="margin:0;padding:8px 12px" onclick="extendSession(${s.id},15)">+15 min</button>
+        ${s.active?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="openKiosk(${s.id})">Kiosk device</button>`:''}
         ${s.active?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="closeSession(${s.id})">Close class</button>`:''}
       </div>
     </div>`).join(''):'<p class="muted">No sessions yet.</p>';
 }
+// ---- kiosk: a shared device for one class ----
+async function openKiosk(id){
+  try{
+    const r=await api('/api/admin/sessions/'+id+'/kiosk',{method:'POST',body:JSON.stringify({grace_minutes:0})});
+    // Shown rather than emailed: the code IS the authority to mark attendance
+    // for this class, so it should travel from this screen to that device and
+    // nowhere else.
+    const url=location.origin+'/kiosk';
+    prompt(
+      'Open '+url+' on the classroom device and paste this code.\n\n'+
+      'Valid '+r.valid_minutes+' minutes — it expires with the class.\n'+
+      'Copy it now:', r.access_token);
+  }catch(e){ alert('Could not create a kiosk code: '+e.message); }
+}
+
+// ---- the verification tenant we depend on ----
+async function loadService(){
+  const box=document.getElementById('svc_state');
+  box.textContent='Loading…';
+  try{
+    const v=await api('/api/admin/verification');
+    const s=v.service, p=v.policy;
+    box.innerHTML=
+      `<div class="row"><b>${s.ok?'Reachable':'NOT REACHABLE'}</b>`+
+      `<span class="badge ${s.ok?'live':'closed'}">${s.ok?'up':'down'}</span></div>`+
+      `<div class="muted">${s.url} · ${s.version||'version unknown'} · `+
+      `active liveness ${s.active_liveness?'on':'off'}</div>`+
+      (v.usage&&v.usage.available===false
+        ? `<div class="muted" style="margin-top:8px">Usage not reported: ${v.usage.reason||'unavailable'}</div>`
+        : `<pre class="muted" style="white-space:pre-wrap;font-size:12px;margin-top:8px">${JSON.stringify(v.usage,null,2)}</pre>`);
+
+    const inert=p.local_floor_is_inert;
+    document.getElementById('svc_policy').innerHTML=
+      `<div class="row"><span>Service match threshold</span><b>${p.service_match_threshold ?? '—'}</b></div>`+
+      `<div class="row"><span>Our extra floor (MIN_VERIFY_SCORE)</span><b>${p.local_floor}</b></div>`+
+      `<div class="row"><span>In force</span><b>${p.min_score} <span class="muted">(${p.score_source})</span></b></div>`+
+      (inert?`<div class="warn" style="margin-top:10px;color:#b45309">`+
+        `⚠ Our floor sits below the service's threshold, so it rejects nothing. `+
+        `Raise MIN_VERIFY_SCORE above ${p.service_match_threshold} to make it do anything.</div>`:'')+
+      `<div class="muted" style="margin-top:10px">1:N margin ${p.identify_margin ?? '—'} · `+
+      `duplicate threshold ${p.dupe_threshold ?? '—'} · samples per person ${p.samples_per_user ?? '—'} · `+
+      `palm ${p.palm_enabled?'enabled':'off'}</div>`;
+  }catch(e){ box.textContent=e.message; }
+}
+
+async function loadTemplates(){
+  const box=document.getElementById('svc_templates');
+  box.textContent='Checking…';
+  try{ box.textContent=JSON.stringify(await api('/api/admin/templates'),null,2); }
+  catch(e){ box.textContent=e.message; }
+}
+
+async function eraseBiometrics(){
+  const id=document.getElementById('er_id').value.trim();
+  const confirmId=document.getElementById('er_confirm').value.trim();
+  const msg=document.getElementById('er_msg');
+  msg.textContent='';
+  if(!id||id!==confirmId){ msg.textContent='Type the same student ID in both boxes.'; return; }
+  if(!confirm('Erase the biometric record for '+id+'?\n\nThis cannot be undone. Their attendance is kept, but they must enrol in person to mark again.'))return;
+  try{
+    const r=await api('/api/admin/students/erase-biometrics',
+      {method:'POST',body:JSON.stringify({student_id:id,confirm_student_id:confirmId})});
+    msg.textContent=r.message;
+    document.getElementById('er_id').value=''; document.getElementById('er_confirm').value='';
+  }catch(e){ msg.textContent=e.message; }
+}
+
+// ---- activity ----
+async function loadAudit(){
+  const params=new URLSearchParams({limit:200});
+  const a=document.getElementById('au_action').value.trim();
+  const g=document.getElementById('au_target').value.trim();
+  if(a)params.set('action',a); if(g)params.set('target',g);
+  const body=document.querySelector('#au_table tbody');
+  body.innerHTML='<tr><td class="muted">Loading…</td></tr>';
+  try{
+    const rows=await api('/api/admin/audit?'+params);
+    body.innerHTML=rows.length?
+      '<tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th></tr>'+
+      rows.map(r=>`<tr><td class="muted">${new Date(r.at).toLocaleString()}</td>`+
+        `<td>${r.actor}</td><td><b>${r.action}</b></td><td class="muted">${r.target||''}</td>`+
+        `<td class="muted">${r.detail||''}</td></tr>`).join('')
+      :'<tr><td class="muted">Nothing recorded yet.</td></tr>';
+  }catch(e){ body.innerHTML=`<tr><td class="muted">${e.message}</td></tr>`; }
+}
+
 /* The warning is time-based, so the list has to keep looking at the clock —
    a countdown nobody refreshes is a countdown nobody sees. */
 let sessTimer=null;
