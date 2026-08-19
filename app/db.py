@@ -7,8 +7,18 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
-_connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, echo=False, connect_args=_connect_args)
+_sqlite = settings.database_url.startswith("sqlite")
+_connect_args = {"check_same_thread": False} if _sqlite else {}
+# Several lecturers open classes at the same moment, and the pooled Postgres on
+# the other side drops idle connections overnight. pre_ping trades one cheap
+# round trip for never handing a dead connection to the first request of the day.
+_pool = {} if _sqlite else {
+    "pool_pre_ping": True,
+    "pool_size": 10,
+    "max_overflow": 20,
+    "pool_recycle": 1800,
+}
+engine = create_engine(settings.database_url, echo=False, connect_args=_connect_args, **_pool)
 
 
 def init_db() -> None:

@@ -49,24 +49,6 @@ class AvailableCourse(BaseModel):
     status: str  # this student's status for the session: absent | partial | present
 
 
-class RecentSession(BaseModel):
-    """A class whose window has closed, with how this student did in it.
-
-    Home shows these so a session (and the marks earned in it) doesn't simply
-    vanish from the screen the moment its window ends.
-    """
-    session_id: int
-    course_code: str
-    course_title: str
-    session_title: str
-    ended_at: datetime
-    marks_count: int
-    marks_required: int
-    marked_start: bool
-    marked_end: bool
-    status: str  # absent | partial | present
-
-
 # --- check-in ---
 class ChallengeRequest(BaseModel):
     session_id: int

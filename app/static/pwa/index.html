@@ -220,13 +220,19 @@ function notice(text,detail){
   return `<div class="card" style="text-align:center"><b>${text}</b>${detail?`<div class="muted" style="margin-top:4px">${detail}</div>`:""}
     <button class="btn sec" style="margin-top:12px" onclick="loadHome()">Retry</button></div>`;
 }
-function recentCard(r){
-  const cls=r.status==="present"?"present":(r.status==="partial"?"partial":"absent");
-  const label=r.status==="present"?"Present":(r.status==="partial"?`Partial · ${r.marks_count}/${r.marks_required}`:"Not marked");
-  const missed=r.status==="partial"?(r.marked_start?"END window never opened":"start never marked"):"";
-  return `<div class="card"><div class="row"><div><b>${r.course_code} · ${r.session_title}</b>
-    <div class="muted">Ended ${new Date(r.ended_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}${missed?" · "+missed:""}</div></div>
-    <span class="badge ${cls}">${label}</span></div></div>`;
+/* No live class still gets the class layout: same hero, same mark card, so the
+   screen never changes shape under the student. Only the words differ. */
+function noCourseCard(){
+  return `<div class="grad">
+    <div class="row"><span class="badge" style="background:rgba(255,255,255,.16);color:#fff">KNUST · ATTENDANCE</span><b>—</b></div>
+    <h2 style="color:#fff;margin:.3em 0">No class detected</h2>
+    <div class="chip"><div class="k">Session</div><div class="v">None open right now</div></div>
+    <div class="chip"><div class="k">Proximity</div><div class="v">Located · waiting for a class</div></div>
+  </div>
+  <div class="card"><h3>Mark Your Attendance</h3>
+    <div class="muted">A class appears here as soon as your lecturer opens check-in and you are inside its zone.</div>
+    <button class="btn sec" style="margin-top:10px" onclick="loadHome()">Check again</button>
+  </div>`;
 }
 async function loadHome(){
   $("h_name").textContent=NAME||"Student";
@@ -238,25 +244,16 @@ async function loadHome(){
   GPS=fix.gps||null;
   if(!GPS){ HOME_COURSE=null; $("h_body").innerHTML=notice("Can't find classes without your location",fix.error); return; }
 
-  let list, done=[];
+  let list;
   try{
     list=await api(`/api/courses/available?lat=${GPS.lat}&lng=${GPS.lng}`);
-    done=await api("/api/courses/recent");
   }catch(e){
     HOME_COURSE=null;
     $("h_body").innerHTML=notice("Couldn't reach the attendance server", e.message);
     return;
   }
   const c=list[0]; HOME_COURSE=c;
-  if(!c){
-    // No live window. Say so plainly, and keep today's finished classes (and the
-    // marks earned in them) on screen instead of showing an empty page.
-    const head=`<div class="card muted" style="text-align:center">No class is open for check-in right now.
-      <button class="btn sec" style="margin-top:12px" onclick="loadHome()">Refresh</button></div>`;
-    const tail=done.length?`<h3 style="margin:16px 0 8px">Earlier today</h3>`+done.map(recentCard).join(""):"";
-    $("h_body").innerHTML=head+tail;
-    return;
-  }
+  if(!c){ $("h_body").innerHTML=noCourseCard(); return; }
   const phaseTag=c.phase==='start'?'<span class="badge in">START check-in open</span>':(c.phase==='end'?'<span class="badge out">END check-in open</span>':'<span class="badge">check-in closed</span>');
   $("h_body").innerHTML=`<div class="grad">
     <div class="row"><span class="badge" style="background:rgba(255,255,255,.16);color:#fff">KNUST · ATTENDANCE</span><b>${c.course_code}</b></div>
