@@ -14,7 +14,15 @@ from sqlmodel import Session, select
 
 from ..config import settings
 from ..db import get_session
-from ..models import Attendance, Course, EnrollGrant, Enrollment, Session as ClassSession, Student
+from ..models import (
+    Attendance,
+    AttendanceStatus,
+    Course,
+    EnrollGrant,
+    Enrollment,
+    Session as ClassSession,
+    Student,
+)
 from ..security import create_admin_token, current_admin, hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -149,13 +157,18 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
     out = []
     for s in db.exec(select(ClassSession)).all():
         c = db.get(Course, s.course_id)
-        present = len(db.exec(select(Attendance).where(Attendance.session_id == s.id)).all())
+        rows = db.exec(select(Attendance).where(Attendance.session_id == s.id)).all()
+        # Split the rows so the console can say who is still short of present:
+        # a session that ends while stuck in START leaves every one of them partial.
+        partial = sum(1 for a in rows if a.status == AttendanceStatus.partial)
+        present = sum(1 for a in rows if a.status == AttendanceStatus.present)
         out.append({
             "id": s.id, "course_code": c.code if c else "?", "title": s.title,
             "lat": s.lat, "lng": s.lng, "radius_m": s.radius_m,
             "starts_at": _aware(s.starts_at).isoformat(), "ends_at": _aware(s.ends_at).isoformat(),
             "live": s.active and _aware(s.starts_at) <= now <= _aware(s.ends_at), "active": s.active,
-            "phase": s.phase, "marks_required": s.marks_required, "checked_in": present,
+            "phase": s.phase, "marks_required": s.marks_required, "checked_in": len(rows),
+            "partial": partial, "present": present,
         })
     return sorted(out, key=lambda x: x["starts_at"], reverse=True)
 
@@ -205,6 +218,33 @@ def set_phase(session_id: int, body: PhaseIn, _: str = Depends(current_admin),
     db.add(s)
     db.commit()
     return {"session_id": session_id, "phase": s.phase}
+
+
+class ExtendIn(BaseModel):
+    minutes: int = Field(default=15, ge=1, le=180)
+
+
+@router.post("/sessions/{session_id}/extend")
+def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_admin),
+                   db: Session = Depends(get_session)) -> dict:
+    """Push a session's end time back, so the END window still has room to run.
+
+    Two-phase attendance needs both windows inside the session; a class that
+    expires while still in START leaves everyone who marked stuck on partial.
+    Extending from an already-expired session runs from now, not from the old
+    end time, so the added minutes are minutes students can actually use.
+    """
+    s = db.get(ClassSession, session_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
+    now = datetime.now(timezone.utc)
+    base = max(_aware(s.ends_at), now)
+    s.ends_at = base + timedelta(minutes=body.minutes)
+    if not s.active:  # bringing a closed class back needs it live again
+        s.active = True
+    db.add(s)
+    db.commit()
+    return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
 
 
 # ---------- enrolment grants (one-time re-enrolment / new-device codes) ----------

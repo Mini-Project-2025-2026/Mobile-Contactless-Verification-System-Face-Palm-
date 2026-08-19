@@ -34,6 +34,9 @@
   .hidden{display:none}
   #login{max-width:360px;margin:8vh auto}
   .err{color:#dc2626;font-size:13px;margin-top:6px;min-height:16px}
+  .warn{background:#fef3e2;border:1px solid #f6d9a8;color:#8a5a06;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13.5px}
+  .warn b{color:#b45309}.warn div{margin-top:2px;color:#8a5a06;opacity:.9}
+  .out{background:#fef3e2;color:#d97706}
 </style>
 </head>
 <body>
@@ -180,6 +183,7 @@ function tab(name){
   document.getElementById('v-'+name).classList.remove('hidden');
   if(name==='overview')loadOverview();
   if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
+  watchSessions(name==='sessions');
   if(name==='courses')loadCourses();
   if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
@@ -319,19 +323,52 @@ async function createSession(){
     loadSessions();alert('Session created at '+picked.lat.toFixed(5)+', '+picked.lng.toFixed(5)+'.\n\nThe START check-in is now open. Near the end of class, tap “Open END check-in” on this session so students mark a second time to be counted present.');
   }catch(e){document.getElementById('sessErr').textContent=e.message}
 }
+/* Present needs BOTH windows, so a class that runs out of time while still in
+   START leaves every student who marked stuck on partial — silently, with
+   nothing on their phone to explain it. Warn while there is still time to act. */
+const END_WINDOW_WARN_MIN=10;
+function endPhaseWarning(s){
+  if(!s.live||s.phase!=='start') return '';
+  const left=(new Date(s.ends_at)-Date.now())/60000;
+  if(left>END_WINDOW_WARN_MIN) return '';
+  const mins=Math.max(0,Math.round(left));
+  const who=s.checked_in?`${s.checked_in} student${s.checked_in===1?'':'s'} who marked START will be left partial`
+                        :'nobody will be able to reach present';
+  return `<div class="warn">⚠ <b>Ends in ${mins} min and the END check-in has never opened</b>
+    <div>${who}. Open the END window now, or give the class more time.</div></div>`;
+}
+function endedInStartNote(s){
+  if(s.live||s.phase!=='start'||!s.partial) return '';
+  return `<div class="warn">⚠ <b>This class ended while still in START.</b>
+    <div>${s.partial} student${s.partial===1?'':'s'} left partial — they marked the start but the END window never opened.
+    Extending reopens the class so they can complete it.</div></div>`;
+}
 async function loadSessions(){
   const ss=await api('/api/admin/sessions');
   const phaseBadge=p=>p==='start'?'<span class="badge live">START check-in open</span>':(p==='end'?'<span class="badge out">END check-in open</span>':'<span class="badge closed">check-in closed</span>');
   document.getElementById('sessList').innerHTML=ss.length?ss.map(s=>
     `<div style="border-bottom:1px solid var(--line);padding:10px 0">
       <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'ended'}</span> ${phaseBadge(s.phase)}</div>
-      <div class="muted">${s.radius_m}m · ${s.checked_in} attendance record${s.checked_in===1?'':'s'} · ends ${new Date(s.ends_at).toLocaleString()}</div>
-      <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-start">
+      <div class="muted">${s.radius_m}m · ${s.checked_in} attendance record${s.checked_in===1?'':'s'}${s.present?` · ${s.present} present`:''}${s.partial?` · ${s.partial} partial`:''} · ends ${new Date(s.ends_at).toLocaleString()}</div>
+      ${endPhaseWarning(s)}${endedInStartNote(s)}
+      <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-start;flex-wrap:wrap">
         ${s.active&&s.phase==='start'?`<button class="btn" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'end')">Open END check-in</button>`:''}
         ${s.active&&s.phase==='end'?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'start')">Reopen START</button>`:''}
+        <button class="btn sec" style="margin:0;padding:8px 12px" onclick="extendSession(${s.id},15)">+15 min</button>
         ${s.active?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="closeSession(${s.id})">Close class</button>`:''}
       </div>
     </div>`).join(''):'<p class="muted">No sessions yet.</p>';
+}
+/* The warning is time-based, so the list has to keep looking at the clock —
+   a countdown nobody refreshes is a countdown nobody sees. */
+let sessTimer=null;
+function watchSessions(on){
+  clearInterval(sessTimer); sessTimer=null;
+  if(on) sessTimer=setInterval(()=>{ if(document.getElementById('v-sessions').classList.contains('hidden')) return; loadSessions(); },30000);
+}
+async function extendSession(id,minutes){
+  await api('/api/admin/sessions/'+id+'/extend',{method:'POST',body:JSON.stringify({minutes})});
+  loadSessions();
 }
 async function setPhase(id,phase){ await api('/api/admin/sessions/'+id+'/phase',{method:'POST',body:JSON.stringify({phase})}); loadSessions(); }
 async function loadSessionsInto(id){
