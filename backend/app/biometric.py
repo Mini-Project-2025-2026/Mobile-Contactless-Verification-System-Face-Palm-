@@ -177,8 +177,14 @@ def enroll_users_bulk(people: list[tuple[str, list[str]]], *, dedupe: bool = Tru
     )
 
 
-def verify_signature(payload: dict, secret: str | None = None) -> bool:
-    """Verify the HMAC signature attached to a verify/compare response."""
+def verify_signature(payload: dict, secret: str | None = None, *, expect_token: str = "") -> bool:
+    """Verify the HMAC signature attached to a verify/compare response.
+
+    With `expect_token` (the liveness token we asked for), also require that this
+    verdict answered OUR challenge. A signature alone says the verdict is genuine,
+    not that it is ours and current, so a captured response would otherwise stay
+    valid for any later check-in.
+    """
     secret = secret if secret is not None else settings.biometric_signing_secret
     sig = payload.get("signature")
     if not sig or not secret:
@@ -186,7 +192,20 @@ def verify_signature(payload: dict, secret: str | None = None) -> bool:
     body = json.dumps({k: payload.get(k) for k in _SIGNED_KEYS}, sort_keys=True, separators=(",", ":"))
     msg = f"{sig.get('ts')}.{sig.get('nonce')}.{body}".encode()
     expected = hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, str(sig.get("hmac", "")))
+    if not hmac.compare_digest(expected, str(sig.get("hmac", ""))):
+        return False
+    if not expect_token:
+        return True
+
+    # A service that does not bind cannot be trusted to have answered this
+    # challenge, and we asked for one, so the absence of a binding is a failure.
+    bound = sig.get("bound") or {}
+    if bound.get("token") != expect_token:
+        return False
+    bound_body = json.dumps(bound, sort_keys=True, separators=(",", ":"))
+    bind_msg = f"{sig.get('ts')}.{sig.get('nonce')}.{expected}.{bound_body}".encode()
+    bind_expected = hmac.new(secret.encode(), bind_msg, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(bind_expected, str(sig.get("binding", "")))
 
 
 def verify_student(student_id: str, *, frames: list[str] | None = None, token: str = "", image: str | None = None) -> VerifyResult:
@@ -218,9 +237,44 @@ def verify_student(student_id: str, *, frames: list[str] | None = None, token: s
         success=bool(data.get("success", False)),
         user_id=str(data.get("user_id", "")),
         score=float(data.get("score", 0.0) or 0.0),
-        signature_valid=verify_signature(data),
+        # Face check-ins send a liveness token, so we require the verdict to be
+        # bound to it. A palm check-in has no token and falls back to the plain
+        # signature plus the replay-nonce the caller records.
+        signature_valid=verify_signature(data, expect_token=token if frames else ""),
         nonce=str(sig.get("nonce", "")),
         raw=data,
+    )
+
+
+@dataclass(frozen=True)
+class UserStatus:
+    enrolled: bool
+    modalities: tuple[str, ...]
+    samples: dict
+
+
+def user_status(user_id: str) -> UserStatus | None:
+    """What the service holds for one person, or None if it cannot say.
+
+    None means "ask another way" (an older service without this endpoint), never
+    "not enrolled" - the two must not be confused, or a student with a template
+    gets sent back through enrolment.
+    """
+    try:
+        with _client() as c:
+            r = c.get(f"/v1/users/{user_id}")
+            if r.status_code == 404:
+                return None
+            r.raise_for_status()
+            data = r.json()
+    except httpx.HTTPError as exc:
+        raise BiometricError(f"user status request failed: {exc}") from exc
+    if not data.get("success"):
+        return None
+    return UserStatus(
+        enrolled=bool(data.get("enrolled")),
+        modalities=tuple(data.get("modalities") or ()),
+        samples=dict(data.get("samples") or {}),
     )
 
 

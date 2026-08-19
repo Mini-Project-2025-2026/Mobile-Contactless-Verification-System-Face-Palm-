@@ -23,9 +23,9 @@ from sqlmodel import Session
 from . import biometric
 from .models import Student
 
-#: The service reports *that* a user has templates, not which modality they
-#: came from. Face is the compulsory one and every enrolment flow starts with
-#: it, so an un-cached template is adopted as a face enrolment.
+#: Used only when the service can name a template but not its modality (an older
+#: service, answering from the roster). Face is compulsory and every enrolment
+#: flow starts with it, so that is the safe reading of "enrolled, unspecified".
 ADOPTED_MODALITY = "face"
 
 _ROSTER_TTL_S = 60.0
@@ -58,6 +58,25 @@ def reset_cache() -> None:
     _roster = None
 
 
+def _service_modalities(student_id: str) -> set[str] | None:
+    """Which modalities the service holds for this student. None = it can't say.
+
+    Asks about the one person first; that is exact, and it is what tells face from
+    palm. The roster is the fallback for a service too old to answer per user, and
+    it can only say "something is enrolled".
+    """
+    try:
+        status = biometric.user_status(student_id)
+    except biometric.BiometricError:
+        return None
+    if status is not None:
+        return set(status.modalities) or ({ADOPTED_MODALITY} if status.enrolled else set())
+    try:
+        return {ADOPTED_MODALITY} if student_id in _enrolled_ids() else set()
+    except biometric.BiometricError:
+        return None
+
+
 def sync(db: Session, student: Student) -> Student:
     """Re-adopt a service-side enrolment the DB has forgotten.
 
@@ -67,14 +86,11 @@ def sync(db: Session, student: Student) -> Student:
     """
     if modalities(student):
         return student
-    try:
-        known = _enrolled_ids()
-    except biometric.BiometricError:
-        return student
-    if student.student_id not in known:
+    found = _service_modalities(student.student_id)
+    if not found:
         return student
 
-    student.enrolled_modality = ADOPTED_MODALITY
+    student.enrolled_modality = ",".join(sorted(found))
     student.enrolled_at = student.enrolled_at or datetime.now(timezone.utc)
     db.add(student)
     db.commit()

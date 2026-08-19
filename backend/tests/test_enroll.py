@@ -46,8 +46,13 @@ def self_served_first_enrolment(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def service_roster(monkeypatch):
-    """Templates the biometric service holds. Tests mutate the set in place."""
+    """Templates the biometric service holds. Tests mutate the set in place.
+
+    `user_status` answers None here, which is how an older service behaves: it
+    cannot speak about one person, so these exercise the roster fallback.
+    """
     roster: set[str] = set()
+    monkeypatch.setattr(biometric, "user_status", lambda user_id: None)
     monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: set(roster))
     enrolment.reset_cache()
     yield roster
@@ -176,3 +181,35 @@ def test_roster_is_cached_between_requests(client, monkeypatch, service_roster):
     for _ in range(3):
         client.get("/api/enroll/status", headers=A)
     assert len(calls) == 1
+
+
+def test_the_service_names_the_modalities_it_holds(client, monkeypatch):
+    """Ask about the person, adopt what they actually have - face AND palm.
+
+    The roster can only say "something is enrolled", so the fallback adopts face.
+    Asking about one person is exact, and a student who enrolled a palm should not
+    have it forgotten by this database.
+    """
+    A = _login(client, "devA")
+    _enroll(client, A, "face")
+    _forget_enrolment_cache()
+    enrolment.reset_cache()
+
+    monkeypatch.setattr(biometric, "user_status",
+                        lambda user_id: biometric.UserStatus(
+                            enrolled=True, modalities=("face", "palm"),
+                            samples={"face": 8, "palm": 3}))
+
+    st = client.get("/api/enroll/status", headers=A).json()
+    assert st["face_enrolled"] is True and st["palm_enrolled"] is True
+
+    with Session(engine) as db:
+        row = db.exec(select(Student).where(Student.student_id == SID)).one()
+    assert row.enrolled_modality == "face,palm"
+
+
+def test_a_person_the_service_does_not_hold_is_not_invented(client, monkeypatch):
+    A = _login(client, "devA")
+    monkeypatch.setattr(biometric, "user_status",
+                        lambda user_id: biometric.UserStatus(enrolled=False, modalities=(), samples={}))
+    assert client.get("/api/enroll/status", headers=A).json()["can_mark"] is False
