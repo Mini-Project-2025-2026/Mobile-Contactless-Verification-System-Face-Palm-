@@ -151,3 +151,26 @@ def verify_student(student_id: str, *, frames: list[str] | None = None, token: s
         nonce=str(sig.get("nonce", "")),
         raw=data,
     )
+
+
+def list_enrolled_user_ids(*, page: int = 500) -> set[str]:
+    """Every user_id the tenant currently holds a template for.
+
+    The service exposes no per-user lookup, so we page the roster. Callers are
+    expected to cache (see `app.enrolment`), never to call this per request.
+    """
+    ids: set[str] = set()
+    offset = 0
+    try:
+        with _client() as c:
+            while True:
+                r = c.get("/v1/users", params={"limit": page, "offset": offset})
+                r.raise_for_status()
+                data = r.json()
+                batch = [str(u) for u in (data.get("users") or [])]
+                ids.update(batch)
+                offset += len(batch)
+                if not batch or offset >= int(data.get("total", 0) or 0):
+                    return ids
+    except httpx.HTTPError as exc:
+        raise BiometricError(f"user list request failed: {exc}") from exc

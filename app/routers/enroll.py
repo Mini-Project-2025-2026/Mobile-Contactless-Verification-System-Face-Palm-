@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .. import biometric
+from .. import biometric, enrolment
 from ..db import get_session
 from ..models import EnrollGrant, Modality, Student
 from ..schemas import EnrollRequest, EnrollResponse, EnrollStatus
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/enroll", tags=["enroll"])
 
 
 def _modalities(student: Student) -> set[str]:
-    return {m for m in (student.enrolled_modality or "").split(",") if m}
+    return enrolment.modalities(student)
 
 
 def _valid_grant(db: Session, student_id: str, token: str) -> EnrollGrant | None:
@@ -44,7 +44,13 @@ def _valid_grant(db: Session, student_id: str, token: str) -> EnrollGrant | None
 
 
 @router.get("/status", response_model=EnrollStatus)
-def enroll_status(student: Student = Depends(current_student)) -> EnrollStatus:
+def enroll_status(
+    student: Student = Depends(current_student),
+    db: Session = Depends(get_session),
+) -> EnrollStatus:
+    # A student whose template still lives in the biometric service is enrolled,
+    # whatever this database (or the phone's storage) remembers.
+    student = enrolment.sync(db, student)
     mods = _modalities(student)
     face = "face" in mods
     return EnrollStatus(face_enrolled=face, palm_enrolled="palm" in mods, can_mark=face)
@@ -60,6 +66,9 @@ def enroll(
     if not req.images:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "no images provided")
 
+    # Sync first: an existing template must count as "already enrolled" here too,
+    # or a forgotten cache would hand out a grant-free re-enrolment.
+    student = enrolment.sync(db, student)
     mods = _modalities(student)
     first_ever = not mods
     has_mod = req.modality.value in mods
@@ -103,6 +112,7 @@ def enroll(
         db.add(grant)
     db.add(student)
     db.commit()
+    enrolment.reset_cache()  # the roster just changed
 
     face_done = "face" in mods
     if req.modality == Modality.face:

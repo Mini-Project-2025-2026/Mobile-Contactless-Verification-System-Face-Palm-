@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, select
 
-from app import biometric
+from app import biometric, enrolment
 from app.biometric import EnrollResult
 from app.db import engine
 from app.main import app
@@ -32,6 +32,26 @@ def mock_enroll(monkeypatch):
         biometric, "enroll_user",
         lambda uid, images, source="auto": EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}),
     )
+
+
+@pytest.fixture(autouse=True)
+def service_roster(monkeypatch):
+    """Templates the biometric service holds. Tests mutate the set in place."""
+    roster: set[str] = set()
+    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: set(roster))
+    enrolment.reset_cache()
+    yield roster
+    enrolment.reset_cache()
+
+
+def _forget_enrolment_cache() -> None:
+    """Blank the DB's copy of the enrolment, as a rebuilt/migrated row would be."""
+    with Session(engine) as db:
+        st = db.exec(select(Student).where(Student.student_id == SID)).one()
+        st.enrolled_modality = ""
+        st.enroll_device_uid = ""
+        db.add(st)
+        db.commit()
 
 
 @pytest.fixture
@@ -93,3 +113,56 @@ def test_expired_grant_rejected(client):
         db.commit()
     r = _enroll(client, _login(client, "devB"), "face", grant="OLD12345")
     assert r["code"] == "grant_required"
+
+
+def test_status_readopts_enrolment_the_db_forgot(client, service_roster):
+    """The template still exists service-side: the student is enrolled, full stop."""
+    A = _login(client, "devA")
+    _enroll(client, A, "face")
+    service_roster.add(SID)
+    _forget_enrolment_cache()
+    enrolment.reset_cache()
+
+    st = client.get("/api/enroll/status", headers=A).json()
+    assert st["can_mark"] is True and st["face_enrolled"] is True
+
+    with Session(engine) as db:  # and the cache was healed, not just the answer
+        assert db.exec(select(Student).where(Student.student_id == SID)).one().enrolled_modality == "face"
+
+
+def test_forgotten_cache_still_needs_a_grant_to_re_enrol(client, service_roster):
+    """Self-heal must not become a free re-enrolment from any new device."""
+    _enroll(client, _login(client, "devA"), "face")
+    service_roster.add(SID)
+    _forget_enrolment_cache()
+    enrolment.reset_cache()
+
+    r = _enroll(client, _login(client, "devB"), "face")
+    assert r["ok"] is False and r["code"] == "grant_required"
+
+
+def test_service_outage_leaves_status_untouched(client, monkeypatch, service_roster):
+    """An unreachable service must not crash status, nor wipe what we know."""
+    A = _login(client, "devA")
+    _enroll(client, A, "face")
+
+    def boom(page=500):
+        raise biometric.BiometricError("unreachable")
+
+    monkeypatch.setattr(biometric, "list_enrolled_user_ids", boom)
+    enrolment.reset_cache()
+    assert client.get("/api/enroll/status", headers=A).json()["can_mark"] is True
+
+    _forget_enrolment_cache()
+    enrolment.reset_cache()
+    assert client.get("/api/enroll/status", headers=A).json()["can_mark"] is False
+
+
+def test_roster_is_cached_between_requests(client, monkeypatch, service_roster):
+    calls = []
+    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: (calls.append(1), set())[1])
+    enrolment.reset_cache()
+    A = _login(client, "devA")
+    for _ in range(3):
+        client.get("/api/enroll/status", headers=A)
+    assert len(calls) == 1

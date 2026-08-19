@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .. import biometric
+from .. import biometric, enrolment
 from ..config import settings
 from ..db import get_session
 from ..geo import within_geofence
@@ -85,7 +85,9 @@ def verify(
 
     # Face is compulsory: no attendance can be marked (by any modality) until a
     # face template exists. Palm alone is not enough. Enforced server-side so it
-    # holds even outside the app.
+    # holds even outside the app. Sync first so a forgotten cache never sends an
+    # already-enrolled student back to enrolment.
+    student = enrolment.sync(db, student)
     if "face" not in (student.enrolled_modality or "").split(","):
         return VerifyResponse(
             ok=False, status=_status_now(db, s.id, student.student_id),
