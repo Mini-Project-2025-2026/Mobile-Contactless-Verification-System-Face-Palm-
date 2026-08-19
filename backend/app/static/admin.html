@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Attendance Verify Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:#12151c}
+  header{background:linear-gradient(120deg,var(--red),var(--red2));color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0;font-weight:800}
+  header button{background:rgba(255,255,255,.2);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button{background:#fff;border:1px solid var(--line);padding:9px 14px;border-radius:999px;cursor:pointer;font-weight:600}
+  .tabs button.on{background:var(--red);color:#fff;border-color:var(--red)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 4px 14px rgba(11,18,32,.04)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:12px;color:var(--muted);font-weight:600;display:block;margin:8px 0 3px}
+  input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:14px}
+  .btn{background:var(--red);color:#fff;border:0;padding:11px 16px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:10px}
+  .btn.sec{background:#eef0f3;color:#12151c}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .present{background:#e7f8ef;color:#16a34a}.partial{background:#fef3e2;color:#d97706}.absent{background:#fdecec;color:#dc2626}
+  .live{background:#e7f8ef;color:#16a34a}.closed{background:#eef0f3;color:#6b7280}
+  #map{height:300px;border-radius:12px;margin-top:8px}
+  .stat{display:inline-block;min-width:120px}.stat b{font-size:24px;display:block;color:var(--red)}
+  .muted{color:var(--muted);font-size:13px}
+  .hidden{display:none}
+  #login{max-width:360px;margin:8vh auto}
+  .err{color:#dc2626;font-size:13px;margin-top:6px;min-height:16px}
+  .warn{background:#fef3e2;border:1px solid #f6d9a8;color:#8a5a06;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13.5px}
+  .warn b{color:#b45309}.warn div{margin-top:2px;color:#8a5a06;opacity:.9}
+  .out{background:#fef3e2;color:#d97706}
+</style>
+</head>
+<body>
+
+<div id="login" class="card">
+  <h2 style="margin-top:0">Admin sign in</h2>
+  <label>Username</label><input id="u" value="admin"/>
+  <label>Password</label><input id="p" type="password"/>
+  <button class="btn" style="width:100%" onclick="login()">Sign in</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app" class="hidden">
+  <header><h1>Attendance Verify · Admin</h1><button onclick="logout()">Sign out</button></header>
+  <div class="wrap">
+    <div class="tabs">
+      <button data-t="overview" class="on" onclick="tab('overview')">Overview</button>
+      <button data-t="sessions" onclick="tab('sessions')">Sessions</button>
+      <button data-t="courses" onclick="tab('courses')">Courses</button>
+      <button data-t="students" onclick="tab('students')">Students</button>
+      <button data-t="attendance" onclick="tab('attendance')">Attendance</button>
+    </div>
+
+    <div id="v-overview" class="view">
+      <div class="card" id="stats"></div>
+    </div>
+
+    <div id="v-sessions" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create geofenced session</h3>
+        <div class="grid">
+          <div><label>Course</label><select id="s_course"></select></div>
+          <div><label>Title</label><input id="s_title" placeholder="Lecture 6"/></div>
+          <div><label>Radius (m)</label><input id="s_radius" type="number" value="70"/></div>
+          <div><label>Duration (min)</label><input id="s_dur" type="number" value="90"/></div>
+          <div><label>Marks required</label><input id="s_marks" type="number" value="2"/></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0;width:100%" onclick="useMyLocation()">📍 Use my location (phone only)</button></div>
+        </div>
+        <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+          <label>Quick set — KNUST landmark (type to filter)</label>
+          <input id="placePick" list="knustPlaces" placeholder="e.g. College of Engineering, Paa Joe Stadium, Great Hall…" oninput="pickPlace()"/>
+          <datalist id="knustPlaces"></datalist>
+          <div class="grid" style="margin-top:8px">
+            <div><label>…or search OpenStreetMap</label><input id="osmq" placeholder="Great Hall KNUST" onkeydown="if(event.key==='Enter'){event.preventDefault();searchOSM()}"/></div>
+            <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0;width:100%" onclick="searchOSM()">🔎 Search</button></div>
+            <div><label>…or paste latitude</label><input id="manLat" placeholder="6.6745"/></div>
+            <div><label>longitude</label><input id="manLng" placeholder="-1.5716"/></div>
+          </div>
+          <button class="btn sec" onclick="setManual()">Set from lat/lng</button>
+          <div class="muted" id="placeMsg" style="margin-top:6px"></div>
+        </div>
+        <label>Location (drag the pin, or tap the map). Lat/Lng: <span id="s_coords" class="muted">—</span></label>
+        <div id="map"></div>
+        <button class="btn" onclick="createSession()">Create session here</button>
+        <div class="err" id="sessErr"></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Sessions</h3><div id="sessList"></div></div>
+    </div>
+
+    <div id="v-courses" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create course</h3>
+        <div class="grid">
+          <div><label>Code</label><input id="c_code" placeholder="CS201"/></div>
+          <div><label>Title</label><input id="c_title" placeholder="Data Structures"/></div>
+          <div><label>Semester</label><input id="c_sem" value="2025/2026-1"/></div>
+          <div><label>Lecturer</label><input id="c_lect" placeholder="Dr. Mensah"/></div>
+        </div>
+        <button class="btn" onclick="createCourse()">Add course</button>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Courses</h3><div id="courseList"></div></div>
+    </div>
+
+    <div id="v-students" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Create student</h3>
+        <div class="grid">
+          <div><label>Student ID</label><input id="st_id" placeholder="20512346"/></div>
+          <div><label>Name</label><input id="st_name" placeholder="Kofi Owusu"/></div>
+          <div><label>Private password (optional)</label><input id="st_pw" placeholder="leave blank: uses the programme password"/></div>
+          <div><label>Programme</label><input id="st_prog" placeholder="Computer Science"/></div>
+          <div><label>Year Group</label><input id="st_year" placeholder="2023/2024"/></div>
+          <div><label>Class Group</label><input id="st_class" placeholder="1"/></div>
+        </div>
+        <button class="btn" onclick="createStudent()">Add student</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Programme sign-in password</h3>
+        <p class="muted" style="margin-top:0">Students sign in with their own student ID and the password shared by their programme. It keeps strangers out; enrolment is protected by the one-time code below, since classmates know this password.</p>
+        <div class="grid">
+          <div><label>Programme</label><input id="pg_name" list="pg_list" placeholder="Computer Science"/><datalist id="pg_list"></datalist></div>
+          <div><label>New password (8+ characters)</label><input id="pg_pw" placeholder="e.g. knust-cs-2026!"/></div>
+        </div>
+        <button class="btn" onclick="setProgrammePassword()">Set password</button>
+        <div id="pgErr" class="err"></div>
+        <div id="pgTable" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Bulk enrolment (whole department)</h3>
+        <p class="muted" style="margin-top:0">Pick a folder laid out one sub-folder per student, named by student ID, images inside. Same layout the biometric service's own importer takes:</p>
+        <pre class="muted" style="margin:0 0 8px;font-size:12px">dataset/  20512345/ front.jpg side.jpg   20512399/ a.png</pre>
+        <input id="bulk_dir" type="file" webkitdirectory directory multiple onchange="bulkScan()"/>
+        <div class="grid" style="margin-top:8px">
+          <div><label>Only this programme (optional)</label><input id="bulk_prog" list="pg_list" placeholder="all students in the folder"/></div>
+          <div><label>Max images per student</label><input id="bulk_max" type="number" value="5" min="1" max="10"/></div>
+        </div>
+        <div id="bulkScanOut" class="muted" style="margin-top:6px"></div>
+        <button class="btn" id="bulk_go" onclick="bulkEnroll()" disabled>Enrol batch</button>
+        <div id="bulkErr" class="err"></div>
+        <div id="bulkOut" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Put a programme on a course</h3>
+        <div class="grid">
+          <div><label>Course</label><select id="bc_course"></select></div>
+          <div><label>Programme</label><input id="bc_prog" list="pg_list" placeholder="Computer Science"/></div>
+          <div><label>Year group (optional)</label><input id="bc_year" placeholder="2023/2024"/></div>
+          <div><label>Class group (optional)</label><input id="bc_class" placeholder="1"/></div>
+        </div>
+        <button class="btn" onclick="bulkEnrollCourse()">Enrol cohort</button>
+        <div id="bcOut" class="muted" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Enrol student in course</h3>
+        <div class="grid">
+          <div><label>Student</label><select id="en_student"></select></div>
+          <div><label>Course</label><select id="en_course"></select></div>
+        </div>
+        <button class="btn" onclick="enrollCourse()">Enrol</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Issue enrolment grant (one-time code)</h3>
+        <p class="muted" style="margin-top:0">A first enrolment needs no code. This is for changing what an ID is tied to: re-enrolling a face or palm, or adding one from another device. Issue it in person, after checking their ID card.</p>
+        <div class="grid">
+          <div><label>Student</label><select id="gr_student" onchange="loadGrants()"></select></div>
+          <div><label>Valid for (hours)</label><input id="gr_ttl" type="number" value="24"/></div>
+        </div>
+        <button class="btn" onclick="issueGrant()">Generate code</button>
+        <div id="grantOut"></div>
+        <div id="grantList" style="margin-top:10px"></div>
+      </div>
+      <div class="card"><h3 style="margin-top:0">Students</h3><div id="studentList"></div></div>
+    </div>
+
+    <div id="v-attendance" class="view hidden">
+      <div class="card">
+        <label>Session</label><select id="at_session" onchange="loadAttendance()"></select>
+        <div id="attList" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const TOKEN_KEY="av_admin_token";
+let map, marker, circle, picked={lat:6.6745,lng:-1.5716}, located=false, lastAcc=null;
+function tok(){return localStorage.getItem(TOKEN_KEY)}
+async function api(path,opts={}){
+  const h={"Content-Type":"application/json",...(opts.headers||{})};
+  if(tok())h["Authorization"]="Bearer "+tok();
+  const r=await fetch(path,{...opts,headers:h});
+  const t=await r.text(); const b=t?JSON.parse(t):{};
+  if(!r.ok)throw new Error(b.detail||b.message||r.statusText);
+  return b;
+}
+async function login(){
+  document.getElementById('loginErr').textContent="";
+  try{
+    const r=await api('/api/admin/login',{method:'POST',body:JSON.stringify({username:U().value,password:P().value})});
+    localStorage.setItem(TOKEN_KEY,r.access_token); showApp();
+  }catch(e){document.getElementById('loginErr').textContent=e.message}
+}
+function logout(){localStorage.removeItem(TOKEN_KEY);location.reload()}
+const U=()=>document.getElementById('u'),P=()=>document.getElementById('p');
+function showApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');tab('overview')}
+function tab(name){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
+  document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
+  document.getElementById('v-'+name).classList.remove('hidden');
+  if(name==='overview')loadOverview();
+  if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
+  watchSessions(name==='sessions');
+  if(name==='courses')loadCourses();
+  if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('bc_course');loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
+  if(name==='attendance')loadSessionsInto('at_session');
+}
+async function loadOverview(){
+  const o=await api('/api/admin/overview');
+  document.getElementById('stats').innerHTML=
+    stat('Students',o.students)+stat('Courses',o.courses)+stat('Sessions',o.sessions)+stat('Live now',o.live_sessions)+stat('Attendance rows',o.attendance_records);
+}
+const stat=(l,v)=>`<div class="stat"><b>${v}</b><span class="muted">${l}</span></div>`;
+
+// ---- map ----
+function initMap(){
+  if(map){map.invalidateSize();return}
+  map=L.map('map').setView([picked.lat,picked.lng],16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  marker=L.marker([picked.lat,picked.lng],{draggable:true}).addTo(map);
+  circle=L.circle([picked.lat,picked.lng],{radius:+document.getElementById('s_radius').value||70,color:'#C41230',fillColor:'#C41230',fillOpacity:.12}).addTo(map);
+  marker.on('drag',e=>{lastAcc=null;setPicked(e.target.getLatLng())});
+  map.on('click',e=>{lastAcc=null;marker.setLatLng(e.latlng);setPicked(e.latlng)});
+  document.getElementById('s_radius').addEventListener('input',()=>circle.setRadius(+document.getElementById('s_radius').value||70));
+  document.getElementById('s_coords').textContent='not set';
+  locate(true); // auto-locate the admin on open so the pin starts where they are
+}
+function setPicked(ll){
+  picked={lat:ll.lat,lng:ll.lng}; located=true; if(circle)circle.setLatLng(ll);
+  document.getElementById('s_coords').textContent=ll.lat.toFixed(5)+', '+ll.lng.toFixed(5)+(lastAcc?(' (±'+Math.round(lastAcc)+' m)'):'');
+}
+function locate(auto){
+  if(!navigator.geolocation){ msg('Geolocation not supported on this device.'); return; }
+  msg('📍 Getting your location…');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    lastAcc=pos.coords.accuracy;
+    jumpTo(pos.coords.latitude,pos.coords.longitude,
+      '📍 Located you (±'+Math.round(pos.coords.accuracy)+' m). Drag the pin to fine-tune.'+(pos.coords.accuracy>100?'  ⚠ Weak fix. Verify the pin before creating.':''));
+  }, err=>{
+    msg('⚠ Could not get your location ('+err.message+'). Drop the pin on the map or pick a KNUST landmark. Do NOT create at the default point.');
+  }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+}
+function useMyLocation(){ locate(false); }
+
+// ---- quick location: KNUST landmarks, OSM search, manual coords ----
+const KNUST_PLACES = [{"name":"A-Block","lat":6.672802,"lng":-1.56552},{"name":"ABC/Kings Hostel","lat":6.671338,"lng":-1.560365},{"name":"Absa","lat":6.682647,"lng":-1.575765},{"name":"Access Bank","lat":6.675866,"lng":-1.562393},{"name":"Aerospace Engineering Lab","lat":6.672254,"lng":-1.566674},{"name":"Afrane Hostel","lat":6.669624,"lng":-1.552587},{"name":"Africa Hall Car Park","lat":6.68058,"lng":-1.57485},{"name":"Africa Hall Dining Hall","lat":6.680655,"lng":-1.5755},{"name":"Africa Hall Market","lat":6.680083,"lng":-1.574781},{"name":"Amanda Hostel","lat":6.673111,"lng":-1.562376},{"name":"Amen Hostel (Annex A)","lat":6.671175,"lng":-1.560521},{"name":"Amen Hostel (Main)","lat":6.671639,"lng":-1.559869},{"name":"American Dream Education Complex","lat":6.682821,"lng":-1.579779},{"name":"Andam Complex","lat":6.682401,"lng":-1.572141},{"name":"Anglican Chapel","lat":6.6838,"lng":-1.572301},{"name":"Asante Akyem Rural Bank Lmt","lat":6.675879,"lng":-1.559966},{"name":"Ayeduase Basic School","lat":6.676926,"lng":-1.560453},{"name":"Ayeduase Gate","lat":6.675654,"lng":-1.563869},{"name":"Ayeduase Health Centre","lat":6.675782,"lng":-1.561014},{"name":"Ayeduase School Park","lat":6.676366,"lng":-1.560303},{"name":"Ayeduaseman Co-Operative Credit Union (ACCUL)","lat":6.67496,"lng":-1.561112},{"name":"B-Mark Hostel","lat":6.672845,"lng":-1.556209},{"name":"Besco Hostel","lat":6.668367,"lng":-1.563206},{"name":"Biotechnology and Microbiology Labs, Department of Crop and Soil Sciences","lat":6.675723,"lng":-1.564615},{"name":"Block A","lat":6.680817,"lng":-1.575094},{"name":"Block B","lat":6.680367,"lng":-1.57509},{"name":"Bomso Clinic","lat":6.684622,"lng":-1.578913},{"name":"Bomso Town Church","lat":6.674483,"lng":-1.571859},{"name":"Bomso Worship Center, COP","lat":6.683619,"lng":-1.581432},{"name":"By His Grace Hostel (Main)","lat":6.672029,"lng":-1.560862},{"name":"CalBank","lat":6.684131,"lng":-1.576375},{"name":"CalBank ATM","lat":6.675572,"lng":-1.563466},{"name":"Centre for Disability and Rehabilitation Studies","lat":6.669818,"lng":-1.566707},{"name":"Centre for Settlement Studies","lat":6.675427,"lng":-1.564125},{"name":"Centre for Students' Integration","lat":6.682604,"lng":-1.576318},{"name":"Centre of Excellence for Housing Studies","lat":6.67418,"lng":-1.564356},{"name":"Christian Prep. School","lat":6.685299,"lng":-1.581082},{"name":"Church of Christ","lat":6.685137,"lng":-1.57881},{"name":"Church of Pentecost, Bomso","lat":6.683898,"lng":-1.581212},{"name":"Church of Pentecost, Safo Memorial Temple","lat":6.688375,"lng":-1.575224},{"name":"College of Engineering","lat":6.673504,"lng":-1.565587},{"name":"College of Engineering Library","lat":6.673292,"lng":-1.56553},{"name":"College of Science","lat":6.673205,"lng":-1.567129},{"name":"Dakens International Hostel","lat":6.677497,"lng":-1.55495},{"name":"De Nad Hostel","lat":6.670912,"lng":-1.553608},{"name":"Delissa Hostel (Main)","lat":6.674024,"lng":-1.558276},{"name":"Department of Agricultural Engineering","lat":6.676652,"lng":-1.566752},{"name":"Department of Architecture","lat":6.674095,"lng":-1.564896},{"name":"Department of Communication Design","lat":6.682868,"lng":-1.573801},{"name":"Department of Economics","lat":6.681664,"lng":-1.574428},{"name":"Department of Educational Innovation in Science and Technology","lat":6.681962,"lng":-1.573342},{"name":"Department of English","lat":6.674542,"lng":-1.565816},{"name":"Department of General Art Studies","lat":6.681904,"lng":-1.573399},{"name":"Department of Geography and Rural Development","lat":6.674629,"lng":-1.565414},{"name":"Department of History and Political Studies","lat":6.674598,"lng":-1.565575},{"name":"Department of Integrated Rural Art & Industry","lat":6.682506,"lng":-1.574824},{"name":"Department of Modern Languages","lat":6.674506,"lng":-1.565952},{"name":"Department of Physical Sciences","lat":6.673925,"lng":-1.567886},{"name":"Department of Planning","lat":6.674068,"lng":-1.564968},{"name":"Department of Publishing Studies","lat":6.68152,"lng":-1.573667},{"name":"Dining Hall","lat":6.677199,"lng":-1.574462},{"name":"Divine Kama Hostel","lat":6.677248,"lng":-1.55573},{"name":"Dr Nap Hostel","lat":6.676411,"lng":-1.557803},{"name":"E.O. Asare Auditorium","lat":6.676557,"lng":-1.564381},{"name":"Ecobank","lat":6.683005,"lng":-1.575574},{"name":"Elite College Boys Hostel, Ayeduase","lat":6.676788,"lng":-1.555927},{"name":"Engineering Icy Cup","lat":6.673677,"lng":-1.563931},{"name":"Engineering Study Tent","lat":6.67367,"lng":-1.564425},{"name":"Ernestine Addy Disability Centre","lat":6.669856,"lng":-1.566573},{"name":"Evandi Hostel","lat":6.683972,"lng":-1.580612},{"name":"Evandy Hostel","lat":6.683948,"lng":-1.58003},{"name":"Evangelical Presbyterian Church, Ayigya Congregation","lat":6.689741,"lng":-1.568145},{"name":"Evans Anfom Auditorium","lat":6.675845,"lng":-1.565637},{"name":"Faculty of Agriculture","lat":6.675596,"lng":-1.566869},{"name":"Faculty of Art","lat":6.668493,"lng":-1.565467},{"name":"Faculty of Built Environment","lat":6.674062,"lng":-1.564683},{"name":"Faculty of Electrical and Computer Engineering","lat":6.672835,"lng":-1.565371},{"name":"Faculty of Law","lat":6.682134,"lng":-1.572213},{"name":"Faculty of Renewable Natural Resources","lat":6.676309,"lng":-1.564426},{"name":"Faculty of Social Sciences","lat":6.666506,"lng":-1.567475},{"name":"Fatau Handball Court","lat":6.675519,"lng":-1.57007},{"name":"First National Bank","lat":6.67565,"lng":-1.562849},{"name":"FoSS Library","lat":6.675266,"lng":-1.565837},{"name":"Ford Hostel","lat":6.674757,"lng":-1.561988},{"name":"Fosua Homes Hostel","lat":6.67061,"lng":-1.552607},{"name":"Frontline Inn Hostel","lat":6.672154,"lng":-1.562357},{"name":"GCB Bank","lat":6.686408,"lng":-1.574772},{"name":"GT Bank ATM","lat":6.676131,"lng":-1.572696},{"name":"GUSSS Sports Complex","lat":6.669577,"lng":-1.575676},{"name":"Glory Be To God Hostel","lat":6.677377,"lng":-1.562794},{"name":"Glory Be To God Hostel (Annex)","lat":6.67644,"lng":-1.555902},{"name":"Graduate School Hostel","lat":6.67064,"lng":-1.574938},{"name":"Great Dafco Senior High School","lat":6.683699,"lng":-1.57719},{"name":"Herbal Medicine Department","lat":6.673781,"lng":-1.566063},{"name":"Horticulture Department","lat":6.678361,"lng":-1.565406},{"name":"Hydes Hostel","lat":6.670472,"lng":-1.558984},{"name":"Indece Dining Hall","lat":6.677693,"lng":-1.571762},{"name":"Independence Hall Annex","lat":6.67822,"lng":-1.571505},{"name":"Infant Jesus Lumen Christi School","lat":6.675152,"lng":-1.555225},{"name":"Insectary, Faculty of Agriculture","lat":6.676035,"lng":-1.566859},{"name":"Junior Common Room","lat":6.68034,"lng":-1.575432},{"name":"KNUST Alumni Centre","lat":6.682123,"lng":-1.576882},{"name":"KNUST Community Center","lat":6.686861,"lng":-1.56689},{"name":"KNUST E-Learning Center","lat":6.675792,"lng":-1.565496},{"name":"KNUST Engineering Education Project","lat":6.666351,"lng":-1.565222},{"name":"KNUST Islamic Center","lat":6.682415,"lng":-1.57124},{"name":"KNUST Junior High School","lat":6.684537,"lng":-1.568701},{"name":"KNUST Library Mall","lat":6.677369,"lng":-1.566274},{"name":"KNUST Primary School","lat":6.685928,"lng":-1.568799},{"name":"KNUST School of Business (KSB)","lat":6.669085,"lng":-1.568097},{"name":"KNUST School of Business Postgraduate Centre","lat":6.667779,"lng":-1.5675},{"name":"KNUST Students' Clinic","lat":6.680229,"lng":-1.573312},{"name":"Kingdom Hall Of The Jehovah's Witness","lat":6.670867,"lng":-1.560152},{"name":"Kings Dental Clinic","lat":6.67623,"lng":-1.557787},{"name":"Klaver Hall","lat":6.685395,"lng":-1.572435},{"name":"Kotei RC Basic Schools","lat":6.666837,"lng":-1.559134},{"name":"Kumasi Centre for Collaborative Research in Tropical Medicine (KCCR)","lat":6.669774,"lng":-1.576554},{"name":"Kumasi High School","lat":6.662447,"lng":-1.58064},{"name":"Kwame Nkrumah University of Science & Technology","lat":6.678571,"lng":-1.560928},{"name":"Kwanwoma Rural Bank","lat":6.687693,"lng":-1.579508},{"name":"Laing Building Complex","lat":6.671957,"lng":-1.568406},{"name":"Lath House, Faculty of Agriculture","lat":6.676366,"lng":-1.566959},{"name":"Law School Offices","lat":6.681805,"lng":-1.572521},{"name":"Lecture Theatre 1","lat":6.674232,"lng":-1.565068},{"name":"MTN Service Centre","lat":6.682666,"lng":-1.575907},{"name":"Maa Joe","lat":6.677389,"lng":-1.568937},{"name":"Mass Hostel (New block)","lat":6.668789,"lng":-1.563003},{"name":"Mass Hostel (Old block)","lat":6.668995,"lng":-1.562973},{"name":"Methosist Church","lat":6.668796,"lng":-1.561139},{"name":"Michael Nyame Social Centre","lat":6.683837,"lng":-1.574589},{"name":"Millennium Hostel","lat":6.674631,"lng":-1.560163},{"name":"N Block","lat":6.674302,"lng":-1.565526},{"name":"Nana Adomah Hostel","lat":6.672496,"lng":-1.563315},{"name":"Nevada Hostel","lat":6.672981,"lng":-1.553398},{"name":"New Block Study Tent","lat":6.666767,"lng":-1.568031},{"name":"New Era Hostel","lat":6.674206,"lng":-1.560651},{"name":"Nwabiagya Rural Bank Limited","lat":6.687787,"lng":-1.573593},{"name":"Nyame Mireku Hostel","lat":6.672662,"lng":-1.558759},{"name":"Nyantakyi Hostel","lat":6.677258,"lng":-1.55213},{"name":"Obesse Jecty Block","lat":6.674671,"lng":-1.568556},{"name":"Oldham Clinical Analyses Lab","lat":6.673375,"lng":-1.568733},{"name":"Osei Tutu II Complex","lat":6.686243,"lng":-1.573358},{"name":"Our Lady of the Holy Rosary Catholic Church","lat":6.685114,"lng":-1.572706},{"name":"Paa Joe Stadium","lat":6.676925,"lng":-1.56962},{"name":"Paradise Hostel","lat":6.674112,"lng":-1.560415},{"name":"Peace Hostel","lat":6.674463,"lng":-1.559443},{"name":"Prempeh II Library","lat":6.675211,"lng":-1.572998},{"name":"Presbyterian Church Of Ghana","lat":6.672445,"lng":-1.56101},{"name":"Protestant Chapel","lat":6.6838,"lng":-1.572791},{"name":"Prudential Bank ATM","lat":6.676078,"lng":-1.572725},{"name":"Queen Elizabeth Hall Annex","lat":6.677619,"lng":-1.574643},{"name":"Queens Hall Market","lat":6.677384,"lng":-1.574246},{"name":"Queens hall gym","lat":6.677075,"lng":-1.574712},{"name":"R.P. Baffour Complex","lat":6.686218,"lng":-1.572678},{"name":"RTEP Hostel","lat":6.671239,"lng":-1.573178},{"name":"Rakho School Complex","lat":6.669384,"lng":-1.555325},{"name":"Regional Water & Environmental Sanitation Centre, Kumasi","lat":6.666147,"lng":-1.566035},{"name":"Republic Bank","lat":6.682657,"lng":-1.575579},{"name":"Republic Hall Annex","lat":6.678802,"lng":-1.573318},{"name":"Republic Hall Common Room","lat":6.678516,"lng":-1.574024},{"name":"Republic Hall Dining Hall","lat":6.678642,"lng":-1.573795},{"name":"Republic hall shops","lat":6.678285,"lng":-1.574175},{"name":"Resurrection Hostel","lat":6.67293,"lng":-1.554537},{"name":"Rhema Salvation Preparatory and Junior High School","lat":6.674313,"lng":-1.551971},{"name":"Royal Gym and Aerobics Center","lat":6.677049,"lng":-1.574737},{"name":"Royal Tennis Court","lat":6.675532,"lng":-1.574231},{"name":"Saarah Mensah Auditorium","lat":6.668761,"lng":-1.567743},{"name":"School of Graduate Studies","lat":6.669736,"lng":-1.567549},{"name":"School of Medical Sciences","lat":6.672313,"lng":-1.568414},{"name":"Seventh Day Adventist Church","lat":6.673459,"lng":-1.560609},{"name":"Shaba Hostel","lat":6.671546,"lng":-1.572941},{"name":"Shepperdsville Hostel","lat":6.674772,"lng":-1.558343},{"name":"Social Sciences Complex Car Park","lat":6.666747,"lng":-1.567362},{"name":"Splendor Hostel","lat":6.677474,"lng":-1.557541},{"name":"Spring Hostel","lat":6.671381,"lng":-1.572495},{"name":"Stanbic Bank","lat":6.682501,"lng":-1.575634},{"name":"Standard Chartered","lat":6.6832,"lng":-1.575701},{"name":"Steven Paris Student Hostel","lat":6.671089,"lng":-1.572826},{"name":"Tech Hospital","lat":6.686061,"lng":-1.573745},{"name":"Tek Credit Union","lat":6.684655,"lng":-1.573573},{"name":"Tennis Court (University Hall)","lat":6.673685,"lng":-1.571791},{"name":"The Brew-Hammond Energy Centre","lat":6.673406,"lng":-1.564525},{"name":"The Church of Pentecost, Kotei","lat":6.66653,"lng":-1.560485},{"name":"The older great hall","lat":6.681153,"lng":-1.574132},{"name":"Trevallion Block","lat":6.67429,"lng":-1.564682},{"name":"UBA","lat":6.683198,"lng":-1.577098},{"name":"UCOMS park","lat":6.674537,"lng":-1.554614},{"name":"Unity Hall Canteen","lat":6.679967,"lng":-1.571692},{"name":"Unity Hall Canteen 2","lat":6.680211,"lng":-1.571628},{"name":"University Hall Annex","lat":6.671928,"lng":-1.572465},{"name":"Victory Babtist Church","lat":6.687532,"lng":-1.575035},{"name":"Victory Martenity/Clinic","lat":6.688002,"lng":-1.575856},{"name":"White House Hostel","lat":6.672767,"lng":-1.562583},{"name":"Workshop 2, Department of Agricultural Engineering","lat":6.676021,"lng":-1.566378},{"name":"college of art","lat":6.6825,"lng":-1.573196},{"name":"perfect Lines Hostel","lat":6.673007,"lng":-1.555824}];
+function populatePlaces(){
+  const dl=document.getElementById('knustPlaces');
+  if(dl.childElementCount) return;
+  dl.innerHTML=KNUST_PLACES.map(p=>'<option value="'+p.name.replace(/"/g,'')+'">').join('');
+}
+function pickPlace(){
+  const v=document.getElementById('placePick').value.trim().toLowerCase();
+  const p=KNUST_PLACES.find(x=>x.name.toLowerCase()===v);
+  if(p) jumpTo(p.lat,p.lng,'Set to '+p.name);
+}
+async function searchOSM(){
+  const q=document.getElementById('osmq').value.trim(); if(!q) return;
+  msg('Searching OpenStreetMap…');
+  try{
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&viewbox=-1.60,6.70,-1.54,6.65&q='+encodeURIComponent(q));
+    const a=await r.json();
+    if(a[0]) jumpTo(+a[0].lat,+a[0].lon,'Found: '+a[0].display_name.split(',').slice(0,2).join(','));
+    else msg('No match. Try the landmark list or drag the pin.');
+  }catch(e){ msg('Search failed: '+e.message); }
+}
+function setManual(){
+  const la=parseFloat(document.getElementById('manLat').value), ln=parseFloat(document.getElementById('manLng').value);
+  if(isFinite(la)&&isFinite(ln)) jumpTo(la,ln,'Set to '+la.toFixed(5)+', '+ln.toFixed(5));
+  else msg('Enter a valid latitude and longitude.');
+}
+function jumpTo(lat,lng,note){
+  if(!map){ picked={lat,lng}; }
+  else { map.setView([lat,lng],17); marker.setLatLng([lat,lng]); setPicked({lat,lng}); }
+  msg(note||'');
+}
+function msg(t){ var el=document.getElementById('placeMsg'); if(el) el.textContent=t||''; }
+
+// ---- courses ----
+async function loadCourses(){
+  const cs=await api('/api/admin/courses');
+  document.getElementById('courseList').innerHTML=cs.length?tableRows(['Code','Title','Semester','Lecturer','Students'],cs.map(c=>[c.code,c.title,c.semester,c.lecturer_name||'—',c.students?c.students:'<b style="color:#b45309">0</b>'])):'<p class="muted">No courses yet.</p>';
+}
+let COURSE_SIZE={};
+async function loadCoursesInto(id){
+  const cs=await api('/api/admin/courses');
+  cs.forEach(c=>COURSE_SIZE[c.id]={n:c.students,label:`${c.code} · ${c.title}`});
+  document.getElementById(id).innerHTML=cs.map(c=>
+    `<option value="${c.id}">${c.code} · ${c.title} (${c.students} student${c.students===1?'':'s'})</option>`).join('');
+}
+async function createCourse(){
+  await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
+  loadCourses();
+}
+// ---- bulk enrolment ----
+/* The biometric service imports a dataset as one folder per person. A browser
+   folder picker gives us exactly that through webkitRelativePath, so the console
+   speaks the same layout instead of inventing a format of its own. */
+let BULK={};
+const BULK_CHUNK=4;                 // people per request: Heroku cuts a request at 30s
+function bulkGroup(files){
+  const by={};
+  for(const f of files){
+    if(!/\.(jpe?g|png|bmp|webp)$/i.test(f.name)) continue;
+    const parts=(f.webkitRelativePath||f.name).split('/');
+    const sid=parts.length>1?parts[parts.length-2].trim():'';
+    if(!sid) continue;
+    (by[sid]=by[sid]||[]).push(f);
+  }
+  return by;
+}
+function bulkScan(){
+  BULK=bulkGroup(document.getElementById('bulk_dir').files||[]);
+  const ids=Object.keys(BULK), imgs=ids.reduce((n,k)=>n+BULK[k].length,0);
+  document.getElementById('bulkScanOut').innerHTML=ids.length
+    ? `Found <b>${ids.length}</b> student folder${ids.length===1?'':'s'}, ${imgs} image${imgs===1?'':'s'}: ${ids.slice(0,8).join(', ')}${ids.length>8?'…':''}`
+    : 'No student folders found. Each student needs their own sub-folder named by student ID.';
+  document.getElementById('bulk_go').disabled=!ids.length;
+}
+/* Shrink before upload: a phone-sized JPEG per student times a department is
+   minutes of upload and a request Heroku will cut off at 30 seconds. */
+function shrink(file,max=1000,q=0.72){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg',q).split(',')[1]);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src=url;
+  });
+}
+async function bulkEnroll(){
+  const err=document.getElementById('bulkErr'), out=document.getElementById('bulkOut');
+  err.textContent=''; out.innerHTML='';
+  const prog=val('bulk_prog').trim().toLowerCase();
+  let ids=Object.keys(BULK);
+  if(prog){
+    const students=await api('/api/admin/students');
+    const on=new Set(students.filter(s=>(s.programme||'').trim().toLowerCase()===prog).map(s=>s.student_id));
+    ids=ids.filter(id=>on.has(id));
+    if(!ids.length){ err.textContent='No folder matches a student on that programme.'; return; }
+  }
+  const max=Math.max(1,Math.min(10,+val('bulk_max')||5));
+  const btn=document.getElementById('bulk_go'); btn.disabled=true;
+  const rows=[]; let done=0;
+  for(let i=0;i<ids.length;i+=BULK_CHUNK){
+    const slice=ids.slice(i,i+BULK_CHUNK);
+    const people=[];
+    for(const sid of slice){
+      const images=[];
+      for(const f of BULK[sid].slice(0,max)){ const b=await shrink(f); if(b) images.push(b); }
+      if(images.length) people.push({student_id:sid,images});
+    }
+    btn.textContent=`Enrolling ${done+1}-${Math.min(done+slice.length,ids.length)} of ${ids.length}…`;
+    try{
+      const r=await api('/api/admin/enroll/bulk',{method:'POST',body:JSON.stringify({people})});
+      rows.push(...r.results);
+    }catch(e){
+      slice.forEach(sid=>rows.push({student_id:sid,success:false,enrolled:0,message:e.message}));
+    }
+    done+=slice.length;
+    out.innerHTML=bulkTable(rows);
+  }
+  btn.textContent='Enrol batch'; btn.disabled=false;
+  loadStudents();
+}
+function bulkTable(rows){
+  const ok=rows.filter(r=>r.success).length;
+  return `<p class="muted"><b>${ok}</b> of ${rows.length} enrolled.</p>`+tableRows(['Student','Name','Result','Samples'],
+    rows.map(r=>[r.student_id,r.name||'—',
+      r.success?'<span class="badge present">enrolled</span>':`<span class="badge ${r.duplicate?'absent':'partial'}">${r.duplicate?'⚠ ':''}${r.message}</span>`,
+      r.enrolled||0]));
+}
+async function bulkEnrollCourse(){
+  const out=document.getElementById('bcOut'); out.textContent='';
+  try{
+    const r=await api('/api/admin/enroll-course/bulk',{method:'POST',body:JSON.stringify({
+      course_id:+val('bc_course'),programme:val('bc_prog'),year_group:val('bc_year'),class_group:val('bc_class')})});
+    out.innerHTML=`Matched <b>${r.matched}</b> student${r.matched===1?'':'s'}: ${r.added} newly enrolled, ${r.already_enrolled} already on the course.`;
+    loadSessions();
+  }catch(e){ out.textContent=e.message; }
+}
+// ---- programmes ----
+async function loadProgrammes(){
+  const ps=await api('/api/admin/programmes');
+  document.getElementById('pg_list').innerHTML=ps.map(p=>`<option value="${p.programme}">`).join('');
+  document.getElementById('pgTable').innerHTML=ps.length?tableRows(['Programme','Students','Sign-in'],
+    ps.map(p=>[p.programme,p.students,p.password_set?'✓ password set':'<b style="color:#b45309">no password: nobody can sign in</b>'])):
+    '<p class="muted">No programmes yet. Add a student with a programme first.</p>';
+}
+async function setProgrammePassword(){
+  const err=document.getElementById('pgErr'); err.textContent='';
+  const name=val('pg_name').trim(), pw=val('pg_pw');
+  if(!name){ err.textContent='Type the programme exactly as it appears on the students.'; return; }
+  if(pw.length<8){ err.textContent='Use at least 8 characters.'; return; }
+  try{
+    await api('/api/admin/programmes/password',{method:'POST',body:JSON.stringify({programme:name,password:pw})});
+    document.getElementById('pg_pw').value='';
+    alert('Everyone on '+name+' now signs in with that password. Tell them in class, not by message.');
+    loadProgrammes();
+  }catch(e){ err.textContent=e.message; }
+}
+// ---- students ----
+async function loadStudents(){
+  const ss=await api('/api/admin/students');
+  document.getElementById('studentList').innerHTML=ss.length?tableRows(['ID','Name','Programme','Biometric','Courses'],ss.map(s=>[s.student_id,s.name,s.programme||'—',s.biometric_enrolled?'✓ enrolled':'—',s.course_ids.length])):'<p class="muted">No students yet.</p>';
+}
+async function loadStudentsInto(id){
+  const ss=await api('/api/admin/students');
+  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.student_id}">${s.student_id} · ${s.name}</option>`).join('');
+}
+async function createStudent(){
+  try{await api('/api/admin/students',{method:'POST',body:JSON.stringify({student_id:val('st_id'),name:val('st_name'),password:val('st_pw'),programme:val('st_prog'),year_group:val('st_year'),class_group:val('st_class')})});
+    loadProgrammes();
+  loadStudents();loadStudentsInto('en_student');}catch(e){alert(e.message)}
+}
+async function enrollCourse(){
+  await api('/api/admin/enroll-course',{method:'POST',body:JSON.stringify({student_id:val('en_student'),course_id:+val('en_course')})});
+  loadStudents();alert('Enrolled.');
+}
+async function issueGrant(){
+  try{
+    const r=await api('/api/admin/enroll-grant',{method:'POST',body:JSON.stringify({student_id:val('gr_student'),ttl_hours:+val('gr_ttl')||24})});
+    document.getElementById('grantOut').innerHTML='<div class="card" style="background:#fff7f8;margin-top:10px"><b>One-time code:</b> <span style="font-size:22px;font-weight:800;letter-spacing:2px;color:var(--red)">'+r.token+'</span><div class="muted">Give this to the student. Expires '+new Date(r.expires_at).toLocaleString()+'. Single use.</div></div>';
+    loadGrants();
+  }catch(e){alert(e.message)}
+}
+async function loadGrants(){
+  const sid=val('gr_student'); if(!sid){document.getElementById('grantList').innerHTML='';return}
+  const rows=await api('/api/admin/enroll-grants?student_id='+encodeURIComponent(sid));
+  if(!rows.length){document.getElementById('grantList').innerHTML='<p class="muted">No codes issued for this student.</p>';return}
+  document.getElementById('grantList').innerHTML=tableRows(['Code','Status','Expires','Action'],rows.map(g=>{
+    const st=g.used?'<span class="badge closed">used/revoked</span>':(g.expired?'<span class="badge closed">expired</span>':'<span class="badge live">active</span>');
+    const act=(!g.used&&!g.expired)?`<button class="btn sec" style="margin:0;padding:6px 10px" onclick="revokeGrant('${g.token}')">Revoke</button>`:'—';
+    return [`<b>${g.token}</b>`,st,new Date(g.expires_at).toLocaleString(),act];
+  }));
+}
+async function revokeGrant(token){
+  await api('/api/admin/enroll-grants/'+token+'/revoke',{method:'POST'});
+  loadGrants();
+}
+// ---- sessions ----
+async function createSession(){
+  document.getElementById('sessErr').textContent="";
+  if(!located){
+    document.getElementById('sessErr').textContent='Set the class location first. Tap “Use my location”, pick a KNUST landmark, or drop the pin on the map.';
+    return;
+  }
+  if(lastAcc && lastAcc>120 && !confirm('Your GPS fix is weak (±'+Math.round(lastAcc)+' m). Students may be judged against an inaccurate centre. Create at this pin anyway?')) return;
+  const course=COURSE_SIZE[val('s_course')];
+  if(course && !course.n && !confirm('No students are enrolled in '+course.label+'. Nobody will see this class on their phone. Create it anyway?')) return;
+  try{
+    await api('/api/admin/sessions',{method:'POST',body:JSON.stringify({course_id:+val('s_course'),title:val('s_title'),lat:picked.lat,lng:picked.lng,radius_m:+val('s_radius'),duration_minutes:+val('s_dur'),marks_required:+val('s_marks')})});
+    loadSessions();alert('Session created at '+picked.lat.toFixed(5)+', '+picked.lng.toFixed(5)+'.\n\nThe START check-in is now open. Near the end of class, tap “Open END check-in” on this session so students mark a second time to be counted present.');
+  }catch(e){document.getElementById('sessErr').textContent=e.message}
+}
+/* Present needs BOTH windows, so a class that runs out of time while still in
+   START leaves every student who marked stuck on partial, silently, with
+   nothing on their phone to explain it. Warn while there is still time to act. */
+const END_WINDOW_WARN_MIN=10;
+/* A session reaches exactly the students enrolled in its course. Open one on the
+   wrong course and it is invisible, with nothing on the student side to say why. */
+function noStudentsNote(s){
+  if(s.enrolled) return '';
+  return `<div class="warn">⚠ <b>No students enrolled in this course</b>
+    <div>Nobody can see this class. Enrol students on the Students tab.</div></div>`;
+}
+function endPhaseWarning(s){
+  if(!s.live||s.phase!=='start') return '';
+  const left=(new Date(s.ends_at)-Date.now())/60000;
+  if(left>END_WINDOW_WARN_MIN) return '';
+  const mins=Math.max(0,Math.round(left));
+  const who=s.checked_in?`${s.checked_in} student${s.checked_in===1?'':'s'} will stay partial.`:'No one can reach present.';
+  return `<div class="warn">⚠ <b>Ends in ${mins} min, still in START</b>
+    <div>${who} Open END or add time.</div></div>`;
+}
+function endedInStartNote(s){
+  if(s.live||s.phase!=='start'||!s.partial) return '';
+  return `<div class="warn">⚠ <b>Ended while still in START</b>
+    <div>${s.partial} student${s.partial===1?'':'s'} left partial. Extend to let them finish.</div></div>`;
+}
+async function loadSessions(){
+  const ss=await api('/api/admin/sessions');
+  const phaseBadge=p=>p==='start'?'<span class="badge live">START check-in open</span>':(p==='end'?'<span class="badge out">END check-in open</span>':'<span class="badge closed">check-in closed</span>');
+  document.getElementById('sessList').innerHTML=ss.length?ss.map(s=>
+    `<div style="border-bottom:1px solid var(--line);padding:10px 0">
+      <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'ended'}</span> ${phaseBadge(s.phase)}</div>
+      <div class="muted">${s.radius_m}m · visible to ${s.enrolled} student${s.enrolled===1?'':'s'} · ${s.checked_in} attendance record${s.checked_in===1?'':'s'}${s.present?` · ${s.present} present`:''}${s.partial?` · ${s.partial} partial`:''} · ends ${new Date(s.ends_at).toLocaleString()}</div>
+      ${noStudentsNote(s)}${endPhaseWarning(s)}${endedInStartNote(s)}
+      <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-start;flex-wrap:wrap">
+        ${s.active&&s.phase==='start'?`<button class="btn" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'end')">Open END check-in</button>`:''}
+        ${s.active&&s.phase==='end'?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'start')">Reopen START</button>`:''}
+        <button class="btn sec" style="margin:0;padding:8px 12px" onclick="extendSession(${s.id},15)">+15 min</button>
+        ${s.active?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="closeSession(${s.id})">Close class</button>`:''}
+      </div>
+    </div>`).join(''):'<p class="muted">No sessions yet.</p>';
+}
+/* The warning is time-based, so the list has to keep looking at the clock —
+   a countdown nobody refreshes is a countdown nobody sees. */
+let sessTimer=null;
+function watchSessions(on){
+  clearInterval(sessTimer); sessTimer=null;
+  if(on) sessTimer=setInterval(()=>{ if(document.getElementById('v-sessions').classList.contains('hidden')) return; loadSessions(); },30000);
+}
+async function extendSession(id,minutes){
+  await api('/api/admin/sessions/'+id+'/extend',{method:'POST',body:JSON.stringify({minutes})});
+  loadSessions();
+}
+async function setPhase(id,phase){ await api('/api/admin/sessions/'+id+'/phase',{method:'POST',body:JSON.stringify({phase})}); loadSessions(); }
+async function loadSessionsInto(id){
+  const ss=await api('/api/admin/sessions');
+  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.id}">${s.course_code} · ${s.title||''} ${s.live?'(live)':''}</option>`).join('');
+  loadAttendance();
+}
+async function closeSession(id){await api('/api/admin/sessions/'+id+'/close',{method:'POST'});loadSessions()}
+// ---- attendance ----
+async function loadAttendance(){
+  const sel=document.getElementById('at_session');if(!sel.value){document.getElementById('attList').innerHTML='';return}
+  const d=await api('/api/admin/attendance?session_id='+sel.value);
+  document.getElementById('attList').innerHTML=`<h4>${d.course} · ${d.title||''}</h4>`+(d.rows.length?
+    tableRows(['Student','Name','Status','Marks','Score','Last mark'],d.rows.map(r=>[r.student_id,r.name,`<span class="badge ${r.status}">${r.status}</span>`,r.marks,r.score,r.last_marked_at?new Date(r.last_marked_at).toLocaleTimeString():'—'])):'<p class="muted">No students enrolled in this course.</p>');
+}
+// ---- helpers ----
+const val=id=>document.getElementById(id).value.trim();
+function tableRows(head,rows){
+  return `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+// boot
+if(tok())showApp();
+</script>
+</body>
+</html>
