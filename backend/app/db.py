@@ -12,45 +12,26 @@ _connect_args = {"check_same_thread": False} if _sqlite else {}
 # Several lecturers open classes at the same moment, and the pooled Postgres on
 # the other side drops idle connections overnight. pre_ping trades one cheap
 # round trip for never handing a dead connection to the first request of the day.
-_pool = {} if _sqlite else {
+_pool: dict = {} if _sqlite else {
     "pool_pre_ping": True,
-    "pool_size": 10,
-    "max_overflow": 20,
+    "pool_size": settings.db_pool_size,
+    "max_overflow": settings.db_max_overflow,
     "pool_recycle": 1800,
 }
-engine = create_engine(settings.database_url, echo=False, connect_args=_connect_args, **_pool)
+engine = create_engine(
+    settings.database_url,
+    echo=settings.sql_echo,
+    connect_args=_connect_args,
+    **_pool,
+)
 
 
 def init_db() -> None:
-    """Create tables. Import models first so they register on SQLModel.metadata."""
-    from . import models  # noqa: F401  (registers tables)
+    """Create tables, then bring an older database up to the current shape."""
+    from . import migrate, models  # noqa: F401  (importing models registers tables)
 
     SQLModel.metadata.create_all(engine)
-    _migrate()
-
-
-def _migrate() -> None:
-    """Lightweight additive migration: add columns introduced after first deploy.
-    create_all() creates missing TABLES but never adds columns to existing ones."""
-    from sqlalchemy import inspect, text
-
-    insp = inspect(engine)
-    tables = set(insp.get_table_names())
-
-    def add_col(table: str, col: str, ddl: str) -> None:
-        if table not in tables or col in {c["name"] for c in insp.get_columns(table)}:
-            return
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
-        except Exception:
-            # Another worker added it between inspect and ALTER (or it already
-            # exists). The column is present either way — safe to ignore.
-            pass
-
-    add_col("student", "enroll_device_uid", "enroll_device_uid VARCHAR DEFAULT ''")
-    add_col("session", "phase", "phase VARCHAR DEFAULT 'start'")
-    add_col("attendancemark", "phase", "phase VARCHAR DEFAULT 'start'")
+    migrate.run(engine)
 
 
 def get_session() -> Iterator[Session]:

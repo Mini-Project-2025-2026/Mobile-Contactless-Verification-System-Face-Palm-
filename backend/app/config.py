@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = "sqlite:///./attendance.db"
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    sql_echo: bool = False
+
     # Unset in development means "sign with a throwaway": tokens stop working when
     # the process restarts, which is inconvenient. Unset in production with a known
     # default means anyone reading this file can mint one, which is fatal.

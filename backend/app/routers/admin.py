@@ -391,13 +391,16 @@ def bulk_enroll_course(body: BulkCourseEnrollIn, _: str = Depends(current_admin)
     if not body.programme.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "programme is required")
 
+    # Indexed on the normalised column rather than reading every student row and
+    # normalising in Python: a department is thousands of rows, and this endpoint
+    # is the one an admin runs while a class waits.
     wanted = norm_programme(body.programme)
-    students = [
-        st for st in db.exec(select(Student)).all()
-        if norm_programme(st.programme) == wanted
-        and (not body.year_group or st.year_group == body.year_group)
-        and (not body.class_group or st.class_group == body.class_group)
-    ]
+    query = select(Student).where(Student.programme_key == wanted)
+    if body.year_group:
+        query = query.where(Student.year_group == body.year_group)
+    if body.class_group:
+        query = query.where(Student.class_group == body.class_group)
+    students = list(db.exec(query).all())
     existing = {
         row for row in db.exec(select(Enrollment.student_id).where(
             Enrollment.course_id == body.course_id)).all()
