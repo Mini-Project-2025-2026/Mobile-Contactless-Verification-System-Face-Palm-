@@ -51,6 +51,10 @@ def login(req: LoginRequest, db: Session = Depends(get_session)) -> TokenRespons
             name=req.device_name,
         )
     else:
+        # A device is shared on purpose: a classroom phone gets handed around so
+        # students without one can still mark. It belongs to whoever signed in
+        # last, otherwise the registry keeps naming the first student forever.
+        device.student_id = student.student_id
         device.active = True
         device.platform = req.platform
         device.name = req.device_name

@@ -1,9 +1,10 @@
-"""The first enrolment is the step that ties a face to a student ID.
+"""A never-enrolled student enrols on the spot; changing that binding does not.
 
-Sign-in passwords are shared across a programme, so a classmate knows both
-halves of the credential. If the first enrolment were self-served, they could
-bind their own face to an unenrolled classmate's ID and mark for them all
-semester. It needs an admin one-time code instead, issued in person.
+The campus flow this replaces lets a student sign in and enrol themselves, so
+that is the default here. The protection sits on CHANGE: once an ID is tied to a
+face, re-enrolling it (or adding a modality from another device) needs an admin
+one-time code. `enroll_requires_grant` puts a code in front of the first
+enrolment too, for deployments that want it.
 """
 from datetime import datetime, timedelta, timezone
 
@@ -60,7 +61,14 @@ def _enroll(client, auth, grant=""):
                        json={"modality": "face", "images": ["a", "b", "c"], "grant_token": grant}).json()
 
 
-def test_first_enrolment_is_refused_without_an_admin_code(client, auth):
+def test_first_enrolment_is_self_served(client, auth):
+    """A student who has never enrolled just enrols."""
+    assert _enroll(client, auth)["ok"] is True
+    assert client.get("/api/enroll/status", headers=auth).json()["can_mark"] is True
+
+
+def test_the_first_enrolment_can_be_gated_where_a_deployment_wants_it(client, auth, monkeypatch):
+    monkeypatch.setattr(settings, "enroll_requires_grant", True)
     r = _enroll(client, auth)
     assert r["ok"] is False and r["code"] == "grant_required"
     assert "first enrolment" in r["message"].lower()
@@ -69,7 +77,8 @@ def test_first_enrolment_is_refused_without_an_admin_code(client, auth):
         assert db.exec(select(Student).where(Student.student_id == SID)).one().enrolled_modality == ""
 
 
-def test_an_admin_code_lets_the_first_enrolment_through_once(client, auth):
+def test_an_admin_code_lets_a_gated_first_enrolment_through_once(client, auth, monkeypatch):
+    monkeypatch.setattr(settings, "enroll_requires_grant", True)
     with Session(engine) as db:
         db.add(EnrollGrant(token="FIRST123", student_id=SID,
                            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
@@ -81,6 +90,8 @@ def test_an_admin_code_lets_the_first_enrolment_through_once(client, auth):
     assert _enroll(client, auth, grant="FIRST123")["code"] == "grant_required"
 
 
-def test_the_gate_can_be_lifted_where_passwords_are_private(client, auth, monkeypatch):
-    monkeypatch.setattr(settings, "enroll_requires_grant", False)
+def test_changing_the_binding_always_needs_a_code(client, auth):
+    """Enrolled once, the ID stays tied to that face until an admin says otherwise."""
     assert _enroll(client, auth)["ok"] is True
+    r = _enroll(client, auth)
+    assert r["ok"] is False and r["code"] == "grant_required"

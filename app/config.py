@@ -35,11 +35,11 @@ class Settings(BaseSettings):
     # login lock and instead bind the ENROLMENT device (re-enrol needs a grant).
     enforce_login_device: bool = False
 
-    # A student's FIRST enrolment is what ties a face to a student ID, so it is
-    # the one step a shared (programme-wide) password cannot be allowed to open.
-    # When true it needs an admin one-time code, issued in person. Set false only
-    # where every student has a private password.
-    enroll_requires_grant: bool = True
+    # A student who has never enrolled just enrols, on the spot, like the campus
+    # app they already use. What is protected is CHANGE: once an ID is tied to a
+    # face, re-enrolling it (or adding a modality from another device) needs an
+    # admin one-time code. Set true to require a code for the first enrolment too.
+    enroll_requires_grant: bool = False
 
 
 settings = Settings()
