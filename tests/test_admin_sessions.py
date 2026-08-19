@@ -121,3 +121,32 @@ def test_extend_rejects_silly_values_and_unknown_sessions(client, auth):
 def test_extend_needs_an_admin(client):
     sid = _session(ends_in_minutes=10)
     assert client.post(f"/api/admin/sessions/{sid}/extend", json={"minutes": 15}).status_code in (401, 403)
+
+
+def test_a_session_reports_who_can_see_it(client, auth):
+    """A session reaches exactly the students enrolled in its course."""
+    _session(ends_in_minutes=30)
+    (row,) = client.get("/api/admin/sessions", headers=auth).json()
+    assert row["enrolled"] == 1
+
+    # a course nobody is enrolled in: the class exists but is invisible
+    with Session(engine) as db:
+        db.add(Course(code="CS201", title="Data Structures", semester="2025/2026-1"))
+        db.commit()
+        now = datetime.now(timezone.utc)
+        db.add(ClassSession(course_id=2, title="Lecture1", lat=LAT, lng=LNG, radius_m=70.0,
+                            starts_at=now - timedelta(minutes=1), ends_at=now + timedelta(hours=1),
+                            marks_required=2))
+        db.commit()
+
+    rows = {r["course_code"]: r for r in client.get("/api/admin/sessions", headers=auth).json()}
+    assert rows["CS201"]["enrolled"] == 0
+    assert rows["MATH151"]["enrolled"] == 1
+
+
+def test_courses_carry_their_class_size(client, auth):
+    with Session(engine) as db:
+        db.add(Course(code="CS201", title="Data Structures", semester="2025/2026-1"))
+        db.commit()
+    sizes = {c["code"]: c["students"] for c in client.get("/api/admin/courses", headers=auth).json()}
+    assert sizes == {"MATH151": 1, "CS201": 0}

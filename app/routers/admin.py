@@ -70,7 +70,18 @@ class CourseIn(BaseModel):
 
 @router.get("/courses")
 def list_courses(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
-    return [c.model_dump() for c in db.exec(select(Course)).all()]
+    """Courses with their class size.
+
+    A session is only visible to students enrolled in its course, so the count
+    is what tells you whether anyone will see the class you are about to open.
+    """
+    out = []
+    for c in db.exec(select(Course)).all():
+        row = c.model_dump()
+        row["students"] = len(db.exec(
+            select(Enrollment.student_id).where(Enrollment.course_id == c.id)).all())
+        out.append(row)
+    return out
 
 
 @router.post("/courses", status_code=201)
@@ -169,6 +180,9 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
             "live": s.active and _aware(s.starts_at) <= now <= _aware(s.ends_at), "active": s.active,
             "phase": s.phase, "marks_required": s.marks_required, "checked_in": len(rows),
             "partial": partial, "present": present,
+            # who can even see this session: nobody, if the course has no students
+            "enrolled": len(db.exec(
+                select(Enrollment.student_id).where(Enrollment.course_id == s.course_id)).all()),
         })
     return sorted(out, key=lambda x: x["starts_at"], reverse=True)
 

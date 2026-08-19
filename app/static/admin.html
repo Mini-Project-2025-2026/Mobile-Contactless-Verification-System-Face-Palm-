@@ -262,11 +262,14 @@ function msg(t){ var el=document.getElementById('placeMsg'); if(el) el.textConte
 // ---- courses ----
 async function loadCourses(){
   const cs=await api('/api/admin/courses');
-  document.getElementById('courseList').innerHTML=cs.length?tableRows(['Code','Title','Semester','Lecturer'],cs.map(c=>[c.code,c.title,c.semester,c.lecturer_name||'—'])):'<p class="muted">No courses yet.</p>';
+  document.getElementById('courseList').innerHTML=cs.length?tableRows(['Code','Title','Semester','Lecturer','Students'],cs.map(c=>[c.code,c.title,c.semester,c.lecturer_name||'—',c.students?c.students:'<b style="color:#b45309">0</b>'])):'<p class="muted">No courses yet.</p>';
 }
+let COURSE_SIZE={};
 async function loadCoursesInto(id){
   const cs=await api('/api/admin/courses');
-  document.getElementById(id).innerHTML=cs.map(c=>`<option value="${c.id}">${c.code} · ${c.title}</option>`).join('');
+  cs.forEach(c=>COURSE_SIZE[c.id]={n:c.students,label:`${c.code} · ${c.title}`});
+  document.getElementById(id).innerHTML=cs.map(c=>
+    `<option value="${c.id}">${c.code} · ${c.title} (${c.students} student${c.students===1?'':'s'})</option>`).join('');
 }
 async function createCourse(){
   await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
@@ -318,6 +321,8 @@ async function createSession(){
     return;
   }
   if(lastAcc && lastAcc>120 && !confirm('Your GPS fix is weak (±'+Math.round(lastAcc)+' m). Students may be judged against an inaccurate centre. Create at this pin anyway?')) return;
+  const course=COURSE_SIZE[val('s_course')];
+  if(course && !course.n && !confirm('No students are enrolled in '+course.label+'. Nobody will see this class on their phone. Create it anyway?')) return;
   try{
     await api('/api/admin/sessions',{method:'POST',body:JSON.stringify({course_id:+val('s_course'),title:val('s_title'),lat:picked.lat,lng:picked.lng,radius_m:+val('s_radius'),duration_minutes:+val('s_dur'),marks_required:+val('s_marks')})});
     loadSessions();alert('Session created at '+picked.lat.toFixed(5)+', '+picked.lng.toFixed(5)+'.\n\nThe START check-in is now open. Near the end of class, tap “Open END check-in” on this session so students mark a second time to be counted present.');
@@ -327,6 +332,13 @@ async function createSession(){
    START leaves every student who marked stuck on partial, silently, with
    nothing on their phone to explain it. Warn while there is still time to act. */
 const END_WINDOW_WARN_MIN=10;
+/* A session reaches exactly the students enrolled in its course. Open one on the
+   wrong course and it is invisible, with nothing on the student side to say why. */
+function noStudentsNote(s){
+  if(s.enrolled) return '';
+  return `<div class="warn">⚠ <b>No students enrolled in this course</b>
+    <div>Nobody can see this class. Enrol students on the Students tab.</div></div>`;
+}
 function endPhaseWarning(s){
   if(!s.live||s.phase!=='start') return '';
   const left=(new Date(s.ends_at)-Date.now())/60000;
@@ -347,8 +359,8 @@ async function loadSessions(){
   document.getElementById('sessList').innerHTML=ss.length?ss.map(s=>
     `<div style="border-bottom:1px solid var(--line);padding:10px 0">
       <div><b>${s.course_code}</b> ${s.title||''} <span class="badge ${s.live?'live':'closed'}">${s.live?'LIVE':'ended'}</span> ${phaseBadge(s.phase)}</div>
-      <div class="muted">${s.radius_m}m · ${s.checked_in} attendance record${s.checked_in===1?'':'s'}${s.present?` · ${s.present} present`:''}${s.partial?` · ${s.partial} partial`:''} · ends ${new Date(s.ends_at).toLocaleString()}</div>
-      ${endPhaseWarning(s)}${endedInStartNote(s)}
+      <div class="muted">${s.radius_m}m · visible to ${s.enrolled} student${s.enrolled===1?'':'s'} · ${s.checked_in} attendance record${s.checked_in===1?'':'s'}${s.present?` · ${s.present} present`:''}${s.partial?` · ${s.partial} partial`:''} · ends ${new Date(s.ends_at).toLocaleString()}</div>
+      ${noStudentsNote(s)}${endPhaseWarning(s)}${endedInStartNote(s)}
       <div class="row" style="gap:6px;margin-top:8px;justify-content:flex-start;flex-wrap:wrap">
         ${s.active&&s.phase==='start'?`<button class="btn" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'end')">Open END check-in</button>`:''}
         ${s.active&&s.phase==='end'?`<button class="btn sec" style="margin:0;padding:8px 12px" onclick="setPhase(${s.id},'start')">Reopen START</button>`:''}
