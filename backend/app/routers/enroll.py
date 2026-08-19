@@ -16,7 +16,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment
+from .. import biometric, enrolment, policy
 from ..config import settings
 from ..db import get_session
 from ..models import EnrollGrant, Modality, Student
@@ -52,7 +52,11 @@ def enroll_status(
     student = enrolment.sync(db, student)
     mods = _modalities(student)
     face = "face" in mods
-    return EnrollStatus(face_enrolled=face, palm_enrolled="palm" in mods, can_mark=face)
+    return EnrollStatus(
+        face_enrolled=face, palm_enrolled="palm" in mods, can_mark=face,
+        palm_available=policy.palm_available(),
+        samples_target=policy.samples_per_user(),
+    )
 
 
 @router.post("", response_model=EnrollResponse)
@@ -64,6 +68,16 @@ def enroll(
 ) -> EnrollResponse:
     if not req.images:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "no images provided")
+
+    # A tenant with palm switched off cannot store a palm template, so a palm
+    # capture here can only fail — and it fails looking like bad lighting, which
+    # sends the student back to try again at something that will never work.
+    if req.modality == Modality.palm and not policy.palm_available():
+        return EnrollResponse(
+            ok=False, enrolled=0, of=len(req.images), samples=0, modality=req.modality,
+            code="modality_unavailable",
+            message="Palm is not enabled for this campus. Your face enrolment is all you need.",
+        )
 
     # Sync first: an existing template must count as "already enrolled" here too,
     # or a forgotten cache would hand out a grant-free re-enrolment.

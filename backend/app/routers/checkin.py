@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment
+from .. import biometric, enrolment, policy
 from ..config import settings
 from ..db import get_session
 from ..geo import within_geofence
@@ -126,7 +126,8 @@ def verify(
     if not result.success or result.user_id != student.student_id:
         return _fail(db, s, student.student_id, distance, "biometric_mismatch",
                      "Face/palm did not match your enrolled record.")
-    if result.score < settings.min_verify_score:
+    floor = policy.effective_score_floor()
+    if result.score < floor.min_score:
         return _fail(db, s, student.student_id, distance, "low_confidence",
                      "Capture quality too low. Try again in better light.")
 

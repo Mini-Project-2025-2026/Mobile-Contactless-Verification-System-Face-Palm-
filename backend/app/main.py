@@ -134,8 +134,19 @@ def readiness() -> dict:
         checks["biometric"]["error"] = health.detail
 
     checks["signing_secret"] = {"ok": bool(settings.biometric_signing_secret)}
+
+    # Thresholds are reported, never used to fail the probe: an unreadable tenant
+    # config falls back to the local floor, which still works.
+    from . import policy
+    verdict = policy.describe()
+    if verdict["local_floor_is_inert"]:
+        # Say it plainly. A floor that rejects nothing looks like a working
+        # safety setting in the console, and that is worse than not having one.
+        log.warning("MIN_VERIFY_SCORE=%.2f is below the service's match threshold "
+                    "%.2f, so it rejects nothing.",
+                    verdict["local_floor"], verdict["service_match_threshold"])
     return {"ok": all(c["ok"] for c in checks.values()), "checks": checks,
-            "environment": settings.environment}
+            "verification_policy": verdict, "environment": settings.environment}
 
 
 @app.get("/admin", response_class=HTMLResponse, tags=["admin"])

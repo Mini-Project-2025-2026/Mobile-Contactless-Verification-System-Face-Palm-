@@ -135,3 +135,8 @@ class EnrollStatus(BaseModel):
     face_enrolled: bool
     palm_enrolled: bool
     can_mark: bool  # true once the compulsory face enrolment exists
+    #: Whether this campus's tenant holds palm templates at all. False means the
+    #: app should not offer palm: the capture could only ever fail.
+    palm_available: bool = True
+    #: How many samples the service keeps per person, so the app can show progress.
+    samples_target: int = 0
