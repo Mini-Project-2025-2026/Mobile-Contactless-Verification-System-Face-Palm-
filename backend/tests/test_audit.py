@@ -156,3 +156,67 @@ def test_bulk_biometric_enrolment_is_recorded(client, admin, monkeypatch):
                 json={"people": [{"student_id": "20512345", "images": ["img"]}]})
 
     assert "1 enrolled of 1 submitted" in _entries("enrol.bulk")[0].detail
+
+
+# --- the verification tenant: capacity, template health, erasure -------------
+def test_the_console_can_see_the_tenant_it_depends_on(client, admin, monkeypatch):
+    """Reachability, thresholds and usage were unanswerable from anywhere."""
+    monkeypatch.setattr(biometric, "service_health",
+                        lambda: biometric.ServiceHealth(ok=True, version="v1",
+                                                        active_liveness=True))
+    monkeypatch.setattr(biometric, "usage_summary",
+                        lambda: {"verify": 1200, "limit": 5000})
+
+    body = client.get("/api/admin/verification", headers=admin).json()
+    assert body["service"]["ok"] is True
+    assert body["usage"]["verify"] == 1200
+    assert "min_score" in body["policy"]
+
+
+def test_unreadable_usage_does_not_take_the_screen_down(client, admin, monkeypatch):
+    monkeypatch.setattr(biometric, "service_health",
+                        lambda: biometric.ServiceHealth(ok=True, version="v1"))
+
+    def boom():
+        raise biometric.BiometricError("not metered on this plan")
+
+    monkeypatch.setattr(biometric, "usage_summary", boom)
+    body = client.get("/api/admin/verification", headers=admin).json()
+    assert body["service"]["ok"] is True
+    assert body["usage"]["available"] is False
+
+
+def test_erasing_a_biometric_record_keeps_the_attendance(client, admin, monkeypatch):
+    """Deleting what a student earned would punish them for exercising a right."""
+    monkeypatch.setattr(biometric, "delete_users",
+                        lambda ids: {"deleted": 1, "credentials_revoked": 2})
+    with Session(engine) as db:
+        row = db.exec(select(Student).where(Student.student_id == "20512345")).one()
+        row.enrolled_modality = "face,palm"
+        db.add(row)
+        db.commit()
+
+    body = client.post("/api/admin/students/erase-biometrics", headers=admin, json={
+        "student_id": "20512345", "confirm_student_id": "20512345"}).json()
+    assert body["deleted"] is True
+    assert body["credentials_revoked"] == 2
+
+    with Session(engine) as db:
+        # our cached "they are enrolled" goes too, or the face-required gate
+        # keeps waving them through to a verify that can only fail
+        assert db.exec(select(Student).where(
+            Student.student_id == "20512345")).one().enrolled_modality == ""
+    assert _entries("student.erase_biometrics")[0].target == "student:20512345"
+
+
+def test_erasure_needs_the_id_typed_twice(client, admin, monkeypatch):
+    monkeypatch.setattr(biometric, "delete_users",
+                        lambda ids: pytest.fail("must not reach the service"))
+    response = client.post("/api/admin/students/erase-biometrics", headers=admin, json={
+        "student_id": "20512345", "confirm_student_id": "20512346"})
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "confirm_mismatch"
+
+
+def test_template_health_is_admin_only(client):
+    assert client.get("/api/admin/templates").status_code == 401

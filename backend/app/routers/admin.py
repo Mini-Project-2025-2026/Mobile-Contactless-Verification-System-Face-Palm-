@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from .. import audit, biometric, enrolment, guard, queries, reporting
+from .. import audit, biometric, enrolment, guard, policy, queries, reporting
 from ..config import settings
 from ..db import get_session
 from ..middleware import client_ip
@@ -628,6 +628,95 @@ def set_programme_password(body: ProgrammePasswordIn, request: Request,
           detail="set or rotated")
     students = queries.count(db, Student, Student.programme != "")
     return {"programme": key, "updated": True, "students_on_programme": students}
+
+
+# ---------- the verification tenant: capacity, template health, erasure ----------
+@router.get("/verification")
+def verification_state(_: str = Depends(current_admin)) -> dict:
+    """What the verification service says about itself, for this tenant.
+
+    Three questions an administrator could not previously answer from anywhere:
+    are we near a usage limit, is the service reachable, and what are the
+    thresholds our check-ins are actually being judged against. The last of
+    these was set independently here and there, with no way to see both.
+    """
+    health = biometric.service_health()
+    out: dict = {
+        "service": {"ok": health.ok, "version": health.version,
+                    "url": settings.biometric_base_url,
+                    "active_liveness": health.active_liveness},
+        "policy": policy.describe(),
+    }
+    try:
+        out["usage"] = biometric.usage_summary()
+    except biometric.BiometricError as exc:
+        # Usage is informational; a tenant on a plan that does not meter it, or
+        # a brief outage, must not take the whole screen down.
+        out["usage"] = {"available": False, "reason": str(exc)[:200]}
+    return out
+
+
+@router.get("/templates")
+def template_health(student_id: str = "", _: str = Depends(current_admin)) -> dict:
+    """Which protection domain stored templates live in, tenant-wide or for one
+    person. Reported before exam week, not discovered during it."""
+    try:
+        return biometric.templates_status(student_id)
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            f"biometric_unavailable: {exc}") from exc
+
+
+class EraseIn(BaseModel):
+    student_id: str
+    #: Typing the student id again. Erasure cannot be undone and the person has
+    #: to enrol in person to come back, so a mis-click should not be enough.
+    confirm_student_id: str
+
+
+@router.post("/students/erase-biometrics")
+def erase_biometrics(body: EraseIn, request: Request, actor: str = Depends(current_admin),
+                     db: Session = Depends(get_session)) -> dict:
+    """Erase one student's biometric record, here and at the service.
+
+    The attendance they already earned stays: it is an academic record of
+    classes attended, not biometric data, and deleting it would punish the
+    student for exercising a right. What goes is the template, the credentials
+    issued from it, and our cached belief that they are enrolled — which would
+    otherwise keep waving them past the face-required gate to a verify that can
+    only fail.
+    """
+    if body.student_id != body.confirm_student_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "confirm_mismatch: the confirmation must repeat the student id")
+    student = db.exec(select(Student).where(Student.student_id == body.student_id)).first()
+    if student is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown student")
+
+    try:
+        outcome = biometric.delete_users([body.student_id])
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            f"biometric_unavailable: {exc}") from exc
+
+    student.enrolled_modality = ""
+    student.enrolled_at = None
+    student.enrolled_samples = 0
+    student.enroll_device_uid = ""
+    db.add(student)
+    db.commit()
+    enrolment.reset_cache()
+    _note(db, request, actor, "student.erase_biometrics",
+          target=f"student:{body.student_id}",
+          detail=f"{outcome.get('deleted', 0)} deleted, "
+                 f"{outcome.get('credentials_revoked', 0)} credentials revoked")
+    return {
+        "student_id": body.student_id,
+        "deleted": bool(outcome.get("deleted")),
+        "credentials_revoked": outcome.get("credentials_revoked", 0),
+        "message": ("Biometric record erased. Attendance already recorded is unchanged. "
+                    "The student must enrol in person to mark attendance again."),
+    }
 
 
 # ---------- consent (the lawful basis for holding a face) ----------
