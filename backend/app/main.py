@@ -31,6 +31,7 @@ from .routers import (
     courses,
     devices,
     enroll,
+    kiosk,
     profile,
 )
 
@@ -107,6 +108,7 @@ app.include_router(devices.router)
 app.include_router(profile.router)
 app.include_router(enroll.router)
 app.include_router(consent.router)
+app.include_router(kiosk.router)
 app.include_router(admin.router)
 
 

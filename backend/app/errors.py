@@ -19,6 +19,7 @@ here. This covers the failures, where nothing was agreed before.
 from __future__ import annotations
 
 import logging
+import re
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -60,17 +61,26 @@ def error_response(status_code: int, message: str, *, code: str = "",
     )
 
 
+#: A detail that is nothing but a snake_case token IS the code — the shape used
+#: by `raise HTTPException(409, "session_closed")` all over this codebase.
+_BARE_CODE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
 def _code_from_detail(detail: object, status_code: int) -> tuple[str, str]:
-    """Split "code: human message" — the convention already used when raising.
+    """Recover the machine code from the detail, in either shape used here.
 
     `raise HTTPException(409, "device_conflict: another device is registered")`
-    was written to give the client something stable to branch on. Honour it
-    rather than making every call site change shape.
+    and `raise HTTPException(409, "session_closed")` were both written to give
+    the client something stable to branch on. Honour both rather than making
+    every call site change shape — and rather than flattening them all to
+    "conflict", which is what a status-code lookup alone would do.
     """
     text = detail if isinstance(detail, str) else str(detail)
     head, sep, tail = text.partition(":")
     if sep and " " not in head.strip() and head.strip():
         return head.strip(), tail.strip() or head.strip()
+    if _BARE_CODE.match(text.strip()):
+        return text.strip(), text.strip()
     return _CODES.get(status_code, "error"), text
 
 

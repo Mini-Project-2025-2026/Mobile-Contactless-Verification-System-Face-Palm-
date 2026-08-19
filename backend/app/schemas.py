@@ -81,6 +81,39 @@ class VerifyResponse(BaseModel):
     message: str = ""
 
 
+# --- kiosk (shared classroom device, 1:N identify) ---
+class KioskChallengeOut(BaseModel):
+    token: str
+    instruction: str
+    active: bool = True
+    phase: str
+
+
+class KioskVerifyIn(BaseModel):
+    token: str = ""
+    frames: list[str] = Field(default_factory=list, description="base64 JPEG/PNG frames")
+    image: str | None = None
+    modality: Modality = Modality.face
+    #: Where the DEVICE is. A fixed kiosk in a lecture hall is equipment the
+    #: lecturer controls, which is why its position can be trusted in a way a
+    #: student's own phone reporting its own location cannot.
+    gps: Gps
+
+
+class KioskVerifyOut(BaseModel):
+    ok: bool
+    code: str
+    message: str
+    #: Present once someone has been identified — this is a 1:N flow, so who it
+    #: is only becomes known partway through.
+    student_id: str = ""
+    name: str = ""
+    status: AttendanceStatus = AttendanceStatus.absent
+    marks_count: int = 0
+    distance_m: float = 0.0
+    score: float = 0.0
+
+
 # --- history ---
 class AttendanceItem(BaseModel):
     course_code: str

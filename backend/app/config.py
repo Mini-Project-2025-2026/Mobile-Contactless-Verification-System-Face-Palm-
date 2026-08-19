@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(default_factory=_generated)
     jwt_expire_minutes: int = 43_200  # 30 days
     jwt_algorithm: str = "HS256"
+    admin_token_hours: int = 12
+    #: How long a shared classroom device stays able to mark, past the end of
+    #: the class it was issued for. Short: the phone gets handed around.
+    kiosk_token_grace_minutes: int = 30
 
     biometric_base_url: str = "https://127.0.0.1:5000"
     biometric_api_key: str = ""

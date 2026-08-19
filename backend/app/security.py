@@ -41,9 +41,36 @@ def _decode(token: str) -> dict:
 
 
 def create_admin_token() -> str:
-    expire = now() + timedelta(hours=12)
+    expire = now() + timedelta(hours=settings.admin_token_hours)
     return jwt.encode({"sub": "admin", "role": "admin", "exp": expire},
                       settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def create_kiosk_token(session_id: int, minutes: int) -> str:
+    """A token for a shared classroom device, tied to ONE class.
+
+    Deliberately not a student token and not an admin token. A phone passed
+    around a lecture hall is the least trustworthy device in the system: it can
+    mark attendance for the class it was issued for, for as long as that class
+    runs, and it can do nothing else. It cannot read a roster, cannot enrol
+    anybody, and stops working when the class does.
+    """
+    expire = now() + timedelta(minutes=minutes)
+    return jwt.encode({"sub": f"kiosk:{session_id}", "role": "kiosk", "ses": session_id,
+                       "exp": expire}, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def current_kiosk(authorization: str = Header(default="")) -> int:
+    """The session id a kiosk token is good for. Rejects anything else."""
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
+    claims = _decode(authorization.split(" ", 1)[1].strip())
+    if claims.get("role") != "kiosk":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "kiosk_token_required")
+    session_id = claims.get("ses")
+    if not isinstance(session_id, int):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "kiosk_token_required")
+    return session_id
 
 
 def current_admin(authorization: str = Header(default="")) -> str:

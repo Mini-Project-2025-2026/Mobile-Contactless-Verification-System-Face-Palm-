@@ -28,7 +28,12 @@ from ..models import (
     norm_programme,
 )
 from ..middleware import client_ip
-from ..security import create_admin_token, current_admin, hash_password
+from ..security import (
+    create_admin_token,
+    create_kiosk_token,
+    current_admin,
+    hash_password,
+)
 from ..timeutil import aware_or_now as _aware, now
 
 log = logging.getLogger("attendance.admin")
@@ -320,6 +325,41 @@ def extend_session(session_id: int, body: ExtendIn, request: Request,
     _note(db, request, actor, "session.extend", target=f"session:{session_id}",
           detail=f"+{body.minutes}min, now ends {_aware(s.ends_at).isoformat()}")
     return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
+
+
+class KioskIn(BaseModel):
+    #: Minutes past the end of the class that the device keeps working. Short:
+    #: a phone that is handed around should stop being able to mark soon after
+    #: the lecture it belongs to is over.
+    grace_minutes: int = Field(default=0, ge=0, le=240)
+
+
+@router.post("/sessions/{session_id}/kiosk", status_code=201)
+def open_kiosk(session_id: int, body: KioskIn, request: Request,
+               actor: str = Depends(current_admin),
+               db: Session = Depends(get_session)) -> dict:
+    """Mint a token for a shared classroom device covering THIS class only.
+
+    The device can then identify whoever stands in front of it and mark them,
+    with no student typing an id or repeating the programme password aloud. It
+    can do nothing else, and it stops working when the class does.
+    """
+    s = db.get(ClassSession, session_id)
+    if s is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
+    grace = body.grace_minutes or settings.kiosk_token_grace_minutes
+    remaining = (_aware(s.ends_at) - now()).total_seconds() / 60
+    minutes = max(5, int(remaining) + grace)
+    _note(db, request, actor, "kiosk.open", target=f"session:{session_id}",
+          detail=f"device token valid {minutes}min")
+    return {
+        "session_id": session_id,
+        "access_token": create_kiosk_token(session_id, minutes),
+        "token_type": "bearer",
+        "valid_minutes": minutes,
+        "note": ("Load this on the classroom device. It can mark attendance for "
+                 "this class only, and expires with it."),
+    }
 
 
 # ---------- end-of-semester course report ----------

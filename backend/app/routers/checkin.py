@@ -7,6 +7,7 @@ HMAC-signed verdict the backend independently validates before recording a mark.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -22,6 +23,7 @@ from ..models import (
     AttendanceMark,
     AttendanceStatus,
     Enrollment,
+    Modality,
     Session as ClassSession,
     Student,
 )
@@ -138,30 +140,64 @@ def verify(
                      "Capture quality too low. Try again in better light.")
 
     # 4) Record the mark (idempotent on the signature nonce → blocks replay).
-    attendance = _get_or_create_attendance(db, s.id, student.student_id)
-    if result.nonce and db.exec(
-        select(AttendanceMark).where(AttendanceMark.sig_nonce == result.nonce)
+    outcome = record_mark(db, s, student, distance=distance, score=result.score,
+                          nonce=result.nonce, modality=req.modality)
+    return VerifyResponse(
+        ok=outcome.ok, status=outcome.status, marks_count=outcome.marks_count,
+        marks_required=s.marks_required, distance_m=distance,
+        score=round(result.score, 4), code=outcome.code, message=outcome.message,
+    )
+
+
+@dataclass(frozen=True)
+class MarkOutcome:
+    """What happened when a verified capture was written down."""
+    ok: bool
+    code: str          # ok | duplicate | already_marked
+    message: str
+    status: AttendanceStatus
+    marks_count: int
+
+
+def record_mark(db: Session, session: ClassSession, student: Student, *,
+                distance: float, score: float, nonce: str,
+                modality: Modality) -> MarkOutcome:
+    """Write down one verified capture, and say what it changed.
+
+    Shared by the two ways a mark can be made — a student on their own phone,
+    and a shared kiosk that identified them — because the rules must not differ
+    by route. One mark per window, a signed verdict counted once, present only
+    when both windows are complete.
+
+    Everything above this point is about establishing WHO and WHERE; by the time
+    a caller reaches here, that is settled and this is only bookkeeping.
+    """
+    attendance = _get_or_create_attendance(db, session.id, student.student_id)
+
+    if nonce and db.exec(
+        select(AttendanceMark).where(AttendanceMark.sig_nonce == nonce)
     ).first():
-        # Same signed verdict submitted twice — return current state, don't double-count.
-        return _state_response(attendance, s, distance, result.score, code="duplicate",
-                               message="This capture was already counted.")
+        # Same signed verdict submitted twice — report state, don't double-count.
+        return _outcome(attendance, "duplicate", "This capture was already counted.")
 
     # One mark per phase: marking the same window twice does not complete attendance.
     existing_phases = {m.phase for m in db.exec(
         select(AttendanceMark).where(AttendanceMark.attendance_id == attendance.id)).all()}
-    if s.phase in existing_phases:
-        note = ("You've already marked the start. Return when your lecturer opens the END check-in."
-                if s.phase == "start" else "You've already completed the end check-in for this class.")
-        return _state_response(attendance, s, distance, result.score, code="already_marked", message=note)
+    if session.phase in existing_phases:
+        note = ("Start already marked. Come back when the END check-in opens."
+                if session.phase == "start"
+                else "The end check-in for this class is already complete.")
+        return _outcome(attendance, "already_marked", note)
 
     moment = now()
     db.add(AttendanceMark(
-        attendance_id=attendance.id, marked_at=moment, distance_m=distance, score=result.score,
-        modality=req.modality, phase=s.phase, sig_nonce=result.nonce or f"noref-{moment.timestamp()}",
+        attendance_id=attendance.id, marked_at=moment, distance_m=distance, score=score,
+        modality=modality, phase=session.phase,
+        sig_nonce=nonce or f"noref-{moment.timestamp()}",
     ))
-    phases = existing_phases | {s.phase}
+    phases = existing_phases | {session.phase}
     attendance.marks_count = len(phases)
-    attendance.best_score = max(attendance.best_score, result.score)
+    attendance.best_score = max(attendance.best_score, score)
     attendance.first_marked_at = attendance.first_marked_at or moment
     attendance.last_marked_at = moment
     attendance.status = (
@@ -173,22 +209,26 @@ def verify(
     except IntegrityError:
         # The nonce is unique in the database, so a verdict submitted twice fast
         # enough to clear the check above lands here instead of being counted
-        # twice. The student's mark is already recorded by the request that won.
+        # twice. The mark is already recorded by the request that won.
         db.rollback()
         log.info("duplicate verdict for %s on session %s (nonce %s)",
-                 student.student_id, s.id, result.nonce)
-        current = _get_or_create_attendance(db, s.id, student.student_id)
-        return _state_response(current, s, distance, result.score, code="duplicate",
-                               message="This capture was already counted.")
+                 student.student_id, session.id, nonce)
+        current = _get_or_create_attendance(db, session.id, student.student_id)
+        return _outcome(current, "duplicate", "This capture was already counted.")
     db.refresh(attendance)
 
     if attendance.status == AttendanceStatus.present:
-        msg = "Attendance complete. Present (marked at both start and end)."
-    elif s.phase == "start":
-        msg = "Start check-in recorded ✓. Come back for the END check-in."
+        message = "Attendance complete. Present (marked at both start and end)."
+    elif session.phase == "start":
+        message = "Start check-in recorded ✓. Come back for the END check-in."
     else:
-        msg = "End check-in recorded ✓, but no start mark was found. Attendance is partial."
-    return _state_response(attendance, s, distance, result.score, code="ok", message=msg)
+        message = "End check-in recorded ✓, but no start mark was found. Attendance is partial."
+    return _outcome(attendance, "ok", message)
+
+
+def _outcome(attendance: Attendance, code: str, message: str) -> MarkOutcome:
+    return MarkOutcome(ok=True, code=code, message=message,
+                       status=attendance.status, marks_count=attendance.marks_count)
 
 
 # --- small helpers ---
