@@ -19,8 +19,26 @@ _STATIC = Path(__file__).parent / "static"
 _ADMIN_HTML = _STATIC / "admin.html"
 
 
+def _warn_about_generated_secrets() -> None:
+    """Say so, loudly, when a secret was generated rather than configured.
+
+    A generated admin password locks the console instead of leaving a published
+    default open, but an operator who never set one would otherwise just find
+    themselves unable to log in, with nothing explaining why.
+    """
+    import os
+
+    if not os.environ.get("ADMIN_PASSWORD"):
+        print(f"[config] ADMIN_PASSWORD not set. Console password for THIS RUN ONLY: "
+              f"{settings.admin_password}", flush=True)
+    if not os.environ.get("JWT_SECRET"):
+        print("[config] JWT_SECRET not set. Signing with a throwaway key: every "
+              "student is signed out when this process restarts.", flush=True)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    _warn_about_generated_secrets()
     init_db()
     if settings.seed_on_start:
         from .seed import run as seed_run

@@ -99,3 +99,26 @@ def test_a_programme_password_has_to_be_long_enough(client):
 def test_setting_a_programme_password_needs_an_admin(client):
     assert client.post("/api/admin/programmes/password",
                        json={"programme": "Computer Science", "password": "no-admin-here!"}).status_code in (401, 403)
+
+
+def test_no_published_default_opens_the_console(monkeypatch):
+    """An unset ADMIN_PASSWORD must lock the door, not leave a key under it.
+
+    The old default sat in config.py: one repository visibility change away from
+    handing anyone the console of every deployment that never overrode it.
+    """
+    import importlib
+    import os
+
+    from app import config
+
+    monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+    monkeypatch.setattr(config.Settings, "model_config",
+                        {**config.Settings.model_config, "env_file": None})
+    first = config.Settings()
+    second = config.Settings()
+
+    assert first.admin_password not in ("cLLeB", "admin", "password", "")
+    assert len(first.admin_password) >= 32
+    assert first.admin_password != second.admin_password, "not a fixed fallback"
+    assert first.jwt_secret != "dev-insecure-change-me"

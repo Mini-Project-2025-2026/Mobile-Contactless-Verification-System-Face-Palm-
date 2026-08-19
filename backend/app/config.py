@@ -1,14 +1,31 @@
 """Application settings, loaded from environment / .env."""
 from __future__ import annotations
 
+import secrets
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _generated() -> str:
+    """A value that only exists for this process, when the operator set none.
+
+    Deliberately not a memorable default. A shared fallback password is the same
+    password on every deployment, published in this file - and this repository is
+    one `gh repo edit --visibility public` away from handing over the console.
+    An unset secret should lock the door, not leave a key under it.
+    """
+    return secrets.token_urlsafe(32)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = "sqlite:///./attendance.db"
-    jwt_secret: str = "dev-insecure-change-me"
+    # Unset in development means "sign with a throwaway": tokens stop working when
+    # the process restarts, which is inconvenient. Unset in production with a known
+    # default means anyone reading this file can mint one, which is fatal.
+    jwt_secret: str = Field(default_factory=_generated)
     jwt_expire_minutes: int = 43_200  # 30 days
     jwt_algorithm: str = "HS256"
 
@@ -28,7 +45,7 @@ class Settings(BaseSettings):
 
     # Admin console credentials (override via env in production).
     admin_username: str = "admin"
-    admin_password: str = "cLLeB"
+    admin_password: str = Field(default_factory=_generated)
 
     # If true, a student may only use ONE device (hard lock at login). Default
     # false: biometric verification prevents proxy attendance, so we relax the
