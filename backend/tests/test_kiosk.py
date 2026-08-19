@@ -18,7 +18,8 @@ from app.biometric import Challenge, VerifyResult
 from app.config import settings
 from app.db import engine
 from app.main import app
-from app.models import Attendance, AttendanceStatus, Course, Enrollment, Session as ClassSession, Student
+from app.models import Attendance, AttendanceStatus, Course, Enrollment, Student
+from app.models import Session as ClassSession
 from app.security import hash_password
 from app.timeutil import now
 

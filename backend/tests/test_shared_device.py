@@ -4,7 +4,7 @@ Students without a phone still have to be able to mark, so a classroom handset
 gets passed around. Nothing about attendance rests on which device is used: the
 ID is claimed by the login, and the face is what proves it.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,8 +20,10 @@ from app.models import (
     Device,
     Enrollment,
     ProgrammeCredential,
-    Session as ClassSession,
     Student,
+)
+from app.models import (
+    Session as ClassSession,
 )
 from app.security import hash_password
 
@@ -46,7 +48,7 @@ def fresh_db():
         db.refresh(course)
         db.add(Enrollment(student_id=AMA, course_id=course.id))
         db.add(Enrollment(student_id=KOFI, course_id=course.id))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db.add(ClassSession(course_id=course.id, title="L1", lat=LAT, lng=LNG, radius_m=70.0,
                             starts_at=now - timedelta(minutes=5), ends_at=now + timedelta(hours=1),
                             marks_required=2))

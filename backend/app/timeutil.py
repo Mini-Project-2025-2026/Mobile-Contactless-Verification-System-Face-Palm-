@@ -8,19 +8,19 @@ open when it should be shut, or shut when a hall full of students is waiting.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def now() -> datetime:
     """The current instant, always tz-aware, always UTC."""
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def aware(dt: datetime | None) -> datetime | None:
     """Read a stored timestamp as UTC when the database dropped its zone."""
     if dt is None:
         return None
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def aware_or_now(dt: datetime | None) -> datetime:

@@ -24,12 +24,15 @@ from ..models import (
     AttendanceStatus,
     Enrollment,
     Modality,
-    Session as ClassSession,
     Student,
+)
+from ..models import (
+    Session as ClassSession,
 )
 from ..schemas import ChallengeRequest, ChallengeResponse, VerifyRequest, VerifyResponse
 from ..security import current_student
-from ..timeutil import aware_or_now as _aware, now
+from ..timeutil import aware_or_now as _aware
+from ..timeutil import now
 
 log = logging.getLogger("attendance.checkin")
 
@@ -201,7 +204,7 @@ def record_mark(db: Session, session: ClassSession, student: Student, *,
     attendance.first_marked_at = attendance.first_marked_at or moment
     attendance.last_marked_at = moment
     attendance.status = (
-        AttendanceStatus.present if REQUIRED_PHASES <= phases else AttendanceStatus.partial
+        AttendanceStatus.present if phases >= REQUIRED_PHASES else AttendanceStatus.partial
     )
     db.add(attendance)
     try:

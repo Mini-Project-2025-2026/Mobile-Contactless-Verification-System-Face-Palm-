@@ -12,6 +12,7 @@ extended". So a failure to record is logged loudly and swallowed.
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from sqlmodel import Session, select
@@ -29,10 +30,8 @@ def record(db: Session, actor: str, action: str, *, target: str = "",
         db.commit()
     except Exception as exc:  # never let bookkeeping fail the action itself
         log.error("audit write failed for %s by %s: %s", action, actor, exc)
-        try:
+        with contextlib.suppress(Exception):
             db.rollback()
-        except Exception:
-            pass
     else:
         log.info("audit %s %s %s", actor, action, target, extra={"actor": actor})
 

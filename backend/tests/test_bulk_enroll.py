@@ -53,9 +53,10 @@ def _mock_bulk(monkeypatch, outcomes):
     """outcomes: {user_id: (success, enrolled, modalities, message)}"""
     sent = {}
 
-    def fake(people, *, dedupe=True, timeout=120.0):
+    def fake(people, *, dedupe=True, timeout=None, queue=False, idempotency_key=""):
         sent["people"] = people
         sent["dedupe"] = dedupe
+        sent["queue"] = queue
         results = tuple(
             BulkPersonResult(user_id=uid, success=o[0], enrolled=o[1], modalities=o[2], message=o[3])
             for uid, _ in people for o in [outcomes[uid]]
@@ -112,7 +113,7 @@ def test_an_unknown_id_is_reported_and_never_sent_onward(client, auth, monkeypat
     ]}).json()
 
     assert [uid for uid, _ in sent["people"]] == ["20512345"]
-    bad = [x for x in r["results"] if x["student_id"] == "20599999"][0]
+    bad = next(x for x in r["results"] if x["student_id"] == "20599999")
     assert bad["success"] is False and "no such student" in bad["message"]
 
 
@@ -124,7 +125,7 @@ def test_the_batch_asks_the_service_to_dedupe_by_default(client, auth, monkeypat
 
 
 def test_a_dead_service_fails_the_batch_without_marking_anyone(client, auth, monkeypatch):
-    def boom(people, *, dedupe=True, timeout=120.0):
+    def boom(people, **kw):
         raise biometric.BiometricError("unreachable")
     monkeypatch.setattr(biometric, "enroll_users_bulk", boom)
 
@@ -167,3 +168,61 @@ def test_bulk_course_enrolment_checks_its_inputs(client, auth):
                        json={"course_id": 99, "programme": "Computer Science"}).status_code == 404
     assert client.post("/api/admin/enroll-course/bulk", headers=auth,
                        json={"course_id": 1, "programme": "  "}).status_code == 400
+
+
+# --- a department-sized import does not fit in one request --------------------
+def test_a_large_import_is_queued_rather_than_held_open(client, auth, monkeypatch):
+    """A gateway cuts the socket long before a cohort finishes enrolling."""
+    monkeypatch.setattr(biometric, "enroll_users_bulk",
+                        lambda people, **kw: biometric.BulkEnrollResult(
+                            people=len(people), enrolled=0, results=(), raw={},
+                            job_id="job-42", queued=True))
+
+    body = client.post("/api/admin/enroll/bulk", headers=auth, json={
+        "queue": True,
+        "people": [{"student_id": "20512345", "images": ["a"]}]}).json()
+
+    assert body["queued"] is True
+    assert body["job_id"] == "job-42"
+    assert body["poll"] == "/api/admin/enroll/bulk/job-42"
+    # nothing is recorded yet: the service has accepted the work, not done it
+    assert _modality("20512345") == ""
+
+
+def test_reading_a_finished_job_records_it_against_each_student(client, auth, monkeypatch):
+    monkeypatch.setattr(biometric, "job_status", lambda job_id: {
+        "status": "done", "done": 1, "people": 1,
+        "results": [{"user_id": "20512345", "success": True, "enrolled": 3,
+                     "modalities": ["face"], "message": "ok"}]})
+
+    body = client.get("/api/admin/enroll/bulk/job-42", headers=auth).json()
+
+    assert body["status"] == "done"
+    assert body["enrolled"] == 1
+    # and the student is not asked to enrol again on their phone
+    assert _modality("20512345") == "face"
+
+
+def test_polling_an_unfinished_job_changes_nothing(client, auth, monkeypatch):
+    monkeypatch.setattr(biometric, "job_status", lambda job_id: {
+        "status": "running", "done": 4, "people": 40})
+
+    body = client.get("/api/admin/enroll/bulk/job-9", headers=auth).json()
+    assert body == {"job_id": "job-9", "status": "running", "done": 4, "people": 40}
+    assert _modality("20512345") == ""
+
+
+def test_adopting_the_same_finished_job_twice_is_harmless(client, auth, monkeypatch):
+    monkeypatch.setattr(biometric, "job_status", lambda job_id: {
+        "status": "done", "done": 1, "people": 1,
+        "results": [{"user_id": "20512345", "success": True, "enrolled": 3,
+                     "modalities": ["face"], "message": "ok"}]})
+
+    client.get("/api/admin/enroll/bulk/job-42", headers=auth)
+    second = client.get("/api/admin/enroll/bulk/job-42", headers=auth).json()
+    assert second["enrolled"] == 1
+    assert _modality("20512345") == "face"
+
+
+def test_a_queued_job_is_admin_only(client):
+    assert client.get("/api/admin/enroll/bulk/job-42").status_code == 401

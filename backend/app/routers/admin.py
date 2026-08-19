@@ -16,25 +16,28 @@ from sqlmodel import Session, select
 from .. import audit, biometric, enrolment, guard, queries, reporting
 from ..config import settings
 from ..db import get_session
+from ..middleware import client_ip
 from ..models import (
     Attendance,
-    ProgrammeCredential,
     AttendanceStatus,
     Course,
     EnrollGrant,
     Enrollment,
-    Session as ClassSession,
+    ProgrammeCredential,
     Student,
     norm_programme,
 )
-from ..middleware import client_ip
+from ..models import (
+    Session as ClassSession,
+)
 from ..security import (
     create_admin_token,
     create_kiosk_token,
     current_admin,
     hash_password,
 )
-from ..timeutil import aware_or_now as _aware, now
+from ..timeutil import aware_or_now as _aware
+from ..timeutil import now
 
 log = logging.getLogger("attendance.admin")
 
@@ -51,7 +54,7 @@ def _note(db: Session, request: Request, actor: str, action: str, *,
     """
     try:
         audit.record(db, actor, action, target=target, detail=detail, ip=client_ip(request))
-    except Exception:  # noqa: BLE001 - bookkeeping must not fail the action
+    except Exception:
         log.exception("audit note failed for %s by %s", action, actor)
 
 
@@ -404,8 +407,13 @@ class BulkPersonIn(BaseModel):
 
 
 class BulkEnrollIn(BaseModel):
-    people: list[BulkPersonIn] = Field(min_length=1, max_length=50)
+    people: list[BulkPersonIn] = Field(min_length=1, max_length=200)
     dedupe: bool = True
+    #: Hand the batch to the service's queue and return a job to poll, instead
+    #: of holding this request open while it works. Anything past a handful of
+    #: people should: a gateway will cut the socket long before the work is done,
+    #: and the operator is left not knowing what landed.
+    queue: bool = False
 
 
 @router.post("/enroll/bulk")
@@ -437,16 +445,47 @@ def bulk_enroll(body: BulkEnrollIn, request: Request,
         return {"people": len(body.people), "enrolled": 0, "results": results}
 
     try:
-        outcome = biometric.enroll_users_bulk(sendable, dedupe=body.dedupe)
+        outcome = biometric.enroll_users_bulk(sendable, dedupe=body.dedupe, queue=body.queue)
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
 
+    if outcome.queued:
+        # Nothing is recorded here yet: the service has accepted the work, not
+        # done it. `POST /api/admin/enroll/bulk/{job_id}` reads the outcome back
+        # and writes it against each student, once there is an outcome to write.
+        _note(db, request, actor, "enrol.bulk_queued",
+              detail=f"{len(sendable)} people, job {outcome.job_id}")
+        return {"queued": True, "job_id": outcome.job_id, "people": len(body.people),
+                "submitted": len(sendable), "results": results,
+                "poll": f"/api/admin/enroll/bulk/{outcome.job_id}",
+                "message": ("Import accepted. Poll the job for progress; results are "
+                            "recorded against each student when it finishes.")}
+
+    adopted, _ = _adopt_bulk_results(db, outcome.results)
+    results.extend(adopted)
+    _note(db, request, actor, "enrol.bulk",
+          detail=f"{outcome.enrolled} enrolled of {len(body.people)} submitted")
+    return {"people": len(body.people), "enrolled": outcome.enrolled, "results": results}
+
+
+def _adopt_bulk_results(db: Session, results: tuple) -> tuple[list[dict], int]:
+    """Write a batch's per-person outcome against the students it names."""
+    known = {
+        st.student_id: st
+        for st in queries.fetch_in(db, Student, Student.student_id,
+                                   [r.user_id for r in results])
+    }
+    rows: list[dict] = []
+    enrolled = 0
     moment = now()
-    for res in outcome.results:
+    for res in results:
         student = known.get(res.user_id)
         if student is None:
+            rows.append({"student_id": res.user_id, "success": False,
+                         "message": "no such student here"})
             continue
         if res.success:
+            enrolled += 1
             mods = {m for m in (student.enrolled_modality or "").split(",") if m}
             mods.update(res.modalities or ("face",))
             student.enrolled_modality = ",".join(sorted(mods))
@@ -459,17 +498,41 @@ def bulk_enroll(body: BulkEnrollIn, request: Request,
             # student ID is the one outcome an operator has to see by name.
             whose = ", ".join(res.conflict_user_ids) or "another student"
             message = f"already registered to {whose}"
-        results.append({
+        rows.append({
             "student_id": res.user_id, "name": student.name, "success": res.success,
             "enrolled": res.enrolled, "modalities": list(res.modalities),
             "duplicate": res.duplicate, "conflicts": list(res.conflict_user_ids),
             "message": message,
         })
     db.commit()
-    enrolment.reset_cache()  # the service roster just changed
-    _note(db, request, actor, "enrol.bulk",
-          detail=f"{outcome.enrolled} enrolled of {len(body.people)} submitted")
-    return {"people": len(body.people), "enrolled": outcome.enrolled, "results": results}
+    enrolment.reset_cache()
+    return rows, enrolled
+
+
+@router.get("/enroll/bulk/{job_id}")
+def bulk_enroll_job(job_id: str, request: Request, actor: str = Depends(current_admin),
+                    db: Session = Depends(get_session)) -> dict:
+    """Progress of a queued import — and, once it is done, its results recorded.
+
+    Reading a finished job is what writes the outcome against each student here,
+    so nobody who was enrolled in the batch is asked to enrol again on their
+    phone. Safe to poll: adopting the same finished job twice changes nothing.
+    """
+    try:
+        state = biometric.job_status(job_id)
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                            f"biometric_unavailable: {exc}") from exc
+
+    status_name = str(state.get("status") or "")
+    out = {"job_id": job_id, "status": status_name,
+           "done": int(state.get("done") or 0), "people": int(state.get("people") or 0)}
+    if status_name not in ("done", "finished", "complete", "completed"):
+        return out
+
+    rows, enrolled = _adopt_bulk_results(db, biometric._bulk_results(state))
+    _note(db, request, actor, "enrol.bulk_adopted", detail=f"job {job_id}: {enrolled} enrolled")
+    return {**out, "enrolled": enrolled, "results": rows}
 
 
 class BulkCourseEnrollIn(BaseModel):
@@ -503,10 +566,8 @@ def bulk_enroll_course(body: BulkCourseEnrollIn, request: Request,
     if body.class_group:
         query = query.where(Student.class_group == body.class_group)
     students = list(db.exec(query).all())
-    existing = {
-        row for row in db.exec(select(Enrollment.student_id).where(
-            Enrollment.course_id == body.course_id)).all()
-    }
+    existing = set(db.exec(select(Enrollment.student_id).where(
+        Enrollment.course_id == body.course_id)).all())
     added = [st.student_id for st in students if st.student_id not in existing]
     for student_id in added:
         db.add(Enrollment(student_id=student_id, course_id=body.course_id))

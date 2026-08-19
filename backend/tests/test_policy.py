@@ -13,8 +13,8 @@ from app.config import settings
 
 
 def _config(**over) -> biometric.TenantConfig:
-    base = dict(match_threshold=0.60, identify_margin=0.08, dupe_threshold=0.75,
-                samples_per_user=5, active_liveness=True, palm_enabled=True)
+    base = {"match_threshold": 0.60, "identify_margin": 0.08, "dupe_threshold": 0.75,
+            "samples_per_user": 5, "active_liveness": True, "palm_enabled": True}
     base.update(over)
     return biometric.TenantConfig(**base)
 

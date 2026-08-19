@@ -7,7 +7,8 @@ from sqlmodel import Session, select
 from .. import queries
 from ..db import get_session
 from ..geo import within_geofence
-from ..models import Attendance, AttendanceMark, Course, Enrollment, Session as ClassSession, Student
+from ..models import Attendance, AttendanceMark, Course, Enrollment, Student
+from ..models import Session as ClassSession
 from ..schemas import AvailableCourse
 from ..security import current_student
 from ..timeutil import aware_or_now, now

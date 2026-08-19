@@ -9,6 +9,7 @@ does.
 from __future__ import annotations
 
 import contextlib
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,12 +24,13 @@ from app.models import (
     AttendanceStatus,
     Course,
     Enrollment,
-    Session as ClassSession,
     Student,
+)
+from app.models import (
+    Session as ClassSession,
 )
 from app.security import hash_password
 from app.timeutil import now
-from datetime import timedelta
 
 LAT, LNG = 6.6745, -1.5716
 

@@ -7,7 +7,7 @@ from months later.
 """
 import csv
 import io
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,13 +23,15 @@ from app.models import (
     Course,
     Enrollment,
     Modality,
-    Session as ClassSession,
     Student,
+)
+from app.models import (
+    Session as ClassSession,
 )
 from app.security import hash_password
 
 LAT, LNG = 6.6745, -1.5716
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 AMA, KOFI, YAA = "20512345", "20512399", "20512400"
 
@@ -149,15 +151,15 @@ def test_the_register_reads_like_a_register(client, auth):
     assert header[7].endswith("Week 1") and header[9].endswith("Week 3")
     assert header[-1] == "Attendance %"
 
-    ama = [r for r in rows if r and r[0] == AMA][0]
+    ama = next(r for r in rows if r and r[0] == AMA)
     assert ama[1] == "Ama Mensah" and ama[6] == "face,palm"
     assert ama[7] == "present (SE)" and ama[9] == "-"
     assert ama[-1] == "66.7"
 
-    kofi = [r for r in rows if r and r[0] == KOFI][0]
+    kofi = next(r for r in rows if r and r[0] == KOFI)
     assert kofi[8] == "partial (S-)", "a missed end window must be visible, not rounded away"
 
-    yaa = [r for r in rows if r and r[0] == YAA][0]
+    yaa = next(r for r in rows if r and r[0] == YAA)
     assert yaa[6] == "NOT ENROLLED"
 
 
@@ -168,7 +170,7 @@ def test_the_audit_shape_carries_the_detail_behind_each_figure(client, auth):
     assert rows[0][:6] == ["Student ID", "Name", "Class", "Date", "Session ID", "Status"]
     assert len(rows) == 1 + 9, "three students times three classes"
 
-    week1_ama = [r for r in rows if r[0] == AMA and r[2] == "Week 1"][0]
+    week1_ama = next(r for r in rows if r[0] == AMA and r[2] == "Week 1")
     assert week1_ama[5] == "present"
     assert week1_ama[6] == "yes" and week1_ama[7] == "yes"
     assert week1_ama[9] == "0.8100"

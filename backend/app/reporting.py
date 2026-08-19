@@ -24,10 +24,14 @@ from .models import (
     AttendanceMark,
     Course,
     Enrollment,
-    Session as ClassSession,
     Student,
 )
-from .timeutil import aware as _aware, iso as _iso, now as _now
+from .models import (
+    Session as ClassSession,
+)
+from .timeutil import aware as _aware
+from .timeutil import iso as _iso
+from .timeutil import now as _now
 
 #: Marks required for "present" are per session, but a course-level rate needs one
 #: rule: a class counts for a student only if they completed every window it ran.

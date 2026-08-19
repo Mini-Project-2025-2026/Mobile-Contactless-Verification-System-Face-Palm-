@@ -25,8 +25,10 @@ from app.models import (
     AttendanceStatus,
     Course,
     Enrollment,
-    Session as ClassSession,
     Student,
+)
+from app.models import (
+    Session as ClassSession,
 )
 from app.routers import checkin
 from app.security import hash_password

@@ -1,6 +1,6 @@
 """Enrolment policy: face-compulsory, first-enrol binds device, re-enrol/new
 device needs an admin one-time grant. Biometric service is mocked."""
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -56,7 +56,7 @@ def service_roster(monkeypatch):
     # An older service names who is enrolled but not with which modality, so the
     # roster it returns carries empty modality tuples.
     monkeypatch.setattr(biometric, "list_roster",
-                        lambda page=500: {uid: () for uid in roster})
+                        lambda page=500: dict.fromkeys(roster, ()))
     enrolment.reset_cache()
     yield roster
     enrolment.reset_cache()
@@ -116,7 +116,7 @@ def test_grant_unlocks_and_is_single_use(client):
     _enroll(client, _login(client, "devA"), "face")
     with Session(engine) as db:
         db.add(EnrollGrant(token="CODE1234", student_id=SID,
-                           expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+                           expires_at=datetime.now(UTC) + timedelta(hours=1)))
         db.commit()
     B = _login(client, "devB")
     assert _enroll(client, B, "face", grant="CODE1234")["ok"] is True   # consumed, re-binds devB
@@ -127,7 +127,7 @@ def test_expired_grant_rejected(client):
     _enroll(client, _login(client, "devA"), "face")
     with Session(engine) as db:
         db.add(EnrollGrant(token="OLD12345", student_id=SID,
-                           expires_at=datetime.now(timezone.utc) - timedelta(minutes=1)))
+                           expires_at=datetime.now(UTC) - timedelta(minutes=1)))
         db.commit()
     r = _enroll(client, _login(client, "devB"), "face", grant="OLD12345")
     assert r["code"] == "grant_required"

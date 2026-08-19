@@ -1,0 +1,48 @@
+[project]
+name = "attendance-verify-backend"
+version = "0.2.0"
+description = "Geofenced course attendance with biometric verification instead of a PIN."
+requires-python = ">=3.12"
+
+[tool.ruff]
+# Long lines are the house style here: a comment that explains WHY reads better
+# on one line than wrapped into three.
+line-length = 110
+target-version = "py312"
+extend-exclude = ["venv", ".venv", "app/static"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes: unused imports and names, undefined names
+    "I",        # import order
+    "B",        # bugbear: mutable defaults, loop-variable capture, and friends
+    "C4",       # comprehensions
+    "UP",       # pyupgrade: syntax this Python version supersedes
+    "SIM",      # obvious simplifications
+    "RUF",      # ruff's own
+]
+ignore = [
+    # Long lines are allowed by line-length above; this catches only URLs etc.
+    "E501",
+    # `Depends(...)` in a default argument IS the FastAPI dependency idiom. The
+    # rule is right about ordinary Python and wrong about this framework.
+    "B008",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests read better with the assertion inline and the story in the docstring.
+"tests/*" = ["B011", "SIM117"]
+# `== True` is required by SQLModel column expressions; `is True` produces a
+# Python bool rather than the SQL predicate. Marked per line where it is used.
+"app/routers/*.py" = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # python-jose calls datetime.utcnow(); we do not, and cannot fix theirs.
+    "ignore:datetime.datetime.utcnow:DeprecationWarning",
+]

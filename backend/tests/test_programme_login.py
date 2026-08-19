@@ -110,8 +110,6 @@ def test_no_published_default_opens_the_console(monkeypatch):
     The old default sat in config.py: one repository visibility change away from
     handing anyone the console of every deployment that never overrode it.
     """
-    import importlib
-    import os
 
     from app import config
 

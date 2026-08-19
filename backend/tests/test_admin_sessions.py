@@ -4,7 +4,7 @@ Present requires both windows. A session that runs out of time while still in
 the START phase leaves everyone who marked stuck on partial, so the session list
 reports the partial/present split and the class can be given more time.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -18,8 +18,10 @@ from app.models import (
     AttendanceStatus,
     Course,
     Enrollment,
-    Session as ClassSession,
     Student,
+)
+from app.models import (
+    Session as ClassSession,
 )
 from app.security import hash_password
 
@@ -54,7 +56,7 @@ def auth(client):
 
 
 def _session(*, ends_in_minutes: float, phase="start", active=True) -> int:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with Session(engine) as db:
         s = ClassSession(
             course_id=1, title="lecture 2", lat=LAT, lng=LNG, radius_m=70.0,
@@ -83,7 +85,7 @@ def test_session_list_splits_partial_from_present(client, auth):
     assert row["checked_in"] == 1 and row["partial"] == 1 and row["present"] == 0
 
     # the console's condition: live, still in START, minutes left below the threshold
-    left = (datetime.fromisoformat(row["ends_at"]) - datetime.now(timezone.utc)).total_seconds() / 60
+    left = (datetime.fromisoformat(row["ends_at"]) - datetime.now(UTC)).total_seconds() / 60
     assert 0 < left <= 10
 
 
@@ -96,7 +98,7 @@ def test_extend_buys_time_from_now_when_the_class_already_expired(client, auth):
 
     after = client.get("/api/admin/sessions", headers=auth).json()[0]
     ends = datetime.fromisoformat(after["ends_at"])
-    left = (ends - datetime.now(timezone.utc)).total_seconds() / 60
+    left = (ends - datetime.now(UTC)).total_seconds() / 60
     assert 14 <= left <= 15, "the added minutes must be usable, not spent before the click"
     assert ends > datetime.fromisoformat(before["ends_at"])
     assert after["live"] is True, "an expired class has to come back live to be completable"
@@ -133,7 +135,7 @@ def test_a_session_reports_who_can_see_it(client, auth):
     with Session(engine) as db:
         db.add(Course(code="CS201", title="Data Structures", semester="2025/2026-1"))
         db.commit()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db.add(ClassSession(course_id=2, title="Lecture1", lat=LAT, lng=LNG, radius_m=70.0,
                             starts_at=now - timedelta(minutes=1), ends_at=now + timedelta(hours=1),
                             marks_required=2))

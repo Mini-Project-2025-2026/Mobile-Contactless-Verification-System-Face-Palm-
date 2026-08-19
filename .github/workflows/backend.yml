@@ -1,0 +1,62 @@
+name: backend
+
+# Everything below runs against SQLite and a biometric base URL that always
+# refuses, so no CI run can reach the live verification tenant. That is not
+# paranoia: the repository's own .env points at production, and a test that
+# forgets to stub a call would otherwise ask it about a real student.
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+  pull_request:
+    paths: ["backend/**", ".github/workflows/backend.yml"]
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./ci.db
+      JWT_SECRET: ci-secret-thirty-two-characters-min
+      ADMIN_PASSWORD: ci-admin-password
+      BIOMETRIC_BASE_URL: http://127.0.0.1:9
+      BIOMETRIC_API_KEY: ci-key
+      BIOMETRIC_SIGNING_SECRET: ci-signing-secret
+      BIOMETRIC_RETRIES: "0"
+      ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+      - name: The app must actually start
+        # Importing the module is not the same as booting it: the lifespan runs
+        # migrations and reads configuration, which is where a bad deploy shows.
+        run: |
+          python -c "
+          from fastapi.testclient import TestClient
+          from app.main import app
+          with TestClient(app) as c:
+              assert c.get('/health').json()['ok'] is True
+              body = c.get('/health/ready').json()
+              assert body['checks']['database']['ok'] is True
+              print('booted; readiness:', body['ok'])
+          "

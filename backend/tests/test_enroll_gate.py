@@ -6,7 +6,7 @@ face, re-enrolling it (or adding a modality from another device) needs an admin
 one-time code. `enroll_requires_grant` puts a code in front of the first
 enrolment too, for deployments that want it.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -81,7 +81,7 @@ def test_an_admin_code_lets_a_gated_first_enrolment_through_once(client, auth, m
     monkeypatch.setattr(settings, "enroll_requires_grant", True)
     with Session(engine) as db:
         db.add(EnrollGrant(token="FIRST123", student_id=SID,
-                           expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+                           expires_at=datetime.now(UTC) + timedelta(hours=1)))
         db.commit()
 
     assert _enroll(client, auth, grant="FIRST123")["ok"] is True

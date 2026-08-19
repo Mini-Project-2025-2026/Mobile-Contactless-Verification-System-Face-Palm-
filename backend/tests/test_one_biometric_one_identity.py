@@ -6,7 +6,7 @@ arrived as enrolled=0 and was reported to the student as bad lighting. The
 refusal now travels intact, and an admin grant cannot buy past it: a grant
 authorises re-enrolling YOUR OWN biometric, never taking on someone else's.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -103,7 +103,7 @@ def test_an_admin_grant_cannot_buy_past_it(client, monkeypatch):
     """A grant authorises re-enrolling your own biometric, not claiming another."""
     with Session(engine) as db:
         db.add(EnrollGrant(token="APPROVED1", student_id=KOFI,
-                           expires_at=datetime.now(timezone.utc) + timedelta(hours=1)))
+                           expires_at=datetime.now(UTC) + timedelta(hours=1)))
         db.commit()
     _service_says_duplicate(monkeypatch, conflict_with=AMA)
 
@@ -123,7 +123,7 @@ def test_a_palm_on_another_id_is_refused_the_same_way(client, monkeypatch):
 
 
 def test_a_bulk_import_names_the_collision_for_the_operator(client, monkeypatch):
-    def fake_bulk(people, *, dedupe=True, timeout=120.0):
+    def fake_bulk(people, **kw):
         return BulkEnrollResult(people=1, enrolled=0, raw={}, results=(
             BulkPersonResult(user_id=KOFI, success=False, enrolled=0, modalities=(),
                              message="biometric already enrolled under a different name",

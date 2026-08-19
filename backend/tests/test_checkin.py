@@ -4,18 +4,19 @@ Asserts the full substitution works: geofence gate → (mocked) verify → signa
 trust → double-mark → present. Also covers the geofence-reject and
 identity-mismatch branches.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, select
 
 from app import biometric
-from app.biometric import VerifyResult, Challenge
+from app.biometric import Challenge, VerifyResult
 from app.config import settings
 from app.db import engine
 from app.main import app
-from app.models import Course, Enrollment, Session as ClassSession, Student
+from app.models import Course, Enrollment, Student
+from app.models import Session as ClassSession
 from app.security import hash_password
 
 LAT, LNG = 6.6745, -1.5716
@@ -34,7 +35,7 @@ def fresh_db():
         db.commit()
         db.refresh(course)
         db.add(Enrollment(student_id=SID, course_id=course.id))
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db.add(ClassSession(
             course_id=course.id, title="L1", lat=LAT, lng=LNG, radius_m=70.0,
             starts_at=now - timedelta(minutes=5), ends_at=now + timedelta(hours=1), marks_required=2,

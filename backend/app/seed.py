@@ -8,12 +8,13 @@ Verify tenant for check-in to succeed against a real service.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, select
 
 from .db import engine, init_db
-from .models import Course, Enrollment, Session as ClassSession, Student
+from .models import Course, Enrollment, Student
+from .models import Session as ClassSession
 from .security import hash_password
 
 # KNUST main campus-ish coordinates (used as the session centre for the demo).
@@ -51,7 +52,7 @@ def run() -> None:
         db.add(Enrollment(student_id=DEMO_STUDENT_ID, course_id=cs101.id))
         db.add(Enrollment(student_id=DEMO_STUDENT_ID, course_id=math151.id))
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         db.add(ClassSession(
             course_id=cs101.id,
             title="CS101 Lecture 5",

@@ -11,7 +11,7 @@ itself; a unique index cannot.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 from sqlalchemy import UniqueConstraint, event
@@ -19,7 +19,7 @@ from sqlmodel import Field, SQLModel
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class AttendanceStatus(str, Enum):

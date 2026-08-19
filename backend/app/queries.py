@@ -18,12 +18,10 @@ not in any test with ten students in it.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, TypeVar
+from typing import Any
 
 from sqlalchemy import func
 from sqlmodel import Session, select
-
-T = TypeVar("T")
 
 #: SQLite's compiled default is 999 bound parameters per statement. Postgres
 #: allows far more, but one conservative number keeps both correct.
@@ -38,7 +36,7 @@ def count(db: Session, model: type, *where) -> int:
     return int(db.exec(statement).one())
 
 
-def fetch_in(db: Session, model: type[T], column: Any, values: Iterable[Any]) -> list[T]:
+def fetch_in[T](db: Session, model: type[T], column: Any, values: Iterable[Any]) -> list[T]:
     """`SELECT ... WHERE column IN values`, split into safe-sized batches."""
     unique = list(dict.fromkeys(values))
     if not unique:

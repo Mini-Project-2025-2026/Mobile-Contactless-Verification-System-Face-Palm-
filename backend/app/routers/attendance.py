@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from ..db import get_session
-from ..models import Attendance, Course, Session as ClassSession, Student
+from ..models import Attendance, Course, Student
+from ..models import Session as ClassSession
 from ..schemas import AttendanceItem, SemesterHistory
 from ..security import current_student
 from ..timeutil import aware_or_now

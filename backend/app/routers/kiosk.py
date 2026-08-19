@@ -32,7 +32,8 @@ from sqlmodel import Session, select
 from .. import biometric, policy
 from ..db import get_session
 from ..geo import within_geofence
-from ..models import Enrollment, Session as ClassSession, Student
+from ..models import Enrollment, Student
+from ..models import Session as ClassSession
 from ..schemas import KioskChallengeOut, KioskVerifyIn, KioskVerifyOut
 from ..security import current_kiosk
 from . import checkin
