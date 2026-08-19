@@ -41,3 +41,30 @@ def test_the_request_id_is_kept_for_support(page):
     """It is what turns "it says something went wrong" into one grep."""
     name, html = page
     assert "request_id" in html, f"{name} discards the request id"
+
+
+# --- the student app must actually reach the new surface ---------------------
+def test_the_student_app_has_a_consent_screen():
+    """Capturing a face with no way to read or withdraw consent is the gap."""
+    for path in ("/api/consent/statement", "/api/consent", "/api/consent/withdraw",
+                 "/api/consent/my-data"):
+        assert path in PAGES["pwa"], f"pwa never calls {path}"
+
+
+def test_every_screen_the_app_can_show_is_in_the_router():
+    """A screen missing from go()'s list is markup nothing can ever display."""
+    import re
+    html = PAGES["pwa"]
+    declared = set(re.findall(r'id="s-([a-z]+)"', html))
+    routed = re.search(r'\[((?:"[a-z]+",?)+)\]\.forEach\(x=>\$\("s-"\+x\)', html)
+    assert routed, "could not find the screen router"
+    assert declared == set(re.findall(r'"([a-z]+)"', routed.group(1)))
+
+
+def test_palm_is_not_offered_where_the_tenant_has_it_off():
+    assert "palm_available" in PAGES["pwa"]
+
+
+def test_a_consent_refusal_sends_the_student_somewhere_useful():
+    """`consent_required` must route to the screen that fixes it."""
+    assert "consent_required" in PAGES["pwa"]
