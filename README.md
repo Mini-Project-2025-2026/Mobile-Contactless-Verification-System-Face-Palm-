@@ -67,3 +67,31 @@ venv/Scripts/pytest            # run tests
 ```
 
 See [`docs/design.md`](docs/design.md) for the full design and the build phases.
+
+## Repository layout
+
+```
+backend/   FastAPI service: API, admin console (/admin), installable PWA (/app), tests
+mobile/    React Native (Expo) Android client
+docs/      design notes
+supabase/  database notes
+```
+
+## Deploying the backend
+
+Heroku's app root is `backend/`, so it is deployed as a subtree of this repo:
+
+```sh
+git push origin main
+git push --force heroku "$(git subtree split --prefix backend main)":refs/heads/main
+```
+
+The force is expected: `subtree split` builds a fresh backend-only history each
+time, so its commit ids never fast-forward. Heroku is a deploy target, not a
+source of truth — this repo is.
+
+## Tests
+
+```sh
+cd backend && ./venv/Scripts/python.exe -m pytest tests -q     # 63 tests
+```
