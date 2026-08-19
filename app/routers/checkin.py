@@ -80,7 +80,7 @@ def verify(
             ok=False, status=_status_now(db, s.id, student.student_id),
             marks_count=_marks_now(db, s.id, student.student_id),
             marks_required=s.marks_required, distance_m=0.0, code="checkin_closed",
-            message="Check-in isn't open right now — wait for your lecturer to open it.",
+            message="Check-in isn't open right now. Wait for your lecturer to open it.",
         )
 
     # Face is compulsory: no attendance can be marked (by any modality) until a
@@ -133,7 +133,7 @@ def verify(
                      "Face/palm did not match your enrolled record.")
     if result.score < settings.min_verify_score:
         return _fail(db, s, student.student_id, distance, "low_confidence",
-                     "Capture quality too low — try again in better light.")
+                     "Capture quality too low. Try again in better light.")
 
     # 4) Record the mark (idempotent on the signature nonce → blocks replay).
     attendance = _get_or_create_attendance(db, s.id, student.student_id)
@@ -170,11 +170,11 @@ def verify(
     db.refresh(attendance)
 
     if attendance.status == AttendanceStatus.present:
-        msg = "Attendance complete — present (marked at both start and end)."
+        msg = "Attendance complete. Present (marked at both start and end)."
     elif s.phase == "start":
-        msg = "Start check-in recorded ✓ — come back for the END check-in to complete."
+        msg = "Start check-in recorded ✓. Come back for the END check-in."
     else:
-        msg = "End check-in recorded ✓, but no start mark was found — attendance is partial."
+        msg = "End check-in recorded ✓, but no start mark was found. Attendance is partial."
     return _state_response(attendance, s, distance, result.score, code="ok", message=msg)
 
 

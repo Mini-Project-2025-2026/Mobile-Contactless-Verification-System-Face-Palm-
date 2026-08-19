@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Attendance Verify — Admin</title>
+<title>Attendance Verify Admin</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
   :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;}
@@ -218,9 +218,9 @@ function locate(auto){
   navigator.geolocation.getCurrentPosition(pos=>{
     lastAcc=pos.coords.accuracy;
     jumpTo(pos.coords.latitude,pos.coords.longitude,
-      '📍 Located you (±'+Math.round(pos.coords.accuracy)+' m). Drag the pin to fine-tune.'+(pos.coords.accuracy>100?'  ⚠ Weak fix — verify the pin before creating!':''));
+      '📍 Located you (±'+Math.round(pos.coords.accuracy)+' m). Drag the pin to fine-tune.'+(pos.coords.accuracy>100?'  ⚠ Weak fix. Verify the pin before creating.':''));
   }, err=>{
-    msg('⚠ Could not get your location ('+err.message+'). Drop the pin on the map or pick a KNUST landmark — do NOT create at the default point.');
+    msg('⚠ Could not get your location ('+err.message+'). Drop the pin on the map or pick a KNUST landmark. Do NOT create at the default point.');
   }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
 }
 function useMyLocation(){ locate(false); }
@@ -244,7 +244,7 @@ async function searchOSM(){
     const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&viewbox=-1.60,6.70,-1.54,6.65&q='+encodeURIComponent(q));
     const a=await r.json();
     if(a[0]) jumpTo(+a[0].lat,+a[0].lon,'Found: '+a[0].display_name.split(',').slice(0,2).join(','));
-    else msg('No match — try the landmark list or drag the pin.');
+    else msg('No match. Try the landmark list or drag the pin.');
   }catch(e){ msg('Search failed: '+e.message); }
 }
 function setManual(){
@@ -266,7 +266,7 @@ async function loadCourses(){
 }
 async function loadCoursesInto(id){
   const cs=await api('/api/admin/courses');
-  document.getElementById(id).innerHTML=cs.map(c=>`<option value="${c.id}">${c.code} — ${c.title}</option>`).join('');
+  document.getElementById(id).innerHTML=cs.map(c=>`<option value="${c.id}">${c.code} · ${c.title}</option>`).join('');
 }
 async function createCourse(){
   await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
@@ -279,7 +279,7 @@ async function loadStudents(){
 }
 async function loadStudentsInto(id){
   const ss=await api('/api/admin/students');
-  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.student_id}">${s.student_id} — ${s.name}</option>`).join('');
+  document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.student_id}">${s.student_id} · ${s.name}</option>`).join('');
 }
 async function createStudent(){
   try{await api('/api/admin/students',{method:'POST',body:JSON.stringify({student_id:val('st_id'),name:val('st_name'),password:val('st_pw'),programme:val('st_prog'),year_group:val('st_year'),class_group:val('st_class')})});
@@ -314,7 +314,7 @@ async function revokeGrant(token){
 async function createSession(){
   document.getElementById('sessErr').textContent="";
   if(!located){
-    document.getElementById('sessErr').textContent='Set the class location first — tap “Use my location”, pick a KNUST landmark, or drop the pin on the map.';
+    document.getElementById('sessErr').textContent='Set the class location first. Tap “Use my location”, pick a KNUST landmark, or drop the pin on the map.';
     return;
   }
   if(lastAcc && lastAcc>120 && !confirm('Your GPS fix is weak (±'+Math.round(lastAcc)+' m). Students may be judged against an inaccurate centre. Create at this pin anyway?')) return;
@@ -324,7 +324,7 @@ async function createSession(){
   }catch(e){document.getElementById('sessErr').textContent=e.message}
 }
 /* Present needs BOTH windows, so a class that runs out of time while still in
-   START leaves every student who marked stuck on partial — silently, with
+   START leaves every student who marked stuck on partial, silently, with
    nothing on their phone to explain it. Warn while there is still time to act. */
 const END_WINDOW_WARN_MIN=10;
 function endPhaseWarning(s){
@@ -332,16 +332,14 @@ function endPhaseWarning(s){
   const left=(new Date(s.ends_at)-Date.now())/60000;
   if(left>END_WINDOW_WARN_MIN) return '';
   const mins=Math.max(0,Math.round(left));
-  const who=s.checked_in?`${s.checked_in} student${s.checked_in===1?'':'s'} who marked START will be left partial`
-                        :'nobody will be able to reach present';
-  return `<div class="warn">⚠ <b>Ends in ${mins} min and the END check-in has never opened</b>
-    <div>${who}. Open the END window now, or give the class more time.</div></div>`;
+  const who=s.checked_in?`${s.checked_in} student${s.checked_in===1?'':'s'} will stay partial.`:'No one can reach present.';
+  return `<div class="warn">⚠ <b>Ends in ${mins} min, still in START</b>
+    <div>${who} Open END or add time.</div></div>`;
 }
 function endedInStartNote(s){
   if(s.live||s.phase!=='start'||!s.partial) return '';
-  return `<div class="warn">⚠ <b>This class ended while still in START.</b>
-    <div>${s.partial} student${s.partial===1?'':'s'} left partial — they marked the start but the END window never opened.
-    Extending reopens the class so they can complete it.</div></div>`;
+  return `<div class="warn">⚠ <b>Ended while still in START</b>
+    <div>${s.partial} student${s.partial===1?'':'s'} left partial. Extend to let them finish.</div></div>`;
 }
 async function loadSessions(){
   const ss=await api('/api/admin/sessions');

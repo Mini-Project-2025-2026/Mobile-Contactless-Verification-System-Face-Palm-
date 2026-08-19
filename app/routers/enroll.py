@@ -97,7 +97,7 @@ def enroll(
         return EnrollResponse(
             ok=False, enrolled=0, of=result.of, samples=result.samples, modality=req.modality,
             code="no_biometric",
-            message=f"No usable {req.modality.value} detected — retake in good lighting, filling the frame.",
+            message=f"No usable {req.modality.value} detected. Retake in good lighting, filling the frame.",
         )
 
     # Persist: modalities, first-enrolment timestamp, device binding, grant use.
@@ -116,9 +116,9 @@ def enroll(
 
     face_done = "face" in mods
     if req.modality == Modality.face:
-        msg = "Face enrolled — you can now mark attendance. Adding your palm is optional."
+        msg = "Face enrolled. You can now mark attendance. Palm is optional."
     else:
-        msg = ("Palm enrolled — you can now use face or palm to check in." if face_done
+        msg = ("Palm enrolled. You can now use face or palm to check in." if face_done
                else "Palm enrolled. Face is still required before you can mark attendance.")
     return EnrollResponse(
         ok=True, enrolled=result.enrolled, of=result.of, samples=result.samples,
