@@ -5,6 +5,7 @@ Auth: POST /api/admin/login with the configured admin credentials returns a
 """
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import timedelta
 
@@ -12,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment, guard, queries, reporting
+from .. import audit, biometric, enrolment, guard, queries, reporting
 from ..config import settings
 from ..db import get_session
 from ..models import (
@@ -26,10 +27,27 @@ from ..models import (
     Student,
     norm_programme,
 )
+from ..middleware import client_ip
 from ..security import create_admin_token, current_admin, hash_password
 from ..timeutil import aware_or_now as _aware, now
 
+log = logging.getLogger("attendance.admin")
+
 router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+def _note(db: Session, request: Request, actor: str, action: str, *,
+          target: str = "", detail: str = "") -> None:
+    """Append one audit entry for an action that changed something.
+
+    Never raises. The action it describes has already succeeded and been
+    committed; failing the response now would report "not extended" for a
+    session that is, in fact, extended.
+    """
+    try:
+        audit.record(db, actor, action, target=target, detail=detail, ip=client_ip(request))
+    except Exception:  # noqa: BLE001 - bookkeeping must not fail the action
+        log.exception("audit note failed for %s by %s", action, actor)
 
 
 # ---------- auth ----------
@@ -93,12 +111,20 @@ def list_courses(_: str = Depends(current_admin), db: Session = Depends(get_sess
 
 
 @router.post("/courses", status_code=201)
-def create_course(body: CourseIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def create_course(body: CourseIn, request: Request, actor: str = Depends(current_admin),
+                  db: Session = Depends(get_session)) -> dict:
     c = Course(**body.model_dump())
     db.add(c)
     db.commit()
     db.refresh(c)
-    return c.model_dump()
+    # Read the row out BEFORE anything else commits on this session. A commit
+    # expires every instance attached to it, and `model_dump()` reads the
+    # instance dictionary directly rather than through the attribute
+    # instrumentation that would reload it — so it would come back empty.
+    created = c.model_dump()
+    _note(db, request, actor, "course.create", target=f"course:{c.id}",
+          detail=f"{c.code} {c.title} ({c.semester})")
+    return created
 
 
 # ---------- students ----------
@@ -131,7 +157,8 @@ def list_students(_: str = Depends(current_admin), db: Session = Depends(get_ses
 
 
 @router.post("/students", status_code=201)
-def create_student(body: StudentIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def create_student(body: StudentIn, request: Request, actor: str = Depends(current_admin),
+                   db: Session = Depends(get_session)) -> dict:
     if db.exec(select(Student).where(Student.student_id == body.student_id)).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "student_id already exists")
     s = Student(
@@ -142,6 +169,8 @@ def create_student(body: StudentIn, _: str = Depends(current_admin), db: Session
     )
     db.add(s)
     db.commit()
+    _note(db, request, actor, "student.create", target=f"student:{s.student_id}",
+          detail=f"{s.name} / {s.programme or 'no programme'}")
     return {"student_id": s.student_id, "name": s.name}
 
 
@@ -208,7 +237,8 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
 
 
 @router.post("/sessions", status_code=201)
-def create_session(body: SessionIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def create_session(body: SessionIn, request: Request, actor: str = Depends(current_admin),
+                   db: Session = Depends(get_session)) -> dict:
     if db.get(Course, body.course_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
     moment = now()
@@ -220,11 +250,15 @@ def create_session(body: SessionIn, _: str = Depends(current_admin), db: Session
     db.add(s)
     db.commit()
     db.refresh(s)
+    _note(db, request, actor, "session.open", target=f"session:{s.id}",
+          detail=f"course {body.course_id} for {body.duration_minutes}min "
+                 f"at ({body.lat:.5f},{body.lng:.5f}) r={body.radius_m:.0f}m")
     return {"session_id": s.id}
 
 
 @router.post("/sessions/{session_id}/close")
-def close_session(session_id: int, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def close_session(session_id: int, request: Request, actor: str = Depends(current_admin),
+                  db: Session = Depends(get_session)) -> dict:
     s = db.get(ClassSession, session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
@@ -232,6 +266,7 @@ def close_session(session_id: int, _: str = Depends(current_admin), db: Session 
     s.phase = "closed"
     db.add(s)
     db.commit()
+    _note(db, request, actor, "session.close", target=f"session:{session_id}")
     return {"session_id": session_id, "active": False}
 
 
@@ -240,7 +275,8 @@ class PhaseIn(BaseModel):
 
 
 @router.post("/sessions/{session_id}/phase")
-def set_phase(session_id: int, body: PhaseIn, _: str = Depends(current_admin),
+def set_phase(session_id: int, body: PhaseIn, request: Request,
+              actor: str = Depends(current_admin),
               db: Session = Depends(get_session)) -> dict:
     """Open the start/end check-in window (or pause it). Present needs both windows."""
     if body.phase not in ("start", "end", "closed"):
@@ -248,9 +284,11 @@ def set_phase(session_id: int, body: PhaseIn, _: str = Depends(current_admin),
     s = db.get(ClassSession, session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
-    s.phase = body.phase
+    was, s.phase = s.phase, body.phase
     db.add(s)
     db.commit()
+    _note(db, request, actor, "session.phase", target=f"session:{session_id}",
+          detail=f"{was} -> {s.phase}")
     return {"session_id": session_id, "phase": s.phase}
 
 
@@ -259,7 +297,8 @@ class ExtendIn(BaseModel):
 
 
 @router.post("/sessions/{session_id}/extend")
-def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_admin),
+def extend_session(session_id: int, body: ExtendIn, request: Request,
+                   actor: str = Depends(current_admin),
                    db: Session = Depends(get_session)) -> dict:
     """Push a session's end time back, so the END window still has room to run.
 
@@ -278,6 +317,8 @@ def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_adm
         s.active = True
     db.add(s)
     db.commit()
+    _note(db, request, actor, "session.extend", target=f"session:{session_id}",
+          detail=f"+{body.minutes}min, now ends {_aware(s.ends_at).isoformat()}")
     return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
 
 
@@ -328,7 +369,8 @@ class BulkEnrollIn(BaseModel):
 
 
 @router.post("/enroll/bulk")
-def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
+def bulk_enroll(body: BulkEnrollIn, request: Request,
+                actor: str = Depends(current_admin),
                 db: Session = Depends(get_session)) -> dict:
     """Register a batch of students' biometrics in one pass.
 
@@ -385,6 +427,8 @@ def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
         })
     db.commit()
     enrolment.reset_cache()  # the service roster just changed
+    _note(db, request, actor, "enrol.bulk",
+          detail=f"{outcome.enrolled} enrolled of {len(body.people)} submitted")
     return {"people": len(body.people), "enrolled": outcome.enrolled, "results": results}
 
 
@@ -396,7 +440,8 @@ class BulkCourseEnrollIn(BaseModel):
 
 
 @router.post("/enroll-course/bulk")
-def bulk_enroll_course(body: BulkCourseEnrollIn, _: str = Depends(current_admin),
+def bulk_enroll_course(body: BulkCourseEnrollIn, request: Request,
+                       actor: str = Depends(current_admin),
                        db: Session = Depends(get_session)) -> dict:
     """Put a whole programme (optionally one year or class group) on a course.
 
@@ -426,6 +471,9 @@ def bulk_enroll_course(body: BulkCourseEnrollIn, _: str = Depends(current_admin)
     for student_id in added:
         db.add(Enrollment(student_id=student_id, course_id=body.course_id))
     db.commit()
+    _note(db, request, actor, "course.enrol_cohort", target=f"course:{body.course_id}",
+          detail=f"{body.programme} {body.year_group} {body.class_group}".strip()
+                 + f" — {len(added)} added of {len(students)} matched")
     return {
         "course_id": body.course_id, "matched": len(students),
         "added": len(added), "already_enrolled": len(students) - len(added),
@@ -459,7 +507,8 @@ def list_programmes(_: str = Depends(current_admin), db: Session = Depends(get_s
 
 
 @router.post("/programmes/password")
-def set_programme_password(body: ProgrammePasswordIn, _: str = Depends(current_admin),
+def set_programme_password(body: ProgrammePasswordIn, request: Request,
+                           actor: str = Depends(current_admin),
                            db: Session = Depends(get_session)) -> dict:
     """Set or rotate the password everyone on a programme signs in with."""
     key = norm_programme(body.programme)
@@ -473,7 +522,10 @@ def set_programme_password(body: ProgrammePasswordIn, _: str = Depends(current_a
         cred.updated_at = now()
     db.add(cred)
     db.commit()
-    students = len(db.exec(select(Student).where(Student.programme != "")).all())
+    # The password itself is never recorded — only that it was rotated, by whom.
+    _note(db, request, actor, "programme.password", target=f"programme:{key}",
+          detail="set or rotated")
+    students = queries.count(db, Student, Student.programme != "")
     return {"programme": key, "updated": True, "students_on_programme": students}
 
 
@@ -497,7 +549,8 @@ class ConsentRecordIn(BaseModel):
 
 
 @router.post("/consent/record", status_code=201)
-def record_paper_consent(body: ConsentRecordIn, actor: str = Depends(current_admin),
+def record_paper_consent(body: ConsentRecordIn, request: Request,
+                         actor: str = Depends(current_admin),
                          db: Session = Depends(get_session)) -> dict:
     """Record consent gathered offline, e.g. on a signed form at registration."""
     if not db.exec(select(Student).where(Student.student_id == body.student_id)).first():
@@ -507,6 +560,8 @@ def record_paper_consent(body: ConsentRecordIn, actor: str = Depends(current_adm
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY,
                             f"biometric_unavailable: {exc}") from exc
+    _note(db, request, actor, "consent.record", target=f"student:{body.student_id}",
+          detail=f"operator-entered, v{receipt.version}: {body.note}".strip())
     return {"student_id": body.student_id, "status": "granted",
             "method": receipt.method, "version": receipt.version,
             "note": body.note}
@@ -519,13 +574,18 @@ class GrantIn(BaseModel):
 
 
 @router.post("/enroll-grant", status_code=201)
-def issue_grant(body: GrantIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def issue_grant(body: GrantIn, request: Request, actor: str = Depends(current_admin),
+                db: Session = Depends(get_session)) -> dict:
     if not db.exec(select(Student).where(Student.student_id == body.student_id)).first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown student")
     token = secrets.token_urlsafe(6).replace("_", "").replace("-", "")[:8].upper()
     expires = now() + timedelta(hours=body.ttl_hours)
     db.add(EnrollGrant(token=token, student_id=body.student_id, expires_at=expires))
     db.commit()
+    # A grant is what lets a face be re-bound to a student id. If any single
+    # action here needs a name against it afterwards, it is this one.
+    _note(db, request, actor, "grant.issue", target=f"student:{body.student_id}",
+          detail=f"one-time code, valid {body.ttl_hours}h")
     return {"student_id": body.student_id, "token": token, "expires_at": expires.isoformat(),
             "note": "Give this one-time code to the student to re-enrol or enrol on a new device."}
 
@@ -543,7 +603,8 @@ def list_grants(student_id: str, _: str = Depends(current_admin), db: Session = 
 
 
 @router.post("/enroll-grants/{token}/revoke")
-def revoke_grant(token: str, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
+def revoke_grant(token: str, request: Request, actor: str = Depends(current_admin),
+                 db: Session = Depends(get_session)) -> dict:
     g = db.exec(select(EnrollGrant).where(EnrollGrant.token == token)).first()
     if g is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown token")
@@ -551,7 +612,26 @@ def revoke_grant(token: str, _: str = Depends(current_admin), db: Session = Depe
         g.used_at = now()
         db.add(g)
         db.commit()
+        _note(db, request, actor, "grant.revoke", target=f"student:{g.student_id}")
     return {"token": token, "revoked": True}
+
+
+# ---------- the trail ----------
+@router.get("/audit")
+def audit_trail(limit: int = 100, action: str = "", target: str = "",
+                _: str = Depends(current_admin),
+                db: Session = Depends(get_session)) -> list[dict]:
+    """Who changed what, most recent first.
+
+    Every entry here is an action that altered an academic record. When a mark
+    is disputed at the end of a semester, "the console did it" is not an answer.
+    """
+    return [
+        {"at": _aware(row.at).isoformat(), "actor": row.actor, "action": row.action,
+         "target": row.target, "detail": row.detail, "ip": row.ip}
+        for row in audit.recent(db, limit=min(max(limit, 1), 500),
+                                action=action, target=target)
+    ]
 
 
 # ---------- attendance ----------
