@@ -1,0 +1,27 @@
+# --- secrets: never commit ---
+.env
+.env.local
+.supabase_url.txt
+.supabase_db_password.txt
+*.keystore
+*.jks
+
+# --- build output ---
+*.apk
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/android/build/
+backend/attendance.db
+*.db
+
+# --- dependencies ---
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# --- scratch ---
+t_*.json
+t_*.csv

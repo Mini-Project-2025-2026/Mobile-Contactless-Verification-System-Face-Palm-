@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Attendance Verify",
+    "slug": "attendance-verify",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "android": {
+      "package": "com.kyere.attendanceverify",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kyere.attendanceverify",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to verify your identity when checking in to a class.",
+        "NSLocationWhenInUseUsageDescription": "Used to confirm you are inside the class geofence."
+      }
+    },
+    "plugins": ["expo-camera", "expo-location", "expo-secure-store"]
+  }
+}
