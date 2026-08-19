@@ -38,7 +38,7 @@ def fresh_db():
 
 @pytest.fixture(autouse=True)
 def quiet_roster(monkeypatch):
-    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: set())
+    monkeypatch.setattr(biometric, "list_roster", lambda page=500: {})
 
 
 @pytest.fixture

@@ -53,7 +53,10 @@ def service_roster(monkeypatch):
     """
     roster: set[str] = set()
     monkeypatch.setattr(biometric, "user_status", lambda user_id: None)
-    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: set(roster))
+    # An older service names who is enrolled but not with which modality, so the
+    # roster it returns carries empty modality tuples.
+    monkeypatch.setattr(biometric, "list_roster",
+                        lambda page=500: {uid: () for uid in roster})
     enrolment.reset_cache()
     yield roster
     enrolment.reset_cache()
@@ -164,7 +167,7 @@ def test_service_outage_leaves_status_untouched(client, monkeypatch, service_ros
     def boom(page=500):
         raise biometric.BiometricError("unreachable")
 
-    monkeypatch.setattr(biometric, "list_enrolled_user_ids", boom)
+    monkeypatch.setattr(biometric, "list_roster", boom)
     enrolment.reset_cache()
     assert client.get("/api/enroll/status", headers=A).json()["can_mark"] is True
 
@@ -175,7 +178,7 @@ def test_service_outage_leaves_status_untouched(client, monkeypatch, service_ros
 
 def test_roster_is_cached_between_requests(client, monkeypatch, service_roster):
     calls = []
-    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: (calls.append(1), set())[1])
+    monkeypatch.setattr(biometric, "list_roster", lambda page=500: (calls.append(1), {})[1])
     enrolment.reset_cache()
     A = _login(client, "devA")
     for _ in range(3):

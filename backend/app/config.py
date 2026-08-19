@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     biometric_api_key: str = ""
     biometric_signing_secret: str = ""
     biometric_verify_tls: bool = True
+    biometric_timeout_s: float = 20.0
+    biometric_bulk_timeout_s: float = 120.0
+    #: Extra attempts after a transport failure. A student is standing in a
+    #: doorway holding up a phone; one dropped packet should not send them to
+    #: the back of the queue. Only ever applied where a retry is safe.
+    biometric_retries: int = 2
 
     geofence_default_radius_m: float = 70.0
     min_verify_score: float = 0.40

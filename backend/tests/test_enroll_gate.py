@@ -38,7 +38,7 @@ def fresh_db():
 def mocked_service(monkeypatch):
     monkeypatch.setattr(biometric, "enroll_user",
                         lambda uid, images, source="auto": EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}))
-    monkeypatch.setattr(biometric, "list_enrolled_user_ids", lambda page=500: set())
+    monkeypatch.setattr(biometric, "list_roster", lambda page=500: {})
     enrolment.reset_cache()
     yield
     enrolment.reset_cache()

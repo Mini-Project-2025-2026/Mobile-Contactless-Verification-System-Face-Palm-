@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from . import errors
+from . import bioclient, errors
 from .config import settings
 from .db import engine, init_db
 from .logging_setup import configure as configure_logging
@@ -62,6 +62,7 @@ async def lifespan(_: FastAPI):
         seed_run()
     log.info("attendance-verify ready")
     yield
+    bioclient.close_client()  # release the pooled connections to the biometric service
     log.info("attendance-verify shutting down")
 
 
