@@ -38,6 +38,7 @@ from .routers import (
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 _STATIC = Path(__file__).parent / "static"
 _ADMIN_HTML = _STATIC / "admin.html"
+_KIOSK_HTML = _STATIC / "kiosk.html"
 
 log = logging.getLogger("attendance.startup")
 
@@ -160,6 +161,18 @@ def readiness() -> dict:
                     verdict["local_floor"], verdict["service_match_threshold"])
     return {"ok": all(c["ok"] for c in checks.values()), "checks": checks,
             "verification_policy": verdict, "environment": settings.environment}
+
+
+@app.get("/kiosk", response_class=HTMLResponse, tags=["kiosk"])
+def kiosk_device() -> str:
+    """The page a shared classroom device runs.
+
+    Served separately from the student PWA on purpose: it is not installable,
+    holds no student session, and its whole job is to sit by a door with the
+    screen on. Anyone can load it; it does nothing at all without a kiosk code
+    that only the console can mint.
+    """
+    return _KIOSK_HTML.read_text(encoding="utf-8")
 
 
 @app.get("/admin", response_class=HTMLResponse, tags=["admin"])

@@ -16,6 +16,7 @@ STATIC = Path(__file__).resolve().parent.parent / "app" / "static"
 PAGES = {
     "pwa": (STATIC / "pwa" / "index.html").read_text(encoding="utf-8"),
     "admin": (STATIC / "admin.html").read_text(encoding="utf-8"),
+    "kiosk": (STATIC / "kiosk.html").read_text(encoding="utf-8"),
 }
 
 
@@ -31,9 +32,15 @@ def test_both_pages_read_the_error_envelope(page):
     assert "e.message" in html, f"{name} does not use the envelope message"
 
 
-def test_both_pages_still_read_the_old_shape(page):
-    """A cached copy of the page must keep working against the new server."""
+def test_the_older_pages_still_read_the_old_shape(page):
+    """A cached copy of a shipped page must keep working against the new server.
+
+    The kiosk page is new, so it has no cached copies anywhere and no old shape
+    to be compatible with.
+    """
     name, html = page
+    if name == "kiosk":
+        pytest.skip("shipped after the envelope changed")
     assert "b.detail" in html, f"{name} dropped the fallback"
 
 
@@ -68,3 +75,40 @@ def test_palm_is_not_offered_where_the_tenant_has_it_off():
 def test_a_consent_refusal_sends_the_student_somewhere_useful():
     """`consent_required` must route to the screen that fixes it."""
     assert "consent_required" in PAGES["pwa"]
+
+
+# --- the kiosk device ---------------------------------------------------------
+def test_the_kiosk_page_is_served():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    response = TestClient(app).get("/kiosk")
+    assert response.status_code == 200
+    assert "kiosk" in response.text.lower()
+
+
+def test_the_kiosk_page_drives_the_kiosk_endpoints():
+    html = PAGES["kiosk"]
+    assert "/api/kiosk/challenge" in html
+    assert "/api/kiosk/verify" in html
+
+
+def test_the_kiosk_stops_when_its_code_expires():
+    """A class ends. The device must say so rather than retrying forever."""
+    html = PAGES["kiosk"]
+    assert "clearInterval" in html
+    assert "expired" in html
+
+
+def test_the_kiosk_sends_its_own_position():
+    """The geofence claim comes from the device, which is the point of it."""
+    assert "navigator.geolocation" in PAGES["kiosk"]
+    assert "gps" in PAGES["kiosk"]
+
+
+def test_the_kiosk_holds_no_student_session():
+    """It is not a login. It must never touch the student token or its routes."""
+    html = PAGES["kiosk"]
+    assert "/api/auth/login" not in html
+    assert "/api/enroll" not in html

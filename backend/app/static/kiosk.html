@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<title>Attendance Kiosk</title>
+<meta name="theme-color" content="#0b1220"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<style>
+  /* Designed to be read from arm's length by someone walking up to it, not
+     held six inches from a face. Everything is large, high-contrast, and dark:
+     this device sits by a door for two hours with the screen always on. */
+  :root{--red:#C41230;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--muted:#93a0b4;
+        --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{margin:0;background:#070b13;color:#eef2f8;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;
+       overflow:hidden;height:100dvh}
+  .hidden{display:none!important}
+
+  /* setup */
+  .setup{padding:24px;padding-top:calc(24px + var(--safe-top));max-width:520px;margin:0 auto}
+  .setup h1{font-size:22px;margin:0 0 4px}
+  .setup p{color:var(--muted);line-height:1.5;font-size:14px}
+  textarea,input{width:100%;padding:14px;border-radius:12px;border:1px solid #24304a;background:#0d1422;
+                 color:#eef2f8;font-size:15px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .btn{background:var(--red);color:#fff;border:0;padding:16px;border-radius:14px;font-weight:800;
+       font-size:17px;width:100%;cursor:pointer;margin-top:12px}
+  .btn.sec{background:#1a2436;color:#eef2f8}
+  .btn:disabled{opacity:.45}
+  .err{color:#fca5a5;font-size:14px;margin-top:10px;min-height:20px}
+
+  /* the running kiosk */
+  #stage{position:fixed;inset:0;display:flex;flex-direction:column}
+  video{flex:1;object-fit:cover;width:100%;transform:scaleX(-1);background:#000}
+  .top{position:absolute;top:0;left:0;right:0;padding:14px 18px;padding-top:calc(14px + var(--safe-top));
+       display:flex;justify-content:space-between;align-items:center;gap:10px;
+       background:linear-gradient(rgba(4,8,16,.75),transparent);font-size:13px}
+  .course{font-weight:800;font-size:16px}
+  .phase{font-size:12px;font-weight:800;padding:5px 12px;border-radius:999px;background:#1a2436;color:#cbd5e1}
+  .phase.start{background:rgba(22,163,74,.2);color:#86efac}
+  .phase.end{background:rgba(217,119,6,.22);color:#fcd34d}
+  .phase.closed{background:rgba(220,38,38,.2);color:#fca5a5}
+
+  .prompt{position:absolute;left:0;right:0;bottom:0;padding:26px;
+          padding-bottom:calc(26px + var(--safe-bottom));text-align:center;
+          background:linear-gradient(transparent,rgba(4,8,16,.85))}
+  .prompt .big{font-size:26px;font-weight:800;line-height:1.25}
+  .prompt .sub{color:var(--muted);margin-top:8px;font-size:15px}
+
+  /* the result takes the whole screen: it has to be readable while the next
+     person is already stepping forward */
+  #result{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;text-align:center;padding:30px;background:rgba(4,8,16,.93)}
+  #result .mark{font-size:78px;line-height:1}
+  #result .who{font-size:32px;font-weight:800;margin-top:14px}
+  #result .what{font-size:19px;margin-top:10px;color:#cbd5e1;max-width:22em}
+  #result.good .mark{color:var(--ok)} #result.warn .mark{color:var(--warn)} #result.bad .mark{color:var(--bad)}
+
+  .scanline{position:absolute;left:8%;right:8%;top:16%;bottom:26%;border:3px solid rgba(255,255,255,.25);
+            border-radius:28px;pointer-events:none}
+  .scanline.busy{border-color:var(--warn);animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{50%{border-color:rgba(255,255,255,.15)}}
+</style>
+</head>
+<body>
+
+<!-- SETUP: paste the token the console issued for this class -->
+<div id="setup" class="setup">
+  <h1>Attendance kiosk</h1>
+  <p>
+    This device marks attendance for <b>one class</b>. Open the class in the admin
+    console, choose <b>Kiosk device</b>, and paste the code it gives you below.
+    Students then just look at the camera — nobody types an ID or a password.
+  </p>
+  <label style="color:var(--muted);font-size:12px;font-weight:700;display:block;margin:14px 0 6px">DEVICE CODE</label>
+  <textarea id="tok" rows="4" placeholder="Paste the kiosk code here"></textarea>
+  <div id="setupErr" class="err"></div>
+  <button class="btn" onclick="start()">Start</button>
+  <button class="btn sec" onclick="forget()">Clear this device</button>
+  <p style="margin-top:22px;font-size:12px">
+    The code works for this class only and expires with it. It cannot read the
+    roster, enrol anyone, or sign in as a student.
+  </p>
+</div>
+
+<!-- STAGE: the running kiosk -->
+<div id="stage" class="hidden">
+  <video id="video" playsinline muted autoplay></video>
+  <div class="scanline" id="frame"></div>
+  <div class="top">
+    <div><div class="course" id="k_course">Attendance</div><div id="k_note" style="color:var(--muted)"></div></div>
+    <div><span class="phase" id="k_phase">—</span></div>
+  </div>
+  <div class="prompt">
+    <div class="big" id="k_big">Look at the camera</div>
+    <div class="sub" id="k_sub">Step in, face the screen, and hold still</div>
+  </div>
+  <div id="result" class="hidden">
+    <div class="mark" id="r_mark">✓</div>
+    <div class="who" id="r_who"></div>
+    <div class="what" id="r_what"></div>
+  </div>
+</div>
+
+<script>
+const TK="av_kiosk_token";
+const $=id=>document.getElementById(id);
+
+async function api(path,opts={}){
+  const h={"Content-Type":"application/json","Authorization":"Bearer "+localStorage.getItem(TK)};
+  const r=await fetch(path,{...opts,headers:h});
+  const txt=await r.text(); const b=txt?JSON.parse(txt):{};
+  if(!r.ok){
+    const e=b.error||{};
+    const err=new Error(e.message||b.detail||r.statusText);
+    err.status=r.status; err.code=e.code||""; err.requestId=e.request_id||"";
+    throw err;
+  }
+  return b;
+}
+
+function forget(){ localStorage.removeItem(TK); location.reload(); }
+
+// --- capture -----------------------------------------------------------------
+// A burst, not a photograph: the liveness challenge needs several frames to see
+// the head turn. Frames are held only long enough to post them.
+let STREAM=null, BUSY=false, IDLE=null;
+
+async function openCamera(){
+  STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:960}},audio:false});
+  const v=$("video"); v.srcObject=STREAM; await v.play();
+}
+
+function grab(){
+  const v=$("video"), c=document.createElement("canvas");
+  const w=Math.min(v.videoWidth||640,720);
+  c.width=w; c.height=Math.round(w*(v.videoHeight/v.videoWidth||0.75));
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  return c.toDataURL("image/jpeg",0.82).split(",")[1];
+}
+
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function burst(n=5,gap=220){
+  const frames=[];
+  for(let i=0;i<n;i++){ frames.push(grab()); if(i<n-1) await wait(gap); }
+  return frames;
+}
+
+// --- the loop ----------------------------------------------------------------
+function show(kind,mark,who,what,holdMs){
+  const box=$("result");
+  box.className=kind; $("r_mark").textContent=mark;
+  $("r_who").textContent=who||""; $("r_what").textContent=what||"";
+  box.classList.remove("hidden");
+  clearTimeout(IDLE);
+  IDLE=setTimeout(()=>{ box.classList.add("hidden"); BUSY=false; }, holdMs);
+}
+
+function setPhase(phase){
+  const el=$("k_phase");
+  el.className="phase "+(phase||"");
+  el.textContent=phase==="start"?"START check-in":phase==="end"?"END check-in":"Closed";
+  $("k_big").textContent=phase==="closed"?"Check-in is closed":"Look at the camera";
+  $("k_sub").textContent=phase==="closed"
+    ? "Your lecturer will open it" : "Step in, face the screen, and hold still";
+}
+
+async function tick(){
+  if(BUSY) return;
+  BUSY=true;
+  $("frame").classList.add("busy");
+  try{
+    const ch=await api("/api/kiosk/challenge",{method:"POST"});
+    setPhase(ch.phase);
+    if(ch.phase!=="start"&&ch.phase!=="end"){ BUSY=false; $("frame").classList.remove("busy"); return; }
+
+    const frames=await burst();
+    const gps=await where();
+    const r=await api("/api/kiosk/verify",{method:"POST",body:JSON.stringify({
+      token:ch.token, frames, modality:"face", gps
+    })});
+
+    if(r.ok&&r.code==="ok"){
+      show("good","✓",r.name,r.status==="present"?"Attendance complete":"Marked — come back for the end check-in",3200);
+    }else if(r.code==="duplicate"||r.code==="already_marked"){
+      show("warn","•",r.name,"Already counted",2400);
+    }else if(r.code==="not_recognised"){
+      show("bad","?","","Not recognised — step closer and face the camera",2200);
+    }else{
+      show("bad","✕",r.name||"",r.message,3200);
+    }
+  }catch(e){
+    if(e.status===401||e.status===403){
+      // The class ended, or this code was never valid. Say so, and stop.
+      clearInterval(LOOP);
+      show("bad","✕","","This device code has expired. Ask your lecturer for a new one.",60000);
+      return;
+    }
+    // The request id goes on screen: a lecturer reading it out is the only way
+    // a failure on a device nobody is signed in to becomes findable in a log.
+    show("bad","!", e.message||"Could not reach the attendance server",
+         e.requestId?("Reference "+e.requestId):"", 2600);
+  }finally{
+    $("frame").classList.remove("busy");
+  }
+}
+
+// The kiosk's own position is the geofence claim, so it is read once at start
+// and refreshed slowly — a fixed device does not move, and asking on every
+// capture would drain a phone sitting by a door for two hours.
+let FIX=null;
+function where(){
+  return new Promise(resolve=>{
+    if(FIX && Date.now()-FIX.at < 120000) return resolve({lat:FIX.lat,lng:FIX.lng,accuracy_m:FIX.acc});
+    if(!navigator.geolocation) return resolve({lat:0,lng:0});
+    navigator.geolocation.getCurrentPosition(
+      p=>{ FIX={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,at:Date.now()};
+           resolve({lat:FIX.lat,lng:FIX.lng,accuracy_m:FIX.acc}); },
+      ()=>resolve(FIX?{lat:FIX.lat,lng:FIX.lng}:{lat:0,lng:0}),
+      {enableHighAccuracy:true,timeout:8000,maximumAge:60000});
+  });
+}
+
+let LOOP=null;
+async function start(){
+  const pasted=$("tok").value.trim();
+  if(pasted) localStorage.setItem(TK,pasted);
+  if(!localStorage.getItem(TK)){ $("setupErr").textContent="Paste the code from the admin console first."; return; }
+  $("setupErr").textContent="";
+  try{
+    const ch=await api("/api/kiosk/challenge",{method:"POST"});
+    setPhase(ch.phase);
+  }catch(e){
+    $("setupErr").textContent=e.status===403?"That code is not a kiosk code.":
+      e.status===401?"That code has expired.":e.message;
+    return;
+  }
+  try{ await openCamera(); }
+  catch(e){ $("setupErr").textContent="Camera unavailable: "+e.message; return; }
+
+  $("setup").classList.add("hidden");
+  $("stage").classList.remove("hidden");
+  // Keep the screen awake: a kiosk that sleeps is a kiosk nobody can use.
+  try{ if("wakeLock" in navigator) await navigator.wakeLock.request("screen"); }catch(e){}
+  await where();
+  LOOP=setInterval(tick, 2500);
+}
+
+if(localStorage.getItem(TK)) $("tok").value=localStorage.getItem(TK);
+</script>
+</body>
+</html>
