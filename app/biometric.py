@@ -45,6 +45,10 @@ class EnrollResult:
     of: int
     samples: int
     raw: dict
+    #: The service refused because this face/palm already belongs to someone else.
+    #: One biometric, one identity: this is never a retry-in-better-light failure.
+    duplicate: bool = False
+    conflict_user_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -54,6 +58,8 @@ class BulkPersonResult:
     enrolled: int
     modalities: tuple[str, ...]
     message: str
+    duplicate: bool = False
+    conflict_user_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -115,11 +121,14 @@ def enroll_user(user_id: str, images: list[str], *, source: str = "auto") -> Enr
     results = data.get("results", []) or []
     # Highest per-image sample index reflects how many anchors are now stored.
     samples = max((int(res.get("samples") or 0) for res in results), default=0)
+    dupe = next((res for res in results if res.get("code") == "duplicate"), None)
     return EnrollResult(
         enrolled=int(data.get("enrolled", 0) or 0),
         of=int(data.get("of", len(images)) or len(images)),
         samples=samples,
         raw=data,
+        duplicate=dupe is not None,
+        conflict_user_id=str((dupe or {}).get("conflict_user_id") or ""),
     )
 
 
@@ -152,6 +161,11 @@ def enroll_users_bulk(people: list[tuple[str, list[str]]], *, dedupe: bool = Tru
             enrolled=int(res.get("enrolled") or 0),
             modalities=tuple(res.get("modalities") or ()),
             message=str(res.get("message") or ""),
+            duplicate=res.get("code") == "duplicate" or bool(res.get("conflicts")),
+            conflict_user_ids=tuple(
+                str(c.get("conflict_user_id")) for c in (res.get("conflicts") or [])
+                if c.get("conflict_user_id")
+            ),
         )
         for res in (data.get("results") or [])
     )

@@ -100,6 +100,19 @@ def enroll(
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
 
+    # One biometric, one identity. The service refuses a face or palm that already
+    # belongs to another user_id, and that refusal is final: an admin grant buys a
+    # student a re-enrolment of THEIR OWN biometric, never someone else's identity.
+    # Reported separately because "already registered to someone" and "bad lighting"
+    # call for opposite responses, and the old code showed the same message for both.
+    if result.duplicate:
+        return EnrollResponse(
+            ok=False, enrolled=0, of=result.of, samples=result.samples, modality=req.modality,
+            code="duplicate_biometric",
+            message=(f"This {req.modality.value} is already registered to another student ID. "
+                     "It cannot be enrolled twice. See your administrator."),
+        )
+
     if result.enrolled <= 0:
         return EnrollResponse(
             ok=False, enrolled=0, of=result.of, samples=result.samples, modality=req.modality,

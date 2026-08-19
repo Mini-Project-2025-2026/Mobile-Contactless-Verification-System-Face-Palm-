@@ -322,10 +322,17 @@ def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
             student.enrolled_at = student.enrolled_at or now
             student.enrolled_samples = max(student.enrolled_samples, res.enrolled)
             db.add(student)
+        message = res.message or ("enrolled" if res.success else "not enrolled")
+        if res.duplicate:
+            # Never silently skipped: an import that would tie one face to a second
+            # student ID is the one outcome an operator has to see by name.
+            whose = ", ".join(res.conflict_user_ids) or "another student"
+            message = f"already registered to {whose}"
         results.append({
             "student_id": res.user_id, "name": student.name, "success": res.success,
             "enrolled": res.enrolled, "modalities": list(res.modalities),
-            "message": res.message or ("enrolled" if res.success else "not enrolled"),
+            "duplicate": res.duplicate, "conflicts": list(res.conflict_user_ids),
+            "message": message,
         })
     db.commit()
     enrolment.reset_cache()  # the service roster just changed
