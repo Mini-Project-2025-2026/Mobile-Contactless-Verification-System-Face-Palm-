@@ -58,6 +58,7 @@
       <button data-t="courses" onclick="tab('courses')">Courses</button>
       <button data-t="students" onclick="tab('students')">Students</button>
       <button data-t="attendance" onclick="tab('attendance')">Attendance</button>
+      <button data-t="reports" onclick="tab('reports')">End of semester</button>
     </div>
 
     <div id="v-overview" class="view">
@@ -187,6 +188,21 @@
         <div id="attList" style="margin-top:10px"></div>
       </div>
     </div>
+
+    <div id="v-reports" class="view hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Course record for the semester</h3>
+        <p class="muted" style="margin-top:0">Every class, every enrolled student, who was verified in which window, and who never enrolled. This is the file to hand a lecturer at the end of the semester, and the one an attendance query is settled from later.</p>
+        <label>Course</label><select id="rp_course" onchange="loadReport()"></select>
+        <div class="row" style="gap:8px;justify-content:flex-start;flex-wrap:wrap;margin-top:10px">
+          <button class="btn" onclick="downloadReport('roll')">Download register (CSV)</button>
+          <button class="btn sec" onclick="downloadReport('marks')">Download full detail (CSV)</button>
+        </div>
+        <div id="rpErr" class="err"></div>
+        <div id="rpSummary" style="margin-top:12px"></div>
+        <div id="rpTable" style="margin-top:12px;overflow-x:auto"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -223,6 +239,7 @@ function tab(name){
   if(name==='courses')loadCourses();
   if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('bc_course');loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
+  if(name==='reports'){loadCoursesInto('rp_course').then(loadReport)}
 }
 async function loadOverview(){
   const o=await api('/api/admin/overview');
@@ -537,6 +554,56 @@ async function loadSessionsInto(id){
   loadAttendance();
 }
 async function closeSession(id){await api('/api/admin/sessions/'+id+'/close',{method:'POST'});loadSessions()}
+// ---- end-of-semester report ----
+/* The console shows the register on screen and hands over the same numbers as a
+   file. Both come from one endpoint, so what a lecturer downloads is what they
+   were shown - a report that disagrees with the screen is worse than no report. */
+async function loadReport(){
+  const err=document.getElementById('rpErr'); err.textContent='';
+  const id=val('rp_course');
+  if(!id){ document.getElementById('rpTable').innerHTML=''; return; }
+  let r;
+  try{ r=await api('/api/admin/courses/'+id+'/report'); }
+  catch(e){ err.textContent=e.message; return; }
+
+  const t=r.totals;
+  document.getElementById('rpSummary').innerHTML=
+    stat('Classes held',t.classes_held)+stat('Students',t.students)+
+    stat('Full attendance',t.full_attendance)+
+    stat('Never enrolled',t.never_enrolled);
+
+  const head=['Student','Name','Enrolled'].concat(
+    r.classes.map(c=>(c.starts_at||'').slice(5,10)+' '+(c.title||''))).concat(['Present','Rate']);
+  const cell=c=>c.status==='present'?'<span class="badge present">✓</span>'
+    :(c.status==='partial'?`<span class="badge partial">${c.marked_start?'S':'E'}</span>`
+    :'<span class="badge absent">–</span>');
+  document.getElementById('rpTable').innerHTML=r.students.length?
+    tableRows(head, r.students.map(s=>[
+      s.student_id, s.name,
+      s.biometrics_enrolled?s.enrolled_modalities.join(','):'<b style="color:#b45309">no</b>'
+    ].concat(s.classes.map(cell)).concat([
+      s.present+'/'+s.held, (s.rate*100).toFixed(0)+'%'
+    ]))):'<p class="muted">Nobody is enrolled in this course yet.</p>';
+}
+/* The file is fetched with the admin token and handed to the browser as a blob:
+   a plain link cannot carry an Authorization header. */
+async function downloadReport(shape){
+  const err=document.getElementById('rpErr'); err.textContent='';
+  const id=val('rp_course');
+  if(!id){ err.textContent='Pick a course first.'; return; }
+  try{
+    const res=await fetch('/api/admin/courses/'+id+'/report.csv?shape='+shape,
+                          {headers:{Authorization:'Bearer '+tok()}});
+    if(!res.ok) throw new Error('Server said '+res.status);
+    const blob=await res.blob();
+    const name=(res.headers.get('content-disposition')||'').split('filename=')[1];
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=(name||'course-report.csv').replace(/"/g,'');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  }catch(e){ err.textContent=e.message; }
+}
 // ---- attendance ----
 async function loadAttendance(){
   const sel=document.getElementById('at_session');if(!sel.value){document.getElementById('attList').innerHTML='';return}

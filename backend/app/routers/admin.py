@@ -8,11 +8,11 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from .. import biometric, enrolment
+from .. import biometric, enrolment, reporting
 from ..config import settings
 from ..db import get_session
 from ..models import (
@@ -265,6 +265,41 @@ def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_adm
     db.add(s)
     db.commit()
     return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
+
+
+# ---------- end-of-semester course report ----------
+@router.get("/courses/{course_id}/report")
+def course_report(course_id: int, _: str = Depends(current_admin),
+                  db: Session = Depends(get_session)) -> dict:
+    """Everything recorded for one course: every class, every student, every mark."""
+    report = reporting.build(db, course_id)
+    if report is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
+    return report
+
+
+@router.get("/courses/{course_id}/report.csv")
+def course_report_csv(course_id: int, shape: str = "roll",
+                      _: str = Depends(current_admin),
+                      db: Session = Depends(get_session)) -> Response:
+    """The same record as a spreadsheet a lecturer can keep.
+
+    `shape=roll` is the register: one row per student, one column per class.
+    `shape=marks` is the audit trail: one row per student per class, with the
+    times, scores and distances behind each figure in the register.
+    """
+    if shape not in ("roll", "marks"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "shape must be roll or marks")
+    report = reporting.build(db, course_id)
+    if report is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
+    body = reporting.roll_csv(report) if shape == "roll" else reporting.marks_csv(report)
+    name = reporting.filename(report, shape)
+    return Response(
+        content=body,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
 
 
 # ---------- bulk enrolment ----------
