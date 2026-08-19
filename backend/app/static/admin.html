@@ -130,7 +130,7 @@
         <p class="muted" style="margin-top:0">Students sign in with their own student ID and the password shared by their programme. It keeps strangers out; enrolment is protected by the one-time code below, since classmates know this password.</p>
         <div class="grid">
           <div><label>Programme</label><input id="pg_name" list="pg_list" placeholder="Computer Science"/><datalist id="pg_list"></datalist></div>
-          <div><label>New password (8+ characters)</label><input id="pg_pw" placeholder="e.g. knust-cs-2026!"/></div>
+          <div><label>New password (6+ characters)</label><input id="pg_pw" placeholder="e.g. CS@2024"/></div>
         </div>
         <button class="btn" onclick="setProgrammePassword()">Set password</button>
         <div id="pgErr" class="err"></div>
@@ -436,7 +436,7 @@ async function setProgrammePassword(){
   const err=document.getElementById('pgErr'); err.textContent='';
   const name=val('pg_name').trim(), pw=val('pg_pw');
   if(!name){ err.textContent='Type the programme exactly as it appears on the students.'; return; }
-  if(pw.length<8){ err.textContent='Use at least 8 characters.'; return; }
+  if(pw.length<6){ err.textContent='Use at least 6 characters.'; return; }
   try{
     await api('/api/admin/programmes/password',{method:'POST',body:JSON.stringify({programme:name,password:pw})});
     document.getElementById('pg_pw').value='';

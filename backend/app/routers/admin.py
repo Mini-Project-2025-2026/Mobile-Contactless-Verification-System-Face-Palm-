@@ -418,7 +418,10 @@ def bulk_enroll_course(body: BulkCourseEnrollIn, _: str = Depends(current_admin)
 # ---------- programme sign-in passwords ----------
 class ProgrammePasswordIn(BaseModel):
     programme: str
-    password: str = Field(min_length=8)
+    # Short by password standards, and deliberately so: this is the shared half of a
+    # credential whose identifying half is the student's own ID, and it is read out in
+    # a lecture hall. What protects attendance is the face at check-in, not this.
+    password: str = Field(min_length=6)
 
 
 @router.get("/programmes")

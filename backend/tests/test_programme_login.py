@@ -91,9 +91,12 @@ def test_admin_sets_and_rotates_a_programme_password(client):
 def test_a_programme_password_has_to_be_long_enough(client):
     a = client.post("/api/admin/login", json={
         "username": settings.admin_username, "password": settings.admin_password}).json()["access_token"]
-    r = client.post("/api/admin/programmes/password", headers={"Authorization": f"Bearer {a}"},
-                    json={"programme": "Computer Science", "password": "short"})
-    assert r.status_code == 422
+    # A cohort password is short on purpose (it is read out in a lecture hall), but
+    # not so short that a stranger reaches a student's record by guessing twice.
+    assert client.post("/api/admin/programmes/password", headers={"Authorization": f"Bearer {a}"},
+                       json={"programme": "Computer Science", "password": "cs24"}).status_code == 422
+    assert client.post("/api/admin/programmes/password", headers={"Authorization": f"Bearer {a}"},
+                       json={"programme": "Computer Science", "password": "CS@2024"}).status_code == 200
 
 
 def test_setting_a_programme_password_needs_an_admin(client):
