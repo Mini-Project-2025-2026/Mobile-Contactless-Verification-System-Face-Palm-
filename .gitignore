@@ -25,3 +25,7 @@ __pycache__/
 # --- scratch ---
 t_*.json
 t_*.csv
+
+# --- database snapshots: contain student data and password hashes ---
+backups/
+snapshot-*.json
