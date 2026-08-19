@@ -6,7 +6,10 @@ HMAC-signed verdict the backend independently validates before recording a mark.
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from .. import biometric, enrolment, policy
@@ -14,6 +17,7 @@ from ..config import settings
 from ..db import get_session
 from ..geo import within_geofence
 from ..models import (
+    REQUIRED_PHASES,
     Attendance,
     AttendanceMark,
     AttendanceStatus,
@@ -24,6 +28,8 @@ from ..models import (
 from ..schemas import ChallengeRequest, ChallengeResponse, VerifyRequest, VerifyResponse
 from ..security import current_student
 from ..timeutil import aware_or_now as _aware, now
+
+log = logging.getLogger("attendance.checkin")
 
 router = APIRouter(prefix="/api/checkin", tags=["checkin"])
 
@@ -159,10 +165,21 @@ def verify(
     attendance.first_marked_at = attendance.first_marked_at or moment
     attendance.last_marked_at = moment
     attendance.status = (
-        AttendanceStatus.present if {"start", "end"} <= phases else AttendanceStatus.partial
+        AttendanceStatus.present if REQUIRED_PHASES <= phases else AttendanceStatus.partial
     )
     db.add(attendance)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # The nonce is unique in the database, so a verdict submitted twice fast
+        # enough to clear the check above lands here instead of being counted
+        # twice. The student's mark is already recorded by the request that won.
+        db.rollback()
+        log.info("duplicate verdict for %s on session %s (nonce %s)",
+                 student.student_id, s.id, result.nonce)
+        current = _get_or_create_attendance(db, s.id, student.student_id)
+        return _state_response(current, s, distance, result.score, code="duplicate",
+                               message="This capture was already counted.")
     db.refresh(attendance)
 
     if attendance.status == AttendanceStatus.present:
@@ -175,29 +192,43 @@ def verify(
 
 
 # --- small helpers ---
+def _find_attendance(db: Session, session_id: int, student_id: str) -> Attendance | None:
+    return db.exec(select(Attendance).where(
+        Attendance.session_id == session_id, Attendance.student_id == student_id)).first()
+
+
 def _get_or_create_attendance(db: Session, session_id: int, student_id: str) -> Attendance:
-    a = db.exec(
-        select(Attendance).where(Attendance.session_id == session_id, Attendance.student_id == student_id)
-    ).first()
-    if a is None:
-        a = Attendance(session_id=session_id, student_id=student_id)
-        db.add(a)
+    """The student's row for this class, created if this is their first mark.
+
+    Two check-ins arriving together both find nothing and both insert. The
+    database refuses the second (one row per session and student), which is the
+    point of the constraint — so the loser reads the winner's row instead of
+    turning a successful verification into a 500.
+    """
+    existing = _find_attendance(db, session_id, student_id)
+    if existing is not None:
+        return existing
+    record = Attendance(session_id=session_id, student_id=student_id)
+    db.add(record)
+    try:
         db.commit()
-        db.refresh(a)
-    return a
+    except IntegrityError:
+        db.rollback()
+        won = _find_attendance(db, session_id, student_id)
+        if won is None:  # refused for some other reason; let it surface
+            raise
+        return won
+    db.refresh(record)
+    return record
 
 
 def _marks_now(db: Session, session_id: int, student_id: str) -> int:
-    a = db.exec(
-        select(Attendance).where(Attendance.session_id == session_id, Attendance.student_id == student_id)
-    ).first()
+    a = _find_attendance(db, session_id, student_id)
     return a.marks_count if a else 0
 
 
 def _status_now(db: Session, session_id: int, student_id: str) -> AttendanceStatus:
-    a = db.exec(
-        select(Attendance).where(Attendance.session_id == session_id, Attendance.student_id == student_id)
-    ).first()
+    a = _find_attendance(db, session_id, student_id)
     return a.status if a else AttendanceStatus.absent
 
 
