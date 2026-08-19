@@ -1,8 +1,6 @@
 """Devices tab: list the student's registered devices (one-device policy view)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -10,6 +8,7 @@ from ..db import get_session
 from ..models import Device, Student
 from ..schemas import DeviceItem
 from ..security import current_student
+from ..timeutil import aware_or_now, now
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
@@ -27,7 +26,7 @@ def list_devices(
             platform=d.platform,
             name=d.name,
             active=d.active,
-            last_seen=d.last_seen if d.last_seen.tzinfo else d.last_seen.replace(tzinfo=timezone.utc),
+            last_seen=aware_or_now(d.last_seen),
         )
         for d in rows
     ]
@@ -47,7 +46,7 @@ def deregister(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no active device")
     for d in active:
         d.active = False
-        d.last_seen = datetime.now(timezone.utc)
+        d.last_seen = now()
         db.add(d)
     db.commit()
     return {"released": len(active)}

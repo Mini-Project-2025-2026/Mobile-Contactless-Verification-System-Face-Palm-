@@ -13,8 +13,6 @@ Enrolled modalities live in `enrolled_modality` as a comma-joined set.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -24,6 +22,7 @@ from ..db import get_session
 from ..models import EnrollGrant, Modality, Student
 from ..schemas import EnrollRequest, EnrollResponse, EnrollStatus
 from ..security import current_device_uid, current_student
+from ..timeutil import aware_or_now, now
 
 router = APIRouter(prefix="/api/enroll", tags=["enroll"])
 
@@ -38,8 +37,7 @@ def _valid_grant(db: Session, student_id: str, token: str) -> EnrollGrant | None
     g = db.exec(select(EnrollGrant).where(EnrollGrant.token == token)).first()
     if not g or g.student_id != student_id or g.used_at is not None:
         return None
-    exp = g.expires_at if g.expires_at.tzinfo else g.expires_at.replace(tzinfo=timezone.utc)
-    if exp < datetime.now(timezone.utc):
+    if aware_or_now(g.expires_at) < now():
         return None
     return g
 
@@ -123,12 +121,12 @@ def enroll(
     # Persist: modalities, first-enrolment timestamp, device binding, grant use.
     mods.add(req.modality.value)
     student.enrolled_modality = ",".join(sorted(mods))
-    student.enrolled_at = student.enrolled_at or datetime.now(timezone.utc)
+    student.enrolled_at = student.enrolled_at or now()
     student.enrolled_samples = max(student.enrolled_samples, result.samples)
     if first_ever or need_grant:
         student.enroll_device_uid = device_uid  # bind / re-bind
     if grant is not None:
-        grant.used_at = datetime.now(timezone.utc)
+        grant.used_at = now()
         db.add(grant)
     db.add(student)
     db.commit()

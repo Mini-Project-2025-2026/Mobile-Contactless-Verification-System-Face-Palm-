@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime, timezone
 
 from sqlmodel import Session, select
 
@@ -27,21 +26,13 @@ from .models import (
     Session as ClassSession,
     Student,
 )
+from .timeutil import aware as _aware, iso as _iso, now as _now
 
 #: Marks required for "present" are per session, but a course-level rate needs one
 #: rule: a class counts for a student only if they completed every window it ran.
 PRESENT = "present"
 
 
-def _aware(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-
-
-def _iso(dt: datetime | None) -> str:
-    aware = _aware(dt)
-    return aware.isoformat() if aware else ""
 
 
 def build(db: Session, course_id: int) -> dict | None:
@@ -78,7 +69,7 @@ def build(db: Session, course_id: int) -> dict | None:
         "radius_m": s.radius_m,
         "marks_required": s.marks_required,
         "phase": s.phase,
-        "closed": not s.active or _aware(s.ends_at) < datetime.now(timezone.utc),
+        "closed": not s.active or _aware(s.ends_at) < _now(),
     } for s in sessions]
 
     rows = []
@@ -133,7 +124,7 @@ def build(db: Session, course_id: int) -> dict | None:
             "id": course.id, "code": course.code, "title": course.title,
             "semester": course.semester, "lecturer_name": course.lecturer_name,
         },
-        "generated_at": _iso(datetime.now(timezone.utc)),
+        "generated_at": _iso(_now()),
         "classes": classes,
         "students": rows,
         "totals": {

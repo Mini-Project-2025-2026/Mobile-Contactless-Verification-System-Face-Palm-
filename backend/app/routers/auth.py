@@ -1,8 +1,6 @@
 """Student login with one-device binding."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -11,6 +9,7 @@ from ..db import get_session
 from ..models import Device, ProgrammeCredential, Student, norm_programme
 from ..schemas import LoginRequest, TokenResponse
 from ..security import create_token, verify_password
+from ..timeutil import now
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -58,7 +57,7 @@ def login(req: LoginRequest, db: Session = Depends(get_session)) -> TokenRespons
         device.active = True
         device.platform = req.platform
         device.name = req.device_name
-    device.last_seen = datetime.now(timezone.utc)
+    device.last_seen = now()
     db.add(device)
     db.commit()
 

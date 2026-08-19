@@ -1,8 +1,6 @@
 """Course discovery: which enrolled courses have a live session near me."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
@@ -11,6 +9,7 @@ from ..geo import within_geofence
 from ..models import Attendance, AttendanceMark, Course, Enrollment, Session as ClassSession, Student
 from ..schemas import AvailableCourse
 from ..security import current_student
+from ..timeutil import aware_or_now, now
 
 router = APIRouter(prefix="/api/courses", tags=["courses"])
 
@@ -42,7 +41,7 @@ def available(
     db: Session = Depends(get_session),
 ) -> list[AvailableCourse]:
     """Live sessions for the student's enrolled courses, sorted by distance."""
-    now = datetime.now(timezone.utc)
+    moment = now()
     course_ids = _enrolled_course_ids(db, student.student_id)
     if not course_ids:
         return []
@@ -57,9 +56,9 @@ def available(
     out: list[AvailableCourse] = []
     for s in sessions:
         # naive-datetime safety for SQLite-stored timestamps
-        ends = s.ends_at if s.ends_at.tzinfo else s.ends_at.replace(tzinfo=timezone.utc)
-        starts = s.starts_at if s.starts_at.tzinfo else s.starts_at.replace(tzinfo=timezone.utc)
-        if not (starts <= now <= ends):
+        ends = aware_or_now(s.ends_at)
+        starts = aware_or_now(s.starts_at)
+        if not (starts <= moment <= ends):
             continue
         course = db.get(Course, s.course_id)
         if course is None:

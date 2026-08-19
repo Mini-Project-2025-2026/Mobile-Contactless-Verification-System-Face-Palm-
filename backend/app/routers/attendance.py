@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import timezone
-
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
@@ -11,6 +9,7 @@ from ..db import get_session
 from ..models import Attendance, Course, Session as ClassSession, Student
 from ..schemas import AttendanceItem, SemesterHistory
 from ..security import current_student
+from ..timeutil import aware_or_now
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -32,8 +31,7 @@ def history(
         course = db.get(Course, s.course_id)
         if course is None:
             continue
-        when = a.last_marked_at or a.first_marked_at or s.starts_at
-        when = when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+        when = aware_or_now(a.last_marked_at or a.first_marked_at or s.starts_at)
         by_semester[course.semester].append(
             AttendanceItem(
                 course_code=course.code,

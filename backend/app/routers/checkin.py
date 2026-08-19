@@ -6,8 +6,6 @@ HMAC-signed verdict the backend independently validates before recording a mark.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -25,18 +23,15 @@ from ..models import (
 )
 from ..schemas import ChallengeRequest, ChallengeResponse, VerifyRequest, VerifyResponse
 from ..security import current_student
+from ..timeutil import aware_or_now as _aware, now
 
 router = APIRouter(prefix="/api/checkin", tags=["checkin"])
 
 
-def _aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-
-
 def _load_open_session(db: Session, session_id: int) -> ClassSession:
     s = db.get(ClassSession, session_id)
-    now = datetime.now(timezone.utc)
-    if s is None or not s.active or not (_aware(s.starts_at) <= now <= _aware(s.ends_at)):
+    moment = now()
+    if s is None or not s.active or not (_aware(s.starts_at) <= moment <= _aware(s.ends_at)):
         raise HTTPException(status.HTTP_409_CONFLICT, "session_closed")
     return s
 
@@ -152,16 +147,16 @@ def verify(
                 if s.phase == "start" else "You've already completed the end check-in for this class.")
         return _state_response(attendance, s, distance, result.score, code="already_marked", message=note)
 
-    now = datetime.now(timezone.utc)
+    moment = now()
     db.add(AttendanceMark(
-        attendance_id=attendance.id, marked_at=now, distance_m=distance, score=result.score,
-        modality=req.modality, phase=s.phase, sig_nonce=result.nonce or f"noref-{now.timestamp()}",
+        attendance_id=attendance.id, marked_at=moment, distance_m=distance, score=result.score,
+        modality=req.modality, phase=s.phase, sig_nonce=result.nonce or f"noref-{moment.timestamp()}",
     ))
     phases = existing_phases | {s.phase}
     attendance.marks_count = len(phases)
     attendance.best_score = max(attendance.best_score, result.score)
-    attendance.first_marked_at = attendance.first_marked_at or now
-    attendance.last_marked_at = now
+    attendance.first_marked_at = attendance.first_marked_at or moment
+    attendance.last_marked_at = moment
     attendance.status = (
         AttendanceStatus.present if {"start", "end"} <= phases else AttendanceStatus.partial
     )

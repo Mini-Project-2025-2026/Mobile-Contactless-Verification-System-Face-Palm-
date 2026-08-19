@@ -16,12 +16,11 @@ minute because it has no per-user lookup.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
-
 from sqlmodel import Session
 
 from . import biometric
 from .models import Student
+from .timeutil import now
 
 #: Used only when the service can name a template but not its modality (an older
 #: service, answering from the roster). Face is compulsory and every enrolment
@@ -91,7 +90,7 @@ def sync(db: Session, student: Student) -> Student:
         return student
 
     student.enrolled_modality = ",".join(sorted(found))
-    student.enrolled_at = student.enrolled_at or datetime.now(timezone.utc)
+    student.enrolled_at = student.enrolled_at or now()
     db.add(student)
     db.commit()
     db.refresh(student)

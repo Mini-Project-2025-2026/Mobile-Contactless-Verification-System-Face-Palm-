@@ -6,7 +6,7 @@ Auth: POST /api/admin/login with the configured admin credentials returns a
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
@@ -27,12 +27,9 @@ from ..models import (
     norm_programme,
 )
 from ..security import create_admin_token, current_admin, hash_password
+from ..timeutil import aware_or_now as _aware, now
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
-
-
-def _aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 # ---------- auth ----------
@@ -51,9 +48,9 @@ def admin_login(body: AdminLogin) -> dict:
 # ---------- overview ----------
 @router.get("/overview")
 def overview(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
-    now = datetime.now(timezone.utc)
+    moment = now()
     sessions = db.exec(select(ClassSession)).all()
-    live = sum(1 for s in sessions if s.active and _aware(s.starts_at) <= now <= _aware(s.ends_at))
+    live = sum(1 for s in sessions if s.active and _aware(s.starts_at) <= moment <= _aware(s.ends_at))
     return {
         "students": len(db.exec(select(Student)).all()),
         "courses": len(db.exec(select(Course)).all()),
@@ -170,7 +167,7 @@ class SessionIn(BaseModel):
 
 @router.get("/sessions")
 def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
-    now = datetime.now(timezone.utc)
+    moment = now()
     out = []
     for s in db.exec(select(ClassSession)).all():
         c = db.get(Course, s.course_id)
@@ -183,7 +180,7 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
             "id": s.id, "course_code": c.code if c else "?", "title": s.title,
             "lat": s.lat, "lng": s.lng, "radius_m": s.radius_m,
             "starts_at": _aware(s.starts_at).isoformat(), "ends_at": _aware(s.ends_at).isoformat(),
-            "live": s.active and _aware(s.starts_at) <= now <= _aware(s.ends_at), "active": s.active,
+            "live": s.active and _aware(s.starts_at) <= moment <= _aware(s.ends_at), "active": s.active,
             "phase": s.phase, "marks_required": s.marks_required, "checked_in": len(rows),
             "partial": partial, "present": present,
             # who can even see this session: nobody, if the course has no students
@@ -197,11 +194,11 @@ def list_sessions(_: str = Depends(current_admin), db: Session = Depends(get_ses
 def create_session(body: SessionIn, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> dict:
     if db.get(Course, body.course_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
-    now = datetime.now(timezone.utc)
+    moment = now()
     s = ClassSession(
         course_id=body.course_id, title=body.title, lat=body.lat, lng=body.lng,
-        radius_m=body.radius_m, starts_at=now - timedelta(minutes=1),
-        ends_at=now + timedelta(minutes=body.duration_minutes), marks_required=body.marks_required,
+        radius_m=body.radius_m, starts_at=moment - timedelta(minutes=1),
+        ends_at=moment + timedelta(minutes=body.duration_minutes), marks_required=body.marks_required,
     )
     db.add(s)
     db.commit()
@@ -257,8 +254,8 @@ def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_adm
     s = db.get(ClassSession, session_id)
     if s is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown session")
-    now = datetime.now(timezone.utc)
-    base = max(_aware(s.ends_at), now)
+    moment = now()
+    base = max(_aware(s.ends_at), moment)
     s.ends_at = base + timedelta(minutes=body.minutes)
     if not s.active:  # bringing a closed class back needs it live again
         s.active = True
@@ -345,7 +342,7 @@ def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
 
-    now = datetime.now(timezone.utc)
+    moment = now()
     for res in outcome.results:
         student = known.get(res.user_id)
         if student is None:
@@ -354,7 +351,7 @@ def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
             mods = {m for m in (student.enrolled_modality or "").split(",") if m}
             mods.update(res.modalities or ("face",))
             student.enrolled_modality = ",".join(sorted(mods))
-            student.enrolled_at = student.enrolled_at or now
+            student.enrolled_at = student.enrolled_at or moment
             student.enrolled_samples = max(student.enrolled_samples, res.enrolled)
             db.add(student)
         message = res.message or ("enrolled" if res.success else "not enrolled")
@@ -452,7 +449,7 @@ def set_programme_password(body: ProgrammePasswordIn, _: str = Depends(current_a
         cred = ProgrammeCredential(programme=key, password_hash=hash_password(body.password))
     else:
         cred.password_hash = hash_password(body.password)
-        cred.updated_at = datetime.now(timezone.utc)
+        cred.updated_at = now()
     db.add(cred)
     db.commit()
     students = len(db.exec(select(Student).where(Student.programme != "")).all())
@@ -470,7 +467,7 @@ def issue_grant(body: GrantIn, _: str = Depends(current_admin), db: Session = De
     if not db.exec(select(Student).where(Student.student_id == body.student_id)).first():
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown student")
     token = secrets.token_urlsafe(6).replace("_", "").replace("-", "")[:8].upper()
-    expires = datetime.now(timezone.utc) + timedelta(hours=body.ttl_hours)
+    expires = now() + timedelta(hours=body.ttl_hours)
     db.add(EnrollGrant(token=token, student_id=body.student_id, expires_at=expires))
     db.commit()
     return {"student_id": body.student_id, "token": token, "expires_at": expires.isoformat(),
@@ -480,12 +477,12 @@ def issue_grant(body: GrantIn, _: str = Depends(current_admin), db: Session = De
 @router.get("/enroll-grants")
 def list_grants(student_id: str, _: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
     rows = db.exec(select(EnrollGrant).where(EnrollGrant.student_id == student_id)).all()
-    now = datetime.now(timezone.utc)
+    moment = now()
     out = []
     for g in rows:
-        exp = g.expires_at if g.expires_at.tzinfo else g.expires_at.replace(tzinfo=timezone.utc)
+        exp = _aware(g.expires_at)
         out.append({"token": g.token, "expires_at": exp.isoformat(),
-                    "used": g.used_at is not None, "expired": exp < now})
+                    "used": g.used_at is not None, "expired": exp < moment})
     return sorted(out, key=lambda x: (x["used"] or x["expired"], x["expires_at"]))
 
 
@@ -495,7 +492,7 @@ def revoke_grant(token: str, _: str = Depends(current_admin), db: Session = Depe
     if g is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown token")
     if g.used_at is None:  # marking it used = revoked (validation rejects used tokens)
-        g.used_at = datetime.now(timezone.utc)
+        g.used_at = now()
         db.add(g)
         db.commit()
     return {"token": token, "revoked": True}

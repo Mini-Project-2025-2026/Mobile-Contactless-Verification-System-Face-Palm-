@@ -1,7 +1,7 @@
 """Auth: password hashing, JWT issue/verify, and FastAPI dependencies."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from fastapi import Depends, Header, HTTPException, status
 from jose import JWTError, jwt
@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from .config import settings
 from .db import get_session
 from .models import Device, Student
+from .timeutil import now
 
 # pbkdf2_sha256 is pure-Python (hashlib) — avoids native-bcrypt version pitfalls.
 _pwd = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -27,7 +28,7 @@ def verify_password(raw: str, hashed: str) -> bool:
 
 
 def create_token(student_id: str, device_uid: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
+    expire = now() + timedelta(minutes=settings.jwt_expire_minutes)
     claims = {"sub": student_id, "dev": device_uid, "exp": expire}
     return jwt.encode(claims, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
@@ -40,7 +41,7 @@ def _decode(token: str) -> dict:
 
 
 def create_admin_token() -> str:
-    expire = datetime.now(timezone.utc) + timedelta(hours=12)
+    expire = now() + timedelta(hours=12)
     return jwt.encode({"sub": "admin", "role": "admin", "exp": expire},
                       settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
@@ -82,7 +83,7 @@ def current_student(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "device_not_registered")
 
     if device is not None:
-        device.last_seen = datetime.now(timezone.utc)
+        device.last_seen = now()
         db.add(device)
         db.commit()
     return student
