@@ -48,6 +48,23 @@ class EnrollResult:
 
 
 @dataclass(frozen=True)
+class BulkPersonResult:
+    user_id: str
+    success: bool
+    enrolled: int
+    modalities: tuple[str, ...]
+    message: str
+
+
+@dataclass(frozen=True)
+class BulkEnrollResult:
+    people: int
+    enrolled: int
+    results: tuple[BulkPersonResult, ...]
+    raw: dict
+
+
+@dataclass(frozen=True)
 class VerifyResult:
     success: bool
     user_id: str
@@ -57,12 +74,12 @@ class VerifyResult:
     raw: dict
 
 
-def _client() -> httpx.Client:
+def _client(timeout: float = 20.0) -> httpx.Client:
     return httpx.Client(
         base_url=settings.biometric_base_url.rstrip("/"),
         headers={"X-API-Key": settings.biometric_api_key},
         verify=settings.biometric_verify_tls,
-        timeout=20.0,
+        timeout=timeout,
     )
 
 
@@ -102,6 +119,46 @@ def enroll_user(user_id: str, images: list[str], *, source: str = "auto") -> Enr
         enrolled=int(data.get("enrolled", 0) or 0),
         of=int(data.get("of", len(images)) or len(images)),
         samples=samples,
+        raw=data,
+    )
+
+
+def enroll_users_bulk(people: list[tuple[str, list[str]]], *, dedupe: bool = True,
+                      timeout: float = 120.0) -> BulkEnrollResult:
+    """Enrol many people in one call (POST /v1/enroll/bulk).
+
+    `people` is [(user_id, [base64 image, ...]), ...]. `dedupe` makes the service
+    refuse a person whose biometric already belongs to a different name, which is
+    exactly the check an import of a whole department should not skip.
+    """
+    if not people:
+        raise BiometricError("enroll_users_bulk requires at least one person")
+    body = {
+        "people": [{"user_id": uid, "images": images} for uid, images in people],
+        "dedupe": dedupe,
+    }
+    try:
+        with _client(timeout) as c:
+            r = c.post("/v1/enroll/bulk", json=body)
+            r.raise_for_status()
+            data = r.json()
+    except httpx.HTTPError as exc:
+        raise BiometricError(f"bulk enroll request failed: {exc}") from exc
+
+    results = tuple(
+        BulkPersonResult(
+            user_id=str(res.get("user_id") or ""),
+            success=bool(res.get("success")),
+            enrolled=int(res.get("enrolled") or 0),
+            modalities=tuple(res.get("modalities") or ()),
+            message=str(res.get("message") or ""),
+        )
+        for res in (data.get("results") or [])
+    )
+    return BulkEnrollResult(
+        people=int(data.get("people", len(people)) or 0),
+        enrolled=int(data.get("enrolled", 0) or 0),
+        results=results,
         raw=data,
     )
 

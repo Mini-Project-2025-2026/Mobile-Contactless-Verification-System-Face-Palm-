@@ -135,6 +135,31 @@
         <div id="pgTable" style="margin-top:10px"></div>
       </div>
       <div class="card">
+        <h3 style="margin-top:0">Bulk enrolment (whole department)</h3>
+        <p class="muted" style="margin-top:0">Pick a folder laid out one sub-folder per student, named by student ID, images inside. Same layout the biometric service's own importer takes:</p>
+        <pre class="muted" style="margin:0 0 8px;font-size:12px">dataset/  20512345/ front.jpg side.jpg   20512399/ a.png</pre>
+        <input id="bulk_dir" type="file" webkitdirectory directory multiple onchange="bulkScan()"/>
+        <div class="grid" style="margin-top:8px">
+          <div><label>Only this programme (optional)</label><input id="bulk_prog" list="pg_list" placeholder="all students in the folder"/></div>
+          <div><label>Max images per student</label><input id="bulk_max" type="number" value="5" min="1" max="10"/></div>
+        </div>
+        <div id="bulkScanOut" class="muted" style="margin-top:6px"></div>
+        <button class="btn" id="bulk_go" onclick="bulkEnroll()" disabled>Enrol batch</button>
+        <div id="bulkErr" class="err"></div>
+        <div id="bulkOut" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Put a programme on a course</h3>
+        <div class="grid">
+          <div><label>Course</label><select id="bc_course"></select></div>
+          <div><label>Programme</label><input id="bc_prog" list="pg_list" placeholder="Computer Science"/></div>
+          <div><label>Year group (optional)</label><input id="bc_year" placeholder="2023/2024"/></div>
+          <div><label>Class group (optional)</label><input id="bc_class" placeholder="1"/></div>
+        </div>
+        <button class="btn" onclick="bulkEnrollCourse()">Enrol cohort</button>
+        <div id="bcOut" class="muted" style="margin-top:6px"></div>
+      </div>
+      <div class="card">
         <h3 style="margin-top:0">Enrol student in course</h3>
         <div class="grid">
           <div><label>Student</label><select id="en_student"></select></div>
@@ -196,7 +221,7 @@ function tab(name){
   if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
   watchSessions(name==='sessions');
   if(name==='courses')loadCourses();
-  if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
+  if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('bc_course');loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
 }
 async function loadOverview(){
@@ -285,6 +310,99 @@ async function loadCoursesInto(id){
 async function createCourse(){
   await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
   loadCourses();
+}
+// ---- bulk enrolment ----
+/* The biometric service imports a dataset as one folder per person. A browser
+   folder picker gives us exactly that through webkitRelativePath, so the console
+   speaks the same layout instead of inventing a format of its own. */
+let BULK={};
+const BULK_CHUNK=4;                 // people per request: Heroku cuts a request at 30s
+function bulkGroup(files){
+  const by={};
+  for(const f of files){
+    if(!/\.(jpe?g|png|bmp|webp)$/i.test(f.name)) continue;
+    const parts=(f.webkitRelativePath||f.name).split('/');
+    const sid=parts.length>1?parts[parts.length-2].trim():'';
+    if(!sid) continue;
+    (by[sid]=by[sid]||[]).push(f);
+  }
+  return by;
+}
+function bulkScan(){
+  BULK=bulkGroup(document.getElementById('bulk_dir').files||[]);
+  const ids=Object.keys(BULK), imgs=ids.reduce((n,k)=>n+BULK[k].length,0);
+  document.getElementById('bulkScanOut').innerHTML=ids.length
+    ? `Found <b>${ids.length}</b> student folder${ids.length===1?'':'s'}, ${imgs} image${imgs===1?'':'s'}: ${ids.slice(0,8).join(', ')}${ids.length>8?'…':''}`
+    : 'No student folders found. Each student needs their own sub-folder named by student ID.';
+  document.getElementById('bulk_go').disabled=!ids.length;
+}
+/* Shrink before upload: a phone-sized JPEG per student times a department is
+   minutes of upload and a request Heroku will cut off at 30 seconds. */
+function shrink(file,max=1000,q=0.72){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg',q).split(',')[1]);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); };
+    img.src=url;
+  });
+}
+async function bulkEnroll(){
+  const err=document.getElementById('bulkErr'), out=document.getElementById('bulkOut');
+  err.textContent=''; out.innerHTML='';
+  const prog=val('bulk_prog').trim().toLowerCase();
+  let ids=Object.keys(BULK);
+  if(prog){
+    const students=await api('/api/admin/students');
+    const on=new Set(students.filter(s=>(s.programme||'').trim().toLowerCase()===prog).map(s=>s.student_id));
+    ids=ids.filter(id=>on.has(id));
+    if(!ids.length){ err.textContent='No folder matches a student on that programme.'; return; }
+  }
+  const max=Math.max(1,Math.min(10,+val('bulk_max')||5));
+  const btn=document.getElementById('bulk_go'); btn.disabled=true;
+  const rows=[]; let done=0;
+  for(let i=0;i<ids.length;i+=BULK_CHUNK){
+    const slice=ids.slice(i,i+BULK_CHUNK);
+    const people=[];
+    for(const sid of slice){
+      const images=[];
+      for(const f of BULK[sid].slice(0,max)){ const b=await shrink(f); if(b) images.push(b); }
+      if(images.length) people.push({student_id:sid,images});
+    }
+    btn.textContent=`Enrolling ${done+1}-${Math.min(done+slice.length,ids.length)} of ${ids.length}…`;
+    try{
+      const r=await api('/api/admin/enroll/bulk',{method:'POST',body:JSON.stringify({people})});
+      rows.push(...r.results);
+    }catch(e){
+      slice.forEach(sid=>rows.push({student_id:sid,success:false,enrolled:0,message:e.message}));
+    }
+    done+=slice.length;
+    out.innerHTML=bulkTable(rows);
+  }
+  btn.textContent='Enrol batch'; btn.disabled=false;
+  loadStudents();
+}
+function bulkTable(rows){
+  const ok=rows.filter(r=>r.success).length;
+  return `<p class="muted"><b>${ok}</b> of ${rows.length} enrolled.</p>`+tableRows(['Student','Name','Result','Samples'],
+    rows.map(r=>[r.student_id,r.name||'—',
+      r.success?'<span class="badge present">enrolled</span>':`<span class="badge absent">${r.message}</span>`,
+      r.enrolled||0]));
+}
+async function bulkEnrollCourse(){
+  const out=document.getElementById('bcOut'); out.textContent='';
+  try{
+    const r=await api('/api/admin/enroll-course/bulk',{method:'POST',body:JSON.stringify({
+      course_id:+val('bc_course'),programme:val('bc_prog'),year_group:val('bc_year'),class_group:val('bc_class')})});
+    out.innerHTML=`Matched <b>${r.matched}</b> student${r.matched===1?'':'s'}: ${r.added} newly enrolled, ${r.already_enrolled} already on the course.`;
+    loadSessions();
+  }catch(e){ out.textContent=e.message; }
 }
 // ---- programmes ----
 async function loadProgrammes(){

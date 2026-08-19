@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
+from .. import biometric, enrolment
 from ..config import settings
 from ..db import get_session
 from ..models import (
@@ -264,6 +265,112 @@ def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_adm
     db.add(s)
     db.commit()
     return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
+
+
+# ---------- bulk enrolment ----------
+class BulkPersonIn(BaseModel):
+    student_id: str
+    images: list[str] = Field(min_length=1)
+
+
+class BulkEnrollIn(BaseModel):
+    people: list[BulkPersonIn] = Field(min_length=1, max_length=50)
+    dedupe: bool = True
+
+
+@router.post("/enroll/bulk")
+def bulk_enroll(body: BulkEnrollIn, _: str = Depends(current_admin),
+                db: Session = Depends(get_session)) -> dict:
+    """Register a batch of students' biometrics in one pass.
+
+    Enrolment is the in-person step, so doing it a student at a time does not
+    scale to a department. This takes the same shape the biometric service's own
+    bulk import takes (one person, their images) and records the outcome against
+    each student here, so nobody is asked to enrol again on their phone.
+
+    Students unknown to this database are reported, never sent onward: a typo in
+    a folder name must not create a template nothing can match.
+    """
+    known = {
+        st.student_id: st
+        for st in db.exec(select(Student).where(
+            Student.student_id.in_([p.student_id for p in body.people])  # type: ignore[attr-defined]
+        )).all()
+    }
+    results: list[dict] = [
+        {"student_id": p.student_id, "success": False, "enrolled": 0, "message": "no such student here"}
+        for p in body.people if p.student_id not in known
+    ]
+    sendable = [(p.student_id, p.images) for p in body.people if p.student_id in known]
+    if not sendable:
+        return {"people": len(body.people), "enrolled": 0, "results": results}
+
+    try:
+        outcome = biometric.enroll_users_bulk(sendable, dedupe=body.dedupe)
+    except biometric.BiometricError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
+
+    now = datetime.now(timezone.utc)
+    for res in outcome.results:
+        student = known.get(res.user_id)
+        if student is None:
+            continue
+        if res.success:
+            mods = {m for m in (student.enrolled_modality or "").split(",") if m}
+            mods.update(res.modalities or ("face",))
+            student.enrolled_modality = ",".join(sorted(mods))
+            student.enrolled_at = student.enrolled_at or now
+            student.enrolled_samples = max(student.enrolled_samples, res.enrolled)
+            db.add(student)
+        results.append({
+            "student_id": res.user_id, "name": student.name, "success": res.success,
+            "enrolled": res.enrolled, "modalities": list(res.modalities),
+            "message": res.message or ("enrolled" if res.success else "not enrolled"),
+        })
+    db.commit()
+    enrolment.reset_cache()  # the service roster just changed
+    return {"people": len(body.people), "enrolled": outcome.enrolled, "results": results}
+
+
+class BulkCourseEnrollIn(BaseModel):
+    course_id: int
+    programme: str = ""
+    year_group: str = ""
+    class_group: str = ""
+
+
+@router.post("/enroll-course/bulk")
+def bulk_enroll_course(body: BulkCourseEnrollIn, _: str = Depends(current_admin),
+                       db: Session = Depends(get_session)) -> dict:
+    """Put a whole programme (optionally one year or class group) on a course.
+
+    A session is only visible to students enrolled in its course, so registering
+    a cohort one row at a time is the step most likely to be left half done.
+    """
+    if db.get(Course, body.course_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
+    if not body.programme.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "programme is required")
+
+    wanted = norm_programme(body.programme)
+    students = [
+        st for st in db.exec(select(Student)).all()
+        if norm_programme(st.programme) == wanted
+        and (not body.year_group or st.year_group == body.year_group)
+        and (not body.class_group or st.class_group == body.class_group)
+    ]
+    existing = {
+        row for row in db.exec(select(Enrollment.student_id).where(
+            Enrollment.course_id == body.course_id)).all()
+    }
+    added = [st.student_id for st in students if st.student_id not in existing]
+    for student_id in added:
+        db.add(Enrollment(student_id=student_id, course_id=body.course_id))
+    db.commit()
+    return {
+        "course_id": body.course_id, "matched": len(students),
+        "added": len(added), "already_enrolled": len(students) - len(added),
+    }
 
 
 # ---------- programme sign-in passwords ----------
