@@ -118,7 +118,8 @@
           <div><label>Student ID</label><input id="st_id" placeholder="20512346"/></div>
           <div><label>Name</label><input id="st_name" placeholder="Kofi Owusu"/></div>
           <div><label>Private password (optional)</label><input id="st_pw" placeholder="leave blank: uses the programme password"/></div>
-          <div><label>Programme</label><input id="st_prog" placeholder="Computer Science"/></div>
+          <div><label>Programme</label><input id="st_prog" list="pg_list" placeholder="Computer Science" oninput="programmeWarning()"/>
+            <div id="st_progWarn" class="muted" style="margin-top:3px"></div></div>
           <div><label>Year Group</label><input id="st_year" placeholder="2023/2024"/></div>
           <div><label>Class Group</label><input id="st_class" placeholder="1"/></div>
         </div>
@@ -422,8 +423,10 @@ async function bulkEnrollCourse(){
   }catch(e){ out.textContent=e.message; }
 }
 // ---- programmes ----
+let COURSE_PROGRAMMES=[];
 async function loadProgrammes(){
   const ps=await api('/api/admin/programmes');
+  COURSE_PROGRAMMES=ps.map(p=>p.programme);
   document.getElementById('pg_list').innerHTML=ps.map(p=>`<option value="${p.programme}">`).join('');
   document.getElementById('pgTable').innerHTML=ps.length?tableRows(['Programme','Students','Sign-in'],
     ps.map(p=>[p.programme,p.students,p.password_set?'✓ password set':'<b style="color:#b45309">no password: nobody can sign in</b>'])):
@@ -449,6 +452,16 @@ async function loadStudents(){
 async function loadStudentsInto(id){
   const ss=await api('/api/admin/students');
   document.getElementById(id).innerHTML=ss.map(s=>`<option value="${s.student_id}">${s.student_id} · ${s.name}</option>`).join('');
+}
+function programmeWarning(){
+  const typed=val('st_prog').trim();
+  const warn=document.getElementById('st_progWarn');
+  if(!typed){ warn.textContent=''; return; }
+  const known=COURSE_PROGRAMMES||[];
+  const match=known.some(p=>p.toLowerCase()===typed.toLowerCase());
+  warn.innerHTML=match?'':
+    `<b style="color:#b45309">New programme.</b> Students on it sign in with its own password, `+
+    `and it will not share one with ${known.length?known.join(', '):'any existing programme'}.`;
 }
 async function createStudent(){
   try{await api('/api/admin/students',{method:'POST',body:JSON.stringify({student_id:val('st_id'),name:val('st_name'),password:val('st_pw'),programme:val('st_prog'),year_group:val('st_year'),class_group:val('st_class')})});
