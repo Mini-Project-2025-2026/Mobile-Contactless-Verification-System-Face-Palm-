@@ -217,7 +217,14 @@ async function api(path,opts={}){
   if(tok())h["Authorization"]="Bearer "+tok();
   const r=await fetch(path,{...opts,headers:h});
   const t=await r.text(); const b=t?JSON.parse(t):{};
-  if(!r.ok)throw new Error(b.detail||b.message||r.statusText);
+  // Failures come back as {"error":{code,message,request_id}}; the old
+  // {"detail":...} shape is still read for a stale cached page.
+  if(!r.ok){
+    const e=b.error||{};
+    const err=new Error(e.message||b.detail||b.message||r.statusText);
+    err.status=r.status; err.code=e.code||""; err.requestId=e.request_id||"";
+    throw err;
+  }
   return b;
 }
 async function login(){
