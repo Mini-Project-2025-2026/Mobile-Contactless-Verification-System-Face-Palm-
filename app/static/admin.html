@@ -116,12 +116,23 @@
         <div class="grid">
           <div><label>Student ID</label><input id="st_id" placeholder="20512346"/></div>
           <div><label>Name</label><input id="st_name" placeholder="Kofi Owusu"/></div>
-          <div><label>Password</label><input id="st_pw" value="passw0rd"/></div>
+          <div><label>Private password (optional)</label><input id="st_pw" placeholder="leave blank: uses the programme password"/></div>
           <div><label>Programme</label><input id="st_prog" placeholder="Computer Science"/></div>
           <div><label>Year Group</label><input id="st_year" placeholder="2023/2024"/></div>
           <div><label>Class Group</label><input id="st_class" placeholder="1"/></div>
         </div>
         <button class="btn" onclick="createStudent()">Add student</button>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Programme sign-in password</h3>
+        <p class="muted" style="margin-top:0">Students sign in with their own student ID and the password shared by their programme. It keeps strangers out; enrolment is protected by the one-time code below, since classmates know this password.</p>
+        <div class="grid">
+          <div><label>Programme</label><input id="pg_name" list="pg_list" placeholder="Computer Science"/><datalist id="pg_list"></datalist></div>
+          <div><label>New password (8+ characters)</label><input id="pg_pw" placeholder="e.g. knust-cs-2026!"/></div>
+        </div>
+        <button class="btn" onclick="setProgrammePassword()">Set password</button>
+        <div id="pgErr" class="err"></div>
+        <div id="pgTable" style="margin-top:10px"></div>
       </div>
       <div class="card">
         <h3 style="margin-top:0">Enrol student in course</h3>
@@ -133,7 +144,7 @@
       </div>
       <div class="card">
         <h3 style="margin-top:0">Issue enrolment grant (one-time code)</h3>
-        <p class="muted" style="margin-top:0">For re-enrolment or enrolling on a new device. First enrolment doesn't need one.</p>
+        <p class="muted" style="margin-top:0">Needed for a student's first enrolment, a re-enrolment, or enrolling on a new device. Issue it in person, after checking their ID card.</p>
         <div class="grid">
           <div><label>Student</label><select id="gr_student" onchange="loadGrants()"></select></div>
           <div><label>Valid for (hours)</label><input id="gr_ttl" type="number" value="24"/></div>
@@ -185,7 +196,7 @@ function tab(name){
   if(name==='sessions'){loadCoursesInto('s_course');loadSessions();populatePlaces();setTimeout(initMap,80)}
   watchSessions(name==='sessions');
   if(name==='courses')loadCourses();
-  if(name==='students'){loadStudents();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
+  if(name==='students'){loadStudents();loadProgrammes();loadCoursesInto('en_course');loadStudentsInto('en_student');loadStudentsInto('gr_student').then(loadGrants)}
   if(name==='attendance')loadSessionsInto('at_session');
 }
 async function loadOverview(){
@@ -275,6 +286,26 @@ async function createCourse(){
   await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
   loadCourses();
 }
+// ---- programmes ----
+async function loadProgrammes(){
+  const ps=await api('/api/admin/programmes');
+  document.getElementById('pg_list').innerHTML=ps.map(p=>`<option value="${p.programme}">`).join('');
+  document.getElementById('pgTable').innerHTML=ps.length?tableRows(['Programme','Students','Sign-in'],
+    ps.map(p=>[p.programme,p.students,p.password_set?'✓ password set':'<b style="color:#b45309">no password: nobody can sign in</b>'])):
+    '<p class="muted">No programmes yet. Add a student with a programme first.</p>';
+}
+async function setProgrammePassword(){
+  const err=document.getElementById('pgErr'); err.textContent='';
+  const name=val('pg_name').trim(), pw=val('pg_pw');
+  if(!name){ err.textContent='Type the programme exactly as it appears on the students.'; return; }
+  if(pw.length<8){ err.textContent='Use at least 8 characters.'; return; }
+  try{
+    await api('/api/admin/programmes/password',{method:'POST',body:JSON.stringify({programme:name,password:pw})});
+    document.getElementById('pg_pw').value='';
+    alert('Everyone on '+name+' now signs in with that password. Tell them in class, not by message.');
+    loadProgrammes();
+  }catch(e){ err.textContent=e.message; }
+}
 // ---- students ----
 async function loadStudents(){
   const ss=await api('/api/admin/students');
@@ -286,6 +317,7 @@ async function loadStudentsInto(id){
 }
 async function createStudent(){
   try{await api('/api/admin/students',{method:'POST',body:JSON.stringify({student_id:val('st_id'),name:val('st_name'),password:val('st_pw'),programme:val('st_prog'),year_group:val('st_year'),class_group:val('st_class')})});
+    loadProgrammes();
   loadStudents();loadStudentsInto('en_student');}catch(e){alert(e.message)}
 }
 async function enrollCourse(){

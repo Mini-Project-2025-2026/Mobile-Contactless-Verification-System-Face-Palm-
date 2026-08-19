@@ -16,12 +16,14 @@ from ..config import settings
 from ..db import get_session
 from ..models import (
     Attendance,
+    ProgrammeCredential,
     AttendanceStatus,
     Course,
     EnrollGrant,
     Enrollment,
     Session as ClassSession,
     Student,
+    norm_programme,
 )
 from ..security import create_admin_token, current_admin, hash_password
 
@@ -97,7 +99,9 @@ def create_course(body: CourseIn, _: str = Depends(current_admin), db: Session =
 class StudentIn(BaseModel):
     student_id: str
     name: str
-    password: str = "passw0rd"
+    # Empty means "no private password": the student signs in with their
+    # programme's shared one. A default here would be a backdoor on every account.
+    password: str = ""
     programme: str = ""
     year_group: str = ""
     class_group: str = ""
@@ -123,7 +127,8 @@ def create_student(body: StudentIn, _: str = Depends(current_admin), db: Session
     if db.exec(select(Student).where(Student.student_id == body.student_id)).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "student_id already exists")
     s = Student(
-        student_id=body.student_id, name=body.name, password_hash=hash_password(body.password),
+        student_id=body.student_id, name=body.name,
+        password_hash=hash_password(body.password) if body.password else "",
         programme=body.programme, year_group=body.year_group, class_group=body.class_group,
         reference_no=body.reference_no, semester=body.semester,
     )
@@ -259,6 +264,47 @@ def extend_session(session_id: int, body: ExtendIn, _: str = Depends(current_adm
     db.add(s)
     db.commit()
     return {"session_id": session_id, "ends_at": _aware(s.ends_at).isoformat(), "active": s.active}
+
+
+# ---------- programme sign-in passwords ----------
+class ProgrammePasswordIn(BaseModel):
+    programme: str
+    password: str = Field(min_length=8)
+
+
+@router.get("/programmes")
+def list_programmes(_: str = Depends(current_admin), db: Session = Depends(get_session)) -> list[dict]:
+    """Every programme in use, its class size, and whether it can sign in yet."""
+    creds = {c.programme for c in db.exec(select(ProgrammeCredential)).all()}
+    seen: dict[str, dict] = {}
+    for st in db.exec(select(Student)).all():
+        if not st.programme:
+            continue
+        key = norm_programme(st.programme)
+        row = seen.setdefault(key, {"programme": st.programme, "key": key, "students": 0})
+        row["students"] += 1
+    for row in seen.values():
+        row["password_set"] = row["key"] in creds
+    return sorted(seen.values(), key=lambda r: r["programme"].lower())
+
+
+@router.post("/programmes/password")
+def set_programme_password(body: ProgrammePasswordIn, _: str = Depends(current_admin),
+                           db: Session = Depends(get_session)) -> dict:
+    """Set or rotate the password everyone on a programme signs in with."""
+    key = norm_programme(body.programme)
+    if not key:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "programme is required")
+    cred = db.get(ProgrammeCredential, key)
+    if cred is None:
+        cred = ProgrammeCredential(programme=key, password_hash=hash_password(body.password))
+    else:
+        cred.password_hash = hash_password(body.password)
+        cred.updated_at = datetime.now(timezone.utc)
+    db.add(cred)
+    db.commit()
+    students = len(db.exec(select(Student).where(Student.programme != "")).all())
+    return {"programme": key, "updated": True, "students_on_programme": students}
 
 
 # ---------- enrolment grants (one-time re-enrolment / new-device codes) ----------

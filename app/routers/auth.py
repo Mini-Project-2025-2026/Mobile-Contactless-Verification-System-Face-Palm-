@@ -8,17 +8,26 @@ from sqlmodel import Session, select
 
 from ..config import settings
 from ..db import get_session
-from ..models import Device, Student
+from ..models import Device, ProgrammeCredential, Student, norm_programme
 from ..schemas import LoginRequest, TokenResponse
 from ..security import create_token, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def _password_ok(db: Session, student: Student, raw: str) -> bool:
+    """The programme's shared password, or a private one where the student has it."""
+    if student.programme:
+        cred = db.get(ProgrammeCredential, norm_programme(student.programme))
+        if cred and verify_password(raw, cred.password_hash):
+            return True
+    return verify_password(raw, student.password_hash)
+
+
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_session)) -> TokenResponse:
     student = db.exec(select(Student).where(Student.student_id == req.student_id)).first()
-    if not student or not verify_password(req.password, student.password_hash):
+    if not student or not _password_ok(db, student, req.password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid student id or password")
 
     active = db.exec(

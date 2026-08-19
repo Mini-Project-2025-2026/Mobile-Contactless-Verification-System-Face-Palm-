@@ -8,6 +8,7 @@ from sqlmodel import Session, SQLModel, select
 
 from app import biometric, enrolment
 from app.biometric import EnrollResult
+from app.config import settings
 from app.db import engine
 from app.main import app
 from app.models import EnrollGrant, Student
@@ -32,6 +33,15 @@ def mock_enroll(monkeypatch):
         biometric, "enroll_user",
         lambda uid, images, source="auto": EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}),
     )
+
+
+@pytest.fixture(autouse=True)
+def self_served_first_enrolment(monkeypatch):
+    """These cover the device/grant policy, so let the first enrolment through.
+
+    The gate itself is covered in test_enroll_gate.py.
+    """
+    monkeypatch.setattr(settings, "enroll_requires_grant", False)
 
 
 @pytest.fixture(autouse=True)

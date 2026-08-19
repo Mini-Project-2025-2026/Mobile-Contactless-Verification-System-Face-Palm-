@@ -44,6 +44,24 @@ class Student(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now)
 
 
+def norm_programme(name: str) -> str:
+    """Programmes are typed by hand in the console, so match them loosely."""
+    return " ".join(name.split()).casefold()
+
+
+class ProgrammeCredential(SQLModel, table=True):
+    """One sign-in password shared by everyone on a programme.
+
+    Students identify themselves with their own (unique) student ID; this is the
+    shared half of the credential, so a stranger needs both. It is deliberately
+    NOT what protects attendance: a shared password is known to every classmate,
+    so enrolment is gated separately (see `settings.enroll_requires_grant`).
+    """
+    programme: str = Field(primary_key=True)  # normalised via norm_programme
+    password_hash: str
+    updated_at: datetime = Field(default_factory=_now)
+
+
 class Device(SQLModel, table=True):
     """One-device binding. A student's active device is the only one allowed to check in."""
     id: int | None = Field(default=None, primary_key=True)

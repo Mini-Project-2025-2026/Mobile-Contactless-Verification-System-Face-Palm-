@@ -21,6 +21,8 @@ def hash_password(raw: str) -> str:
 
 
 def verify_password(raw: str, hashed: str) -> bool:
+    if not hashed:  # student with no individual password set
+        return False
     return _pwd.verify(raw, hashed)
 
 

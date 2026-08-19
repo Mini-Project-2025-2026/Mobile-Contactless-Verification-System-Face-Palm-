@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from .. import biometric, enrolment
+from ..config import settings
 from ..db import get_session
 from ..models import EnrollGrant, Modality, Student
 from ..schemas import EnrollRequest, EnrollResponse, EnrollStatus
@@ -74,14 +75,20 @@ def enroll(
     has_mod = req.modality.value in mods
     same_device = bool(student.enroll_device_uid) and device_uid == student.enroll_device_uid
 
-    # Decide whether an admin grant is needed.
-    if first_ever or (same_device and not has_mod):
+    # Decide whether an admin grant is needed. The first enrolment is the step
+    # that binds a face to a student ID, so where sign-in passwords are shared
+    # across a programme it cannot be self-served: a classmate knows both halves
+    # of the credential and would otherwise enrol their own face against your ID.
+    first_is_free = first_ever and not settings.enroll_requires_grant
+    if first_is_free or (same_device and not has_mod):
         need_grant, grant = False, None
     else:
         grant = _valid_grant(db, student.student_id, req.grant_token)
         need_grant = True
         if grant is None:
-            reason = ("Re-enrolling your " + req.modality.value) if has_mod else "Enrolling from a new device"
+            reason = ("Your first enrolment" if first_ever
+                      else ("Re-enrolling your " + req.modality.value) if has_mod
+                      else "Enrolling from a new device")
             return EnrollResponse(
                 ok=False, enrolled=0, of=len(req.images), samples=0, modality=req.modality,
                 code="grant_required",
