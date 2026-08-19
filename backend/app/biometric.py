@@ -89,6 +89,35 @@ def _client(timeout: float = 20.0) -> httpx.Client:
     )
 
 
+@dataclass(frozen=True)
+class ServiceHealth:
+    ok: bool
+    version: str = ""
+    active_liveness: bool = False
+    detail: str = ""
+
+
+def service_health() -> ServiceHealth:
+    """Is the biometric service up (GET /v1/health).
+
+    Used by our own readiness probe. Deliberately not `get_challenge`: asking for
+    a liveness challenge mints a single-use token and bills a call, and a probe
+    that runs every thirty seconds should cost the tenant nothing.
+    """
+    try:
+        with _client(timeout=5.0) as c:
+            r = c.get("/v1/health")
+            r.raise_for_status()
+            data = r.json()
+    except httpx.HTTPError as exc:
+        return ServiceHealth(ok=False, detail=str(exc)[:200])
+    return ServiceHealth(
+        ok=bool(data.get("success")),
+        version=str(data.get("version", "")),
+        active_liveness=bool(data.get("active_liveness", False)),
+    )
+
+
 def get_challenge() -> Challenge:
     """Ask for a head-turn liveness challenge token."""
     try:
