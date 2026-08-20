@@ -24,10 +24,10 @@ log = logging.getLogger("attendance.migrate")
 _COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("student", "enroll_device_uid", "enroll_device_uid VARCHAR DEFAULT ''"),
     ("student", "programme_key", "programme_key VARCHAR DEFAULT ''"),
-    ("student", "active", "active BOOLEAN DEFAULT 1"),
+    ("student", "active", "active BOOLEAN DEFAULT TRUE"),
     ("session", "phase", "phase VARCHAR DEFAULT 'start'"),
     ("attendancemark", "phase", "phase VARCHAR DEFAULT 'start'"),
-    ("course", "archived", "archived BOOLEAN DEFAULT 0"),
+    ("course", "archived", "archived BOOLEAN DEFAULT FALSE"),
 )
 
 #: (index name, table, columns) — the rules the database itself should keep.
