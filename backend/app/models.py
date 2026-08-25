@@ -109,6 +109,11 @@ class Device(SQLModel, table=True):
 
 
 class Course(SQLModel, table=True):
+    """A course offering. One code+semester combination is unique — the same
+    course cannot be entered twice for the same semester. A different semester
+    (or a different code) is a legitimately different row."""
+    __table_args__ = (UniqueConstraint("code", "semester", name="uq_course_code_semester"),)
+
     id: int | None = Field(default=None, primary_key=True)
     code: str = Field(index=True)
     title: str

@@ -121,6 +121,17 @@ def list_courses(_: str = Depends(current_admin), db: Session = Depends(get_sess
 @router.post("/courses", status_code=201)
 def create_course(body: CourseIn, request: Request, actor: str = Depends(current_admin),
                   db: Session = Depends(get_session)) -> dict:
+    # A course is uniquely identified by its code + semester. Prevent silent
+    # duplicates before the unique index fires so the error is human-readable.
+    existing = db.exec(
+        select(Course).where(Course.code == body.code, Course.semester == body.semester)
+    ).first()
+    if existing:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"A course with code '{body.code}' already exists for semester '{body.semester}'. "
+            "Use a different code or semester.",
+        )
     c = Course(**body.model_dump())
     db.add(c)
     db.commit()
@@ -133,6 +144,39 @@ def create_course(body: CourseIn, request: Request, actor: str = Depends(current
     _note(db, request, actor, "course.create", target=f"course:{c.id}",
           detail=f"{c.code} {c.title} ({c.semester})")
     return created
+
+
+@router.delete("/courses/{course_id}")
+def delete_course(course_id: int, request: Request, actor: str = Depends(current_admin),
+                  db: Session = Depends(get_session)) -> dict:
+    """Delete a course and all its enrollments.
+
+    Blocked if the course has any sessions (attendance records live there).
+    Delete or archive the sessions first, or mark the course archived instead
+    of deleting it — archived courses keep their history but leave the active
+    list clean.
+    """
+    c = db.get(Course, course_id)
+    if c is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown course")
+    has_sessions = db.exec(
+        select(ClassSession).where(ClassSession.course_id == course_id)
+    ).first()
+    if has_sessions:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "This course has sessions and cannot be deleted. "
+            "Delete the sessions first, or archive the course to hide it.",
+        )
+    # Remove all student enrolments on this course before deleting the course.
+    for enrol in db.exec(select(Enrollment).where(Enrollment.course_id == course_id)).all():
+        db.delete(enrol)
+    code_title = f"{c.code} {c.title} ({c.semester})"
+    db.delete(c)
+    db.commit()
+    _note(db, request, actor, "course.delete", target=f"course:{course_id}",
+          detail=code_title)
+    return {"deleted": True, "course_id": course_id}
 
 
 # ---------- students ----------

@@ -35,6 +35,7 @@ _UNIQUE_INDEXES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("uq_attendance_session_student", "attendance", ("session_id", "student_id")),
     ("uq_enrollment_student_course", "enrollment", ("student_id", "course_id")),
     ("uq_attendancemark_sig_nonce", "attendancemark", ("sig_nonce",)),
+    ("uq_course_code_semester", "course", ("code", "semester")),
 )
 
 #: (index name, table, columns) — plain indexes for the lookups that got slow.
@@ -56,6 +57,7 @@ def run(engine: Engine) -> None:
     _dedupe(engine, tables, "attendance", ("session_id", "student_id"))
     _dedupe(engine, tables, "enrollment", ("student_id", "course_id"))
     _dedupe(engine, tables, "attendancemark", ("sig_nonce",))
+    _dedupe(engine, tables, "course", ("code", "semester"))
     for name, table, cols in _UNIQUE_INDEXES:
         _create_index(engine, tables, name, table, cols, unique=True)
     for name, table, cols in _INDEXES:

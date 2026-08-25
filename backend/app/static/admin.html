@@ -162,6 +162,7 @@
           <div><label>Lecturer</label><input id="c_lect" placeholder="Dr. Mensah"/></div>
         </div>
         <button class="btn" onclick="createCourse()">Add course</button>
+        <div class="err" id="c_err"></div>
       </div>
       <div class="card"><h3 style="margin-top:0">Courses</h3><div id="courseList"></div></div>
     </div>
@@ -380,7 +381,17 @@ function msg(t){ var el=document.getElementById('placeMsg'); if(el) el.textConte
 // ---- courses ----
 async function loadCourses(){
   const cs=await api('/api/admin/courses');
-  document.getElementById('courseList').innerHTML=cs.length?tableRows(['Code','Title','Semester','Lecturer','Students'],cs.map(c=>[c.code,c.title,c.semester,c.lecturer_name||'—',c.students?c.students:'<b style="color:#b45309">0</b>'])):'<p class="muted">No courses yet.</p>';
+  if(!cs.length){ document.getElementById('courseList').innerHTML='<p class="muted">No courses yet.</p>'; return; }
+  document.getElementById('courseList').innerHTML=`<table><thead><tr><th>Code</th><th>Title</th><th>Semester</th><th>Lecturer</th><th>Students</th><th></th></tr></thead><tbody>${
+    cs.map(c=>`<tr>
+      <td>${c.code}</td>
+      <td>${c.title}</td>
+      <td>${c.semester}</td>
+      <td>${c.lecturer_name||'—'}</td>
+      <td>${c.students?c.students:'<b style="color:#b45309">0</b>'}</td>
+      <td><button class="btn sec" style="padding:4px 10px;margin:0;font-size:12px" onclick="deleteCourse(${c.id},'${c.code.replace(/'/g,"\\'")}','${c.semester.replace(/'/g,"\\'")}')">Delete</button></td>
+    </tr>`).join('')
+  }</tbody></table>`;
 }
 let COURSE_SIZE={};
 async function loadCoursesInto(id){
@@ -390,9 +401,20 @@ async function loadCoursesInto(id){
     `<option value="${c.id}">${c.code} · ${c.title} (${c.students} student${c.students===1?'':'s'})</option>`).join('');
 }
 async function createCourse(){
-  await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
-  loadCourses();
+  const errEl=document.getElementById('c_err'); errEl.textContent='';
+  try{
+    await api('/api/admin/courses',{method:'POST',body:JSON.stringify({code:val('c_code'),title:val('c_title'),semester:val('c_sem'),lecturer_name:val('c_lect')})});
+    loadCourses();
+  }catch(e){ errEl.textContent=e.message; }
 }
+async function deleteCourse(id,code,semester){
+  if(!confirm(`Delete course ${code} (${semester})?\n\nThis will also remove all student enrolments for this course. Attendance history is only safe if no sessions exist.\n\nThis cannot be undone.`)) return;
+  try{
+    await api('/api/admin/courses/'+id,{method:'DELETE'});
+    loadCourses();
+  }catch(e){ alert('Could not delete: '+e.message); }
+}
+
 // ---- bulk enrolment ----
 /* The biometric service imports a dataset as one folder per person. A browser
    folder picker gives us exactly that through webkitRelativePath, so the console
