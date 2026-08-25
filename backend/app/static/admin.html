@@ -4,7 +4,15 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Attendance Verify Admin</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- Pre-establish connections to the CDN and tile servers before JS runs.
+     On a slow connection this shaves a full round-trip off the first tile request. -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
+<link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin/>
+<link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin/>
+<link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin/>
+<link rel="dns-prefetch" href="https://d.basemaps.cartocdn.com"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
+
 <style>
   :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;}
   *{box-sizing:border-box}
@@ -263,7 +271,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
 <script>
 const TOKEN_KEY="av_admin_token";
 let map, marker, circle, picked={lat:6.6745,lng:-1.5716}, located=false, lastAcc=null;
@@ -292,7 +300,23 @@ async function login(){
 }
 function logout(){localStorage.removeItem(TOKEN_KEY);location.reload()}
 const U=()=>document.getElementById('u'),P=()=>document.getElementById('p');
-function showApp(){document.getElementById('login').classList.add('hidden');document.getElementById('app').classList.remove('hidden');tab('overview')}
+function showApp(){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  tab('overview');
+  // Pre-warm: make the sessions view visible but off-screen so Leaflet can
+  // measure the map container and start fetching tiles in the background.
+  // By the time the admin clicks "Sessions" the tiles are already cached.
+  requestAnimationFrame(()=>{
+    const v=document.getElementById('v-sessions');
+    v.style.cssText='display:block;visibility:hidden;pointer-events:none;position:absolute;width:100%';
+    setTimeout(()=>{
+      initMap(false); // false = skip geolocation prompt on pre-warm
+      v.style.cssText='';
+      v.classList.add('hidden');
+    },200);
+  });
+}
 function tab(name){
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===name));
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
@@ -315,17 +339,21 @@ async function loadOverview(){
 const stat=(l,v)=>`<div class="stat"><b>${v}</b><span class="muted">${l}</span></div>`;
 
 // ---- map ----
-function initMap(){
+function initMap(autoLocate=true){
   if(map){map.invalidateSize();return}
   map=L.map('map').setView([picked.lat,picked.lng],16);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    maxZoom:19,
+    subdomains:'abcd',
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  }).addTo(map);
   marker=L.marker([picked.lat,picked.lng],{draggable:true}).addTo(map);
   circle=L.circle([picked.lat,picked.lng],{radius:+document.getElementById('s_radius').value||70,color:'#C41230',fillColor:'#C41230',fillOpacity:.12}).addTo(map);
   marker.on('drag',e=>{lastAcc=null;setPicked(e.target.getLatLng())});
   map.on('click',e=>{lastAcc=null;marker.setLatLng(e.latlng);setPicked(e.latlng)});
   document.getElementById('s_radius').addEventListener('input',()=>circle.setRadius(+document.getElementById('s_radius').value||70));
   document.getElementById('s_coords').textContent='not set';
-  locate(true); // auto-locate the admin on open so the pin starts where they are
+  if(autoLocate) locate(true); // auto-locate the admin on open so the pin starts where they are
 }
 function setPicked(ll){
   picked={lat:ll.lat,lng:ll.lng}; located=true; if(circle)circle.setLatLng(ll);
@@ -372,8 +400,8 @@ function setManual(){
   else msg('Enter a valid latitude and longitude.');
 }
 function jumpTo(lat,lng,note){
-  if(!map){ picked={lat,lng}; }
-  else { map.setView([lat,lng],17); marker.setLatLng([lat,lng]); setPicked({lat,lng}); }
+  if(map){ map.setView([lat,lng],17); marker.setLatLng([lat,lng]); }
+  setPicked({lat,lng});
   msg(note||'');
 }
 function msg(t){ var el=document.getElementById('placeMsg'); if(el) el.textContent=t||''; }

@@ -10,7 +10,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Attendance"/>
 <link rel="apple-touch-icon" href="/app/apple-touch-icon.png"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
+<link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin/>
+<link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin/>
+<link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin/>
+<link rel="dns-prefetch" href="https://d.basemaps.cartocdn.com"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
 <style>
   :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;--txt:#12151c}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -325,9 +330,8 @@ async function loadMap(){
   const anyIn=list.some(s=>s.in_range);
   if(GPS){ $("m_pill").className="badge "+(anyIn?"in":"out"); $("m_pill").textContent=anyIn?"Inside class area":(list.length?"Outside class area":"No class open right now"); }
   if(!MAP){ MAP=L.map("map",{zoomControl:false}).setView([center.lat,center.lng],16);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
-  } else { MAP.setView([center.lat,center.lng],16); MAP.eachLayer(l=>{if(l instanceof L.Circle||l instanceof L.Marker||l instanceof L.CircleMarker)MAP.removeLayer(l);});
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(MAP); }
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'}).addTo(MAP);
+  } else { MAP.setView([center.lat,center.lng],16); MAP.eachLayer(l=>{if(l instanceof L.Circle||l instanceof L.Marker||l instanceof L.CircleMarker)MAP.removeLayer(l);}); }
   L.circleMarker([center.lat,center.lng],{radius:7,color:"#2563eb",fillColor:"#2563eb",fillOpacity:1}).addTo(MAP);
   list.forEach(s=>{
     L.circle([s.center_lat,s.center_lng],{radius:s.radius_m,color:"#C41230",fillColor:"#C41230",fillOpacity:.12,weight:2}).addTo(MAP);
