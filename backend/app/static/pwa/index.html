@@ -10,19 +10,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Attendance"/>
 <link rel="apple-touch-icon" href="/app/apple-touch-icon.png"/>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin/>
-<link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossorigin/>
-<link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossorigin/>
-<link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossorigin/>
-<link rel="dns-prefetch" href="https://d.basemaps.cartocdn.com"/>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css"/>
 <style>
   :root{--red:#C41230;--red2:#6E0D1A;--bg:#f5f6f8;--card:#fff;--line:#e6e8ec;--muted:#6b7280;--txt:#12151c}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
   .hidden{display:none!important}
   :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
-  .screen{padding:16px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(88px + var(--safe-bottom));max-width:560px;margin:0 auto;min-height:100vh}
+  .screen{padding:16px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(88px + var(--safe-bottom));width:100%;max-width:560px;margin:0 auto;min-height:100vh}
   @supports (min-height:100dvh){.screen{min-height:100dvh}}
   .grad{background:linear-gradient(120deg,var(--red),var(--red2));color:#fff;border-radius:20px;padding:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 4px 14px rgba(11,18,32,.05)}
@@ -43,7 +37,6 @@
   nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 0 calc(8px + var(--safe-bottom))}
   nav button{flex:1;background:0;border:0;color:var(--muted);font-weight:600;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
   nav button.on{color:var(--red)}nav .g{font-size:20px}
-  #map{height:64vh;border-radius:14px}
   .cam-wrap{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column;padding-top:var(--safe-top)}
   video{flex:1;object-fit:cover;width:100%}
   .cam-ui{position:absolute;left:0;right:0;bottom:0;padding:22px;padding-bottom:calc(22px + var(--safe-bottom));display:flex;flex-direction:column;gap:10px;background:linear-gradient(transparent,rgba(4,8,16,.55))}
