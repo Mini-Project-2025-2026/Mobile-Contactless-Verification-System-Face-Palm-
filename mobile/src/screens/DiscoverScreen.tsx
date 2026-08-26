@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Location from "expo-location";
 import { api, AvailableCourse } from "../api/client";
@@ -32,6 +32,7 @@ export default function DiscoverScreen({ onCheckIn }: { onCheckIn: (c: Available
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
+      <Image source={require('../../assets/map_bg.jpg')} style={styles.mapBg} />
       <View style={styles.header}>
         <View style={[styles.pill, anyInRange ? styles.pillIn : styles.pillOut]}>
           <Text style={styles.pillText}>{anyInRange ? "Inside Class Area" : "Outside Class Area"}</Text>
@@ -76,6 +77,7 @@ export default function DiscoverScreen({ onCheckIn }: { onCheckIn: (c: Available
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
+  mapBg: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%", opacity: 0.25, resizeMode: "cover" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   msg: { color: colors.textMuted },
   header: { padding: 16, alignItems: "center", gap: 10 },
