@@ -380,7 +380,7 @@ function msg(t){ var el=document.getElementById('placeMsg'); if(el) el.textConte
 async function loadCourses(){
   const cs=await api('/api/admin/courses');
   if(!cs.length){ document.getElementById('courseList').innerHTML='<p class="muted">No courses yet.</p>'; return; }
-  document.getElementById('courseList').innerHTML=`<table><thead><tr><th>Code</th><th>Title</th><th>Semester</th><th>Lecturer</th><th>Students</th><th></th></tr></thead><tbody>${
+  document.getElementById('courseList').innerHTML=`<div class="table-wrap"><table><thead><tr><th>Code</th><th>Title</th><th>Semester</th><th>Lecturer</th><th>Students</th><th></th></tr></thead><tbody>${
     cs.map(c=>`<tr>
       <td>${c.code}</td>
       <td>${c.title}</td>
@@ -389,7 +389,7 @@ async function loadCourses(){
       <td>${c.students?c.students:'<b style="color:#b45309">0</b>'}</td>
       <td><button class="btn sec" style="padding:4px 10px;margin:0;font-size:12px" onclick="deleteCourse(${c.id},'${c.code.replace(/'/g,"\\'")}','${c.semester.replace(/'/g,"\\'")}')">Delete</button></td>
     </tr>`).join('')
-  }</tbody></table>`;
+  }</tbody></table></div>`;
 }
 let COURSE_SIZE={};
 async function loadCoursesInto(id){
