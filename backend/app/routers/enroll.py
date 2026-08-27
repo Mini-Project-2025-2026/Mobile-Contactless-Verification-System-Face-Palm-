@@ -13,6 +13,8 @@ Enrolled modalities live in `enrolled_modality` as a comma-joined set.
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
@@ -23,6 +25,8 @@ from ..models import EnrollGrant, Modality, Student
 from ..schemas import EnrollRequest, EnrollResponse, EnrollStatus
 from ..security import current_device_uid, current_student
 from ..timeutil import aware_or_now, now
+
+log = logging.getLogger("attendance.enroll")
 
 router = APIRouter(prefix="/api/enroll", tags=["enroll"])
 
@@ -145,6 +149,13 @@ def enroll(
         )
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
+
+    # One line per enrolment naming what the service actually did with the images:
+    # "enrolled 0 of 3" with the per-image reason is the difference between a decode
+    # bug and a palm the detector could not find, which need opposite fixes.
+    log.info("enroll %s modality=%s enrolled=%s of=%s samples=%s duplicate=%s raw=%s",
+             student.student_id, req.modality.value, result.enrolled, result.of,
+             result.samples, result.duplicate, result.raw)
 
     # One biometric, one identity. The service refuses a face or palm that already
     # belongs to another user_id, and that refusal is final: an admin grant buys a
