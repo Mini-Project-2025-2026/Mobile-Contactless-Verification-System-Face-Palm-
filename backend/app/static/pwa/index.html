@@ -310,7 +310,7 @@ function markCard(c,phaseTag){
   const alreadyThis=(c.phase==='start'&&c.marked_start)||(c.phase==='end'&&c.marked_end);
   if(alreadyThis) return `<div class="card"><h3>Mark Your Attendance</h3>${prog}<div class="muted" style="margin-top:8px">${c.phase==='start'?'Start marked ✓ — return when the lecturer opens the END check-in.':'End marked ✓.'}</div></div>`;
   if(!c.in_range) return `<div class="card"><h3>${win} check-in open</h3>${prog}<button class="btn" style="margin-top:10px" disabled>Move within ${c.radius_m} m to mark</button></div>`;
-  return `<div class="card"><h3>${win} check-in open</h3>${prog}<button class="btn" style="margin-top:10px" onclick="startCheckin(HOME_COURSE)">Mark ${win} with Face →</button></div>`;
+  return `<div class="card"><h3>${win} check-in open</h3>${prog}<button class="btn" style="margin-top:10px" onclick="startCheckin(HOME_COURSE)">Mark ${win} with ${STATUS.palm_enrolled?"Face / Palm":"Face"} →</button></div>`;
 }
 
 // ---- map ----
@@ -464,6 +464,7 @@ async function setCamModality(m){
   $("cam_msg").textContent=m==="face"?"Turn your head slowly left and right":"Show your open palm to the back camera";
   if(CAM.stream)CAM.stream.getTracks().forEach(t=>t.stop());
   try{ await openCamera(m==="face"?"user":"environment"); }catch(e){}
+  updateCamAction();
 }
 function updateCamAction(){
   const a=$("cam_action");
