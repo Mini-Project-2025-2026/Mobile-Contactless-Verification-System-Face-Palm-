@@ -140,7 +140,9 @@ def enroll(
             )
 
     try:
-        result = biometric.enroll_user(student.student_id, req.images, source=req.source)
+        result = biometric.enroll_user(
+            student.student_id, req.images, source=req.source, modality=req.modality.value
+        )
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
 

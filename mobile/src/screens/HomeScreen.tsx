@@ -106,7 +106,7 @@ export default function HomeScreen({
                 onPress={() => gps && onCheckIn(current, gps)}
               >
                 <Text style={styles.markBtnText}>
-                  {current.in_range ? `Mark ${current.phase === "start" ? "START" : "END"} with Face  →` : `Move within ${current.radius_m} m to mark`}
+                  {current.in_range ? `Mark ${current.phase === "start" ? "START" : "END"} with Face/Palm  →` : `Move within ${current.radius_m} m to mark`}
                 </Text>
               </Pressable>
             )}

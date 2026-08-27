@@ -174,14 +174,19 @@ def get_challenge() -> Challenge:
 
 # --- enrolment ------------------------------------------------------------
 def enroll_user(user_id: str, images: list[str], *, source: str = "auto",
-                idempotency_key: str = "") -> EnrollResult:
+                idempotency_key: str = "", modality: str | None = None) -> EnrollResult:
     """Managed enrolment: register a student's face/palm from one or more images.
-    The service auto-detects the modality. Requires an admin-role key."""
+    The service auto-detects the modality if not provided. Requires an admin-role key."""
     if not images:
         raise BiometricError("enroll_user requires at least one image")
+    
+    body = {"user_id": user_id, "images": images, "source": source}
+    if modality:
+        body["modality"] = modality
+
     data = _json(
         "POST", "/v1/enroll",
-        json={"user_id": user_id, "images": images, "source": source},
+        json=body,
         idempotency_key=idempotency_key or new_idempotency_key("enroll", user_id),
     )
 
