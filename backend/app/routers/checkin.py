@@ -131,16 +131,27 @@ def verify(
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc
 
+    # Visible on purpose: every verdict, pass or fail, is one log line naming the
+    # actual score and claimed identity the service returned. Without this the
+    # only symptom anyone can see is "Not counted" — there was no way, short of
+    # reading the biometric service's own logs, to tell a genuine low-confidence
+    # capture apart from a wrong-identity template or a signature problem.
+    log.info(
+        "verify %s modality=%s success=%s claimed_user=%s returned_user=%s score=%.4f sig_valid=%s",
+        student.student_id, req.modality.value, result.success, student.student_id,
+        result.user_id, result.score, result.signature_valid,
+    )
+
     # 3) Trust gates: verdict must be granted, signature valid, identity + score right.
     if not result.signature_valid:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "bad_signature")
     if not result.success or result.user_id != student.student_id:
         return _fail(db, s, student.student_id, distance, "biometric_mismatch",
-                     "Face/palm did not match your enrolled record.")
+                     "Face/palm did not match your enrolled record.", score=result.score)
     floor = policy.effective_score_floor()
     if result.score < floor.min_score:
         return _fail(db, s, student.student_id, distance, "low_confidence",
-                     "Capture quality too low. Try again in better light.")
+                     "Capture quality too low. Try again in better light.", score=result.score)
 
     # 4) Record the mark (idempotent on the signature nonce → blocks replay).
     outcome = record_mark(db, s, student, distance=distance, score=result.score,
@@ -275,10 +286,11 @@ def _status_now(db: Session, session_id: int, student_id: str) -> AttendanceStat
     return a.status if a else AttendanceStatus.absent
 
 
-def _fail(db: Session, s: ClassSession, student_id: str, distance: float, code: str, message: str) -> VerifyResponse:
+def _fail(db: Session, s: ClassSession, student_id: str, distance: float, code: str, message: str,
+         score: float = 0.0) -> VerifyResponse:
     return VerifyResponse(
         ok=False, status=_status_now(db, s.id, student_id), marks_count=_marks_now(db, s.id, student_id),
-        marks_required=s.marks_required, distance_m=distance, code=code, message=message,
+        marks_required=s.marks_required, distance_m=distance, score=round(score, 4), code=code, message=message,
     )
 
 
