@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import uuid
 from dataclasses import dataclass, field
 
 from .bioclient import RequestFailed, new_idempotency_key, request
@@ -184,10 +185,19 @@ def enroll_user(user_id: str, images: list[str], *, source: str = "auto",
     if modality:
         body["modality"] = modality
 
+    # The key must separate a palm enrolment from this user's face enrolment, and
+    # separate a fresh enrolment from an earlier one the service still has cached:
+    # the service replays the first response for a repeat key for 24h, so a key of
+    # just "enroll-{user_id}" made a palm capture replay the face verdict (never
+    # enrolling the palm), and a re-enrol after a delete replay the deleted one.
+    # Modality plus a per-submission nonce keeps each enrolment distinct; the same
+    # computed key is reused across this call's transport retries, so retries stay
+    # safe.
     data = _json(
         "POST", "/v1/enroll",
         json=body,
-        idempotency_key=idempotency_key or new_idempotency_key("enroll", user_id),
+        idempotency_key=idempotency_key or new_idempotency_key(
+            "enroll", user_id, modality or "auto", uuid.uuid4().hex),
     )
 
     results = data.get("results", []) or []
