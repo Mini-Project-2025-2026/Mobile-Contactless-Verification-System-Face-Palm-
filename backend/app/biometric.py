@@ -317,13 +317,15 @@ def _read_verdict(data: dict, *, expect_token: str) -> VerifyResult:
 
 
 def verify_student(student_id: str, *, frames: list[str] | None = None, token: str = "",
-                   image: str | None = None) -> VerifyResult:
+                   image: str | None = None, modality: str | None = None) -> VerifyResult:
     """1:1 verify a claimed student.
 
     Prefer `frames` + `token` (active liveness). Falls back to a single `image`
     (weaker — no liveness) when the caller cannot capture a head-turn burst.
     """
     body = {"user_id": student_id, **_capture_body(frames, token, image)}
+    if modality:
+        body["modality"] = modality
     data = _json("POST", "/v1/verify", json=body)
     # Face check-ins send a liveness token, so we require the verdict to be
     # bound to it. A palm check-in has no token and falls back to the plain
@@ -332,7 +334,7 @@ def verify_student(student_id: str, *, frames: list[str] | None = None, token: s
 
 
 def identify_person(*, frames: list[str] | None = None, token: str = "",
-                    image: str | None = None) -> VerifyResult:
+                    image: str | None = None, modality: str | None = None) -> VerifyResult:
     """1:N — ask the service WHO this is, with no claimed identity (POST /v1/identify).
 
     The verdict is signed exactly as a 1:1 verify is, and carries the winning
@@ -340,7 +342,10 @@ def identify_person(*, frames: list[str] | None = None, token: str = "",
     the runner-up by it) before answering, which is the guard that stops a lookalike
     being returned as a confident match.
     """
-    data = _json("POST", "/v1/identify", json=_capture_body(frames, token, image))
+    body = _capture_body(frames, token, image)
+    if modality:
+        body["modality"] = modality
+    data = _json("POST", "/v1/identify", json=body)
     return _read_verdict(data, expect_token=token if frames else "")
 
 

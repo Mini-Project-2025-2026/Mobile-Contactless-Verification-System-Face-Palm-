@@ -93,7 +93,7 @@ def verify(
 
     try:
         verdict = biometric.identify_person(frames=body.frames, token=body.token,
-                                            image=body.image)
+                                            image=body.image, modality=body.modality.value)
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY,
                             f"biometric_unavailable: {exc}") from exc

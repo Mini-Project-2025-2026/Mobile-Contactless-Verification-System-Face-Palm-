@@ -126,7 +126,7 @@ def verify(
     # 2) Biometric verify (1:1 against this student's enrolled template).
     try:
         result = biometric.verify_student(
-            student.student_id, frames=req.frames, token=req.token, image=req.image
+            student.student_id, frames=req.frames, token=req.token, image=req.image, modality=req.modality.value
         )
     except biometric.BiometricError as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"biometric_unavailable: {exc}") from exc

@@ -1,26 +1,35 @@
 #!/usr/bin/env bash
 set -e
-cd /c/Users/kyere/Documents/codes/attendance-verify/mobile
 
-# Prefer a JDK 17 if one is installed (Android Gradle Plugin is happiest on 17).
-for j in "/c/Program Files/Java/jdk-17"* "/c/Program Files/Eclipse Adoptium/jdk-17"* "/c/Program Files/Microsoft/jdk-17"*; do
-  [ -d "$j" ] && export JAVA_HOME="$j" && break
-done
-echo "[build] JAVA_HOME=$JAVA_HOME"
-java -version 2>&1 | head -1
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+MOBILE_DIR="$SCRIPT_DIR/mobile"
+APK_DEST="$SCRIPT_DIR/attendance-verify.apk"
 
-echo "[build] === expo prebuild (generate native android project) ==="
-npx --yes expo prebuild -p android --no-install
+cd "$MOBILE_DIR"
 
-echo "[build] === gradle assembleRelease ==="
+if [ ! -d "android" ]; then
+  echo "[build] === No android/ dir found — running expo prebuild ==="
+  npx --yes expo prebuild -p android --no-install
+
+  COLORS="android/app/src/main/res/values/colors.xml"
+  if [ -f "$COLORS" ] && ! grep -q "splashscreen_background" "$COLORS"; then
+    echo "[build] Patching colors.xml..."
+    sed -i 's@</resources>@  <color name="splashscreen_background">#ffffff</color>\n  <color name="iconBackground">#ffffff</color>\n</resources>@' "$COLORS"
+  fi
+else
+  echo "[build] === android/ already exists — skipping prebuild, going straight to Gradle ==="
+fi
+
+echo "[build] === Assembling Release APK ==="
 cd android
 ./gradlew assembleRelease --no-daemon -x lint -x lintVitalRelease
 
 APK=$(find app/build/outputs/apk/release -name "*.apk" | head -1)
 if [ -n "$APK" ]; then
-  cp "$APK" /c/Users/kyere/Documents/codes/attendance-verify/attendance-verify.apk
-  echo "[build] SUCCESS apk -> C:/Users/kyere/Documents/codes/attendance-verify/attendance-verify.apk"
-  ls -la /c/Users/kyere/Documents/codes/attendance-verify/attendance-verify.apk
+  cp "$APK" "$APK_DEST"
+  echo "[build] SUCCESS: APK -> $APK_DEST"
+  ls -lh "$APK_DEST"
 else
-  echo "[build] FAILED: no apk produced"; exit 1
+  echo "[build] FAILED: No APK produced"
+  exit 1
 fi
