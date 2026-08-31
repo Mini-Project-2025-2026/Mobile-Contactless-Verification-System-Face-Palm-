@@ -1,6 +1,7 @@
 # --- secrets: never commit ---
 .env
 .env.local
+docs/SUPERVISOR_ACCESS.md
 .supabase_url.txt
 .supabase_db_password.txt
 *.keystore
