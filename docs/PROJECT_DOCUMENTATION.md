@@ -1,6 +1,6 @@
 # MOBILE CONTACTLESS FACE & PALM VERIFICATION SYSTEM
 
-**Computer Science Project Documentation — 2025 / 2026**
+**Computer Science Project Documentation: 2025 / 2026**
 
 Kwame Nkrumah University of Science and Technology
 Department of Computer Science
@@ -73,7 +73,7 @@ FastAPI, React Native and Jetpack Compose maintainers.
 Biometric identity systems in the developing world are dominated by fingerprint
 scanners, and fingerprint scanners fail the people who need identity most. India's
 Aadhaar programme has held a biometric authentication failure rate of roughly 6.5%
-for a decade — about 20.3 million failed authentications every month — and those
+for a decade, about 20.3 million failed authentications every month,  and those
 failures cluster at 6–12% among agricultural workers, construction workers and
 domestic workers whose ridges are worn away by manual labour, and among the
 elderly. Each scanner is also hardware that must be bought, installed, cleaned and
@@ -90,10 +90,10 @@ The system contributes five things beyond the state of practice. (1) A
 (MediaPipe-Hands ROI → CCNet ONNX, 2048-d) are two profiles over one set of
 machinery, with a server-side and on-device **auto-router** so that callers never
 declare a modality: a person presents whichever biometric works, and a match is a
-match. (2) **Protected, cancelable templates** — a seeded orthogonal projection
+match. (2) **Protected, cancelable templates**, a seeded orthogonal projection
 that renders a stolen template unmatchable anywhere else and allows an
 organisation-wide cryptographic "password reset" (reissue) **without anyone
-re-enrolling** — measured at 0.0 absolute TAR delta, i.e. zero accuracy cost.
+re-enrolling**,  measured at 0.0 absolute TAR delta, i.e. zero accuracy cost.
 (3) **On-device
 1:N identification ("Glance")** at ~50 MB per 100,000 identities, running in
 airplane mode. (4) A **published evidence layer** (`/trust`) in which every
@@ -107,14 +107,14 @@ a tenant self-service portal, Python and JavaScript SDKs, and four native Androi
 build flavours.
 
 To prove the platform is genuinely consumable by third-party software rather than
-only by its own front ends, a complete second product — **Attendance-Verify** — was
+only by its own front ends, a complete second product, **Attendance-Verify**,  was
 built end to end against the public API by treating the platform as an external
 vendor. Attendance-Verify is a close functional clone of the KNUST Attendance
 application (student-ID sign-in, 70 m geofence, two check-ins per class), with
 exactly one substitution: where the original marks a student present via a
 lecturer-generated PIN, this system requires a **live face or palm capture whose
 HMAC-signed verdict the attendance backend independently validates** before writing
-an attendance record. This removes the PIN's entire attack surface , a code that
+an attendance record. This removes the PIN's entire attack surface, a code that
 can be screenshotted, forwarded to an absent friend, or read aloud in a lecture
 hall and replaces it with a token that cannot be transferred, because it is the
 student's own face.
@@ -129,7 +129,7 @@ test files** in the platform and **196 passing tests** in the demonstrator
 application, including concurrency, replay, signature-forgery, one-biometric-one-
 identity and query-cost regression tests. Palm input normalisation was recalibrated
 against 191 real pilot frames, moving acceptance of hard cross-session genuine
-pairs from 25.5% to 52.4% at a 1% false-accept operating point — and the report
+pairs from 25.5% to 52.4% at a 1% false-accept operating point, and the report
 states plainly that the same dataset confounds elapsed time with capture device, so
 the result is *not* evidence that palms age.
 
@@ -140,7 +140,7 @@ structural rather than promised: no photograph is ever stored, templates and sea
 indexes are both encrypted at rest with per-tenant keys, consent is recorded
 against the SHA-256 of the exact statement agreed, withdrawal blocks verification
 and revokes issued credentials immediately, and offboarding an organisation
-destroys its encryption keys so that leftover copies — backups included — become
+destroys its encryption keys so that leftover copies, backups included,  become
 permanently unreadable. Compliance with Ghana's Data Protection Act (Act 843) and
 the GDPR is mapped obligation-by-obligation to the enforcing code path.
 
@@ -153,31 +153,31 @@ geofenced attendance.
 
 ## TABLE OF CONTENTS
 
-**[Chapter 1 — Introduction](#chapter-1--introduction)**
+**[Chapter 1: Introduction](#chapter-1-introduction)**
 1.1 Background of project · 1.2 Problem statement · 1.3 Aim of the project ·
 1.4 Novelty of the project · 1.5 Specific project objectives · 1.6 Scope of the
 project · 1.7 Project limitations · 1.8 Academic and practical relevance ·
 1.9 Beneficiaries of the project · 1.10 Project activity planning ·
 1.11 Definitions and explanations of terms · 1.12 Structure of report
 
-**[Chapter 2 — Review of Related Systems](#chapter-2--review-of-related-systems)**
+**[Chapter 2: Review of Related Systems](#chapter-2-review-of-related-systems)**
 2.1 Aadhaar (UIDAI) · 2.2 Amazon One · 2.3 AWS Rekognition · 2.4 Truein ·
 2.5 KNUST Attendance · 2.6 Comparative summary · 2.7 Conceptual design of the
 proposed project
 
-**[Chapter 3 — Methodology](#chapter-3--methodology)**
+**[Chapter 3: Methodology](#chapter-3-methodology)**
 3.1 Introduction · 3.2 Architecture · 3.3 Requirements elicitation ·
 3.4 Functional requirements · 3.5 Non-functional requirements · 3.6 UML diagrams ·
 3.7 Users and user characteristics · 3.8 Security concepts · 3.9 Project method ·
 3.10 Software process model and justification · 3.11 Logical design ·
 3.12 UI design (wireframes) · 3.13 Database design (schemas)
 
-**[Chapter 4 — Implementation, Testing and Results](#chapter-4--implementation-testing-and-results)**
+**[Chapter 4: Implementation, Testing and Results](#chapter-4-implementation-testing-and-results)**
 4.1 Introduction · 4.2 Mapping logical design onto physical platform ·
 4.3 System modules implementation · 4.4 System modules integration · 4.5 Testing ·
 4.6 Recommendations from testers and responses · 4.7 Results
 
-**[Chapter 5 — Findings, Conclusions and Recommendations](#chapter-5--findings-conclusions-and-recommendations)**
+**[Chapter 5: Findings, Conclusions and Recommendations](#chapter-5-findings-conclusions-and-recommendations)**
 5.1 Introduction · 5.2 Findings · 5.3 Conclusions · 5.4 Challenges ·
 5.5 Lessons learnt · 5.6 Recommendations for future works · 5.7 References
 
@@ -185,7 +185,7 @@ proposed project
 
 ---
 
-# CHAPTER 1 — INTRODUCTION
+# CHAPTER 1: INTRODUCTION
 
 ## 1.1 Background of Project
 
@@ -216,8 +216,8 @@ sat between 93.5% and 95% for a decade, meaning approximately **20.3 million
 failures every month**, and the failures are not evenly distributed: reported
 authentication failure rates run at **6–12% among construction workers, farmers and
 domestic workers**, and estimates of the population structurally excluded by
-biometric failure — through worn ridges, scarring, corneal blindness, or
-malnutrition-induced cataracts affecting iris capture — range from **2% to 5% of
+biometric failure  (through worn ridges, scarring, corneal blindness, or
+malnutrition-induced cataracts affecting iris capture)  range from **2% to 5% of
 the country**. In welfare contexts, a failed authentication is not an inconvenience;
 it is a denial of food rations or of guaranteed employment wages.
 
@@ -227,11 +227,11 @@ Three further developments frame this project.
 enrolment station and every verification point in a fingerprint programme needs a
 physical sensor that must be procured, distributed, powered, cleaned, calibrated,
 repaired and eventually replaced. In rural clinics, remote work sites and
-under-resourced schools, that supply chain is the binding constraint — not the
+under-resourced schools, that supply chain is the binding constraint, not the
 algorithm.
 
 **Second, contact became a liability.** The COVID-19 pandemic made shared-surface
-biometrics — a sensor platen touched by hundreds of people a day — operationally
+biometrics, a sensor platen touched by hundreds of people a day, operationally
 and reputationally untenable, and accelerated interest in contactless modalities
 across the industry. Amazon's palm-payment product, launched in 2020, was explicitly
 positioned on hygiene as much as convenience.
@@ -239,16 +239,16 @@ positioned on hygiene as much as convenience.
 **Third, the camera won.** The smartphone is now the most widely distributed sensor
 platform in human history, and even entry-level Android devices sold in Ghana ship
 with front and rear cameras capable of resolving facial landmarks and palm-print
-creases at working distance. Meanwhile, deep metric learning — ArcFace and its
+creases at working distance. Meanwhile, deep metric learning: ArcFace and its
 descendants for faces, and competitive-coding convolutional networks such as CCNet
-for palm-prints — reduced high-accuracy biometric recognition to a few hundred
+for palm-prints: reduced high-accuracy biometric recognition to a few hundred
 megabytes of model weights and a single forward pass that a mid-range CPU can
 execute in under two seconds. The hardware requirement for accurate biometrics
 quietly disappeared; most deployed systems have not noticed.
 
 At the same time, the state of practice for camera-based biometrics developed in a
-direction unsuited to these environments. Commercial face services — AWS
-Rekognition, Azure Face, Face++ — are **cloud-first**: they require constant
+direction unsuited to these environments. Commercial face services (AWS
+Rekognition, Azure Face, Face++) are **cloud-first**: they require constant
 connectivity, they bill per call, they offer no palm option, and they place
 citizens' biometric data in infrastructure outside the deploying country's
 jurisdiction. Palm-payment systems such as Amazon One achieve extraordinary accuracy
@@ -268,62 +268,60 @@ biometrics exclude the people who most need identity; that the hardware requirem
 is now optional; that connectivity cannot be assumed; and that a biometric which
 cannot be cancelled is a liability rather than an asset.
 
-The project began, in fact, as a contactless *fingerprint* system — capturing
+The project began, in fact, as a contactless *fingerprint* system: capturing
 finger ridges from a phone camera rather than a sensor. The backend matcher was
 built and proven, but camera-based finger capture turned out to be a dead end under
 realistic field conditions: ridge contrast at phone-camera resolution and uncontrolled
 lighting is insufficient for reliable minutiae extraction. That negative result,
 recorded in the repository's first two commits (21 June 2026) and preserved in the
-archived `fingerprint/` package, is what motivated the pivot to **face and palm** —
-two modalities that a commodity camera *can* resolve, and which between them leave
+archived `fingerprint/` package, is what motivated the pivot to **face and palm**: two modalities that a commodity camera *can* resolve, and which between them leave
 almost nobody unenrollable.
 
 ## 1.2 Problem Statement
 
-Organisations that must repeatedly answer the question *"is this the right person?"*
-— employers, welfare programmes, examination boards, clinics, financial
-institutions and universities — currently have no option that is simultaneously
+Organisations that must repeatedly answer the question *"is this the right person?"*: employers, welfare programmes, examination boards, clinics, financial
+institutions and universities: currently have no option that is simultaneously
 **inclusive, hardware-free, offline-capable, privacy-preserving and revocable**.
 
 Concretely, the following problems remain unsolved by the available alternatives:
 
-**P1 — Biometric exclusion.** Fingerprint-based systems structurally exclude
+**P1: Biometric exclusion.** Fingerprint-based systems structurally exclude
 manual workers, the elderly and the disabled, at documented rates of 6–12% in the
 affected groups. A system offering only one modality inherits that modality's
 failure population; a person whose only enrolled biometric cannot be read has no
 recourse.
 
-**P2 — Hardware dependency.** Both fingerprint scanners and infra-red palm-vein
+**P2: Hardware dependency.** Both fingerprint scanners and infra-red palm-vein
 readers require dedicated hardware at every verification point, imposing capital
 cost, maintenance burden and a supply chain that fails first in exactly the rural
 and low-resource settings where identity verification matters most.
 
-**P3 — Connectivity dependency.** Cloud biometric APIs are unusable in rural
+**P3: Connectivity dependency.** Cloud biometric APIs are unusable in rural
 clinics, remote work sites, examination halls with jammed or absent signal, and
 during network outages. Verification is precisely the operation that must not fail
 when the network does.
 
-**P4 — Data sovereignty and privacy exposure.** Sending citizens' facial images to
+**P4: Data sovereignty and privacy exposure.** Sending citizens' facial images to
 third-party cloud infrastructure transfers both control and legal risk offshore.
 Systems that retain photographs, or store templates in a form that can be matched
 against any other database, create a permanent and growing breach liability.
 
-**P5 — Irrevocability.** In conventional biometric systems a leaked template is
+**P5: Irrevocability.** In conventional biometric systems a leaked template is
 compromised forever, and there is no equivalent of a password reset. Neither can a
 person's biometric enrolment be cryptographically isolated from other deployments.
 
-**P6 — No portable proof.** A person who is enrolled in an organisation's database
+**P6: No portable proof.** A person who is enrolled in an organisation's database
 cannot prove their identity anywhere that database is unreachable, and cannot carry
 their own credential in a form that a third party can check independently.
 
-**P7 — Proxy fraud in presence systems.** Presence and attendance systems that use
-a shared secret — a PIN, a code, a password — are defeated by the trivial act of
+**P7: Proxy fraud in presence systems.** Presence and attendance systems that use
+a shared secret (a PIN, a code, a password) are defeated by the trivial act of
 sharing that secret. The mechanism does not bind the record to the person; it binds
 it to knowledge of a number, which can be screenshotted, relayed by message, or
 read aloud to a room. A university lecture with an attendance PIN has, in practice,
 no attendance control at all.
 
-**P8 — Integration difficulty.** Even where a capable biometric engine exists,
+**P8: Integration difficulty.** Even where a capable biometric engine exists,
 application teams cannot use it without biometric expertise of their own: threshold
 tuning, liveness protocol design, template lifecycle management and verdict
 trust are all left to the integrator, who is not equipped to get them right.
@@ -332,17 +330,17 @@ trust are all left to the integrator, who is not equipped to get them right.
 
 **To design, implement, deploy and empirically evaluate a mobile, contactless
 biometric verification system that establishes a person's identity from their face
-or the palm of their hand using only a commodity smartphone camera — working
+or the palm of their hand using only a commodity smartphone camera: working
 offline, storing no photographs, protecting templates in a cancelable form, and
 exposed as a documented API that third-party applications can integrate without
-biometric expertise — thereby providing accurate identity verification to the
+biometric expertise: thereby providing accurate identity verification to the
 populations that fingerprint-based systems exclude.**
 
 The aim is validated in two directions. Downward, into the engine: the system must
 recognise people accurately, resist presentation attacks, and do so on hardware
 that is already in the field. Upward, into the ecosystem: the system must be
 genuinely consumable by software written by people who are not biometrics
-engineers — a claim that is only credible if a complete, non-trivial application
+engineers: a claim that is only credible if a complete, non-trivial application
 has actually been built against the public API by treating the platform as an
 external vendor. That application is Attendance-Verify (Sec.1.6, Sec.4.4).
 
@@ -352,8 +350,8 @@ Individual components of this work exist elsewhere. The combination does not, an
 five specific contributions are novel in the context of camera-only biometrics for
 low-resource environments.
 
-**N1 — Dual-modality, auto-routed, camera-only recognition over one core.**
-The recognition machinery — store, index, matcher, crypto — is
+**N1: Dual-modality, auto-routed, camera-only recognition over one core.**
+The recognition machinery (store, index, matcher, crypto) is
 **modality-agnostic**, operating on `(user_id, embedding)` pairs plus cosine
 similarity and parameterised by a `Profile` (embedding dimension, thresholds,
 storage directory, liveness policy). Face (ArcFace, 512-d) and palm
@@ -367,31 +365,31 @@ presenting either verifies the person, subject to a configurable combination pol
 rather than rhetorical: *if the palm will not read, the face will*. No reviewed
 system offers face and palm from an ordinary camera under one auto-routing API.
 
-**N2 — Protected (cancelable) templates with reissue and no re-enrolment.**
+**N2: Protected (cancelable) templates with reissue and no re-enrolment.**
 Everything used for matching or export is held in a scrambled, revocable form: a
 seeded orthogonal projection whose seed derives from a per-store secret. A template
 copied from the database, from a device sync, or from an export bundle **cannot be
 matched anywhere else**, and an operator can move every template to a new
-protection domain — cancelling every leaked copy instantly — with a single action,
+protection domain, cancelling every leaked copy instantly, with a single action,
 **without any enrolled person recapturing their biometric**. Measured accuracy cost
 is **0.0 absolute TAR delta** at the benchmark gate's 1% false-accept operating
 point. The report is deliberately honest about the residual: raw embeddings still
 exist, encrypted at rest on the server only, solely so that reissue never requires
 re-enrolment; the behaviour can be disabled entirely.
 
-**N3 — Portable offline credentials verifiable with no database and no network.**
-An enrolled person can be issued a signed QR credential — printable on paper or
-saved to a phone — that any authorised party can verify **completely offline**, with
+**N3: Portable offline credentials verifiable with no database and no network.**
+An enrolled person can be issued a signed QR credential: printable on paper or
+saved to a phone: that any authorised party can verify **completely offline**, with
 no access to the issuing database. The credential is **1,202 characters**, fits QR
 version 25, and verifies in **~1 ms**. It is safe to lose: a stolen or photographed
 QR is useless to anyone else because verification also requires a live capture that
 matches inside the credential's own protection domain. It expires automatically and
-can be revoked. Crucially, it works for people with **no phone at all** — a printed
-card suffices — and it supports **cross-organisation trust**: one organisation can
+can be revoked. Crucially, it works for people with **no phone at all**: a printed
+card suffices, and it supports **cross-organisation trust**: one organisation can
 accept another's credentials by adding its issuer identity to a trust list, with no
 data sharing and no integration work.
 
-**N4 — On-device 1:N identification in airplane mode ("Glance").** Continuous
+**N4: On-device 1:N identification in airplane mode ("Glance").** Continuous
 identification of people in view, face-first with palm fallback, executed entirely
 on the phone against an int8 per-modality index of approximately **50 MB per
 100,000 identities**, with no network permission required. The operating point is
@@ -399,11 +397,11 @@ calibrated on the server and clamped on-device per modality; it is deliberately
 scoped as an identification *aid* rather than an access gate, because it runs
 without liveness.
 
-**N5 — An evidence layer, with published negative results.** Performance claims
-are generated by a versioned benchmark harness (`python -m bench run --suite ...`)
+**N5: An evidence layer, with published negative results.** Performance claims
+are generated by a versioned benchmark harness (`python -m bench run --suite...`)
 that exercises the **real serving code paths**, writes JSON reports with a
 manifest, and renders them on a public Trust Center page. Suites lacking a dataset
-or model **SKIP with a stated reason rather than producing an estimate** — the
+or model **SKIP with a stated reason rather than producing an estimate**: the
 presentation-attack-detection suite is published as honestly skipped, pending a
 physical attack set. The project also publishes results that weaken its own
 narrative: the palm calibration study (Sec.4.7.4) reports that its long-gap genuine
@@ -412,7 +410,7 @@ data must **not** be described as evidence that palm-prints decay over time.
 
 A sixth contribution is methodological rather than technical: the platform's
 API design was **revised in response to a real integration**. Building
-Attendance-Verify surfaced eight concrete defects in the public contract — most
+Attendance-Verify surfaced eight concrete defects in the public contract: most
 seriously, an enrolment refusal that must never be retried ("this face already
 belongs to another identity") was indistinguishable from one that should be
 retried ("unusable photo"), and the demonstrator shipped a bug because of it. Each
@@ -436,7 +434,7 @@ was fixed at the source rather than documented as a gotcha (Sec.4.6).
 | **O12** | Implement privacy and data-protection controls: no image retention, encrypted templates and index, versioned consent with withdrawal, subject access export, erasure, and crypto-erase offboarding, mapped to Ghana Act 843 and the GDPR.                    | Sec.3.8.5, Sec.4.3.11                          |
 | **O13** | Build a complete third-party application (Attendance-Verify) end to end against the public API, proving the platform is integrable without biometric expertise, and demonstrating biometric presence-proof as a strict improvement on shared-PIN attendance. | Sec.4.4                                        |
 | **O14** | Deploy both systems to publicly reachable, always-on HTTPS infrastructure and produce an installable Android artefact.                                                                                                                                       | Sec.4.2                                        |
-| **O15** | Evaluate the system by measurement — accuracy, latency, scale, protection cost, credential size — through a reproducible benchmark harness, and publish the results including honest skips.                                                                | Sec.4.7                                        |
+| **O15** | Evaluate the system by measurement: accuracy, latency, scale, protection cost, credential size: through a reproducible benchmark harness, and publish the results including honest skips.                                                                | Sec.4.7                                        |
 
 ## 1.6 Scope of the Project
 
@@ -447,7 +445,7 @@ was fixed at the source rather than documented as a gotcha (Sec.4.6).
 - Recognition core: detection, alignment, embedding, cosine matching, quality gates,
   adaptive enrolment with permanent anchors, encrypted template store, cached
   encrypted search index with incremental replay on restart.
-- Two modalities — face and palm — with automatic routing and a per-tenant
+- Two modalities, face and palm, with automatic routing and a per-tenant
   combination policy.
 - Active-liveness head-turn challenge; optional passive single-shot anti-spoofing.
 - Multi-tenant REST API (`/v1`) with hashed API keys, `admin`/`verify` roles,
@@ -488,7 +486,7 @@ record as JSON and CSV; an installable PWA; and a signed Android APK.
 
 ### 1.6.2 Out of scope
 
-- **Fingerprint capture from a phone camera** — attempted, measured as unworkable,
+- **Fingerprint capture from a phone camera**: attempted, measured as unworkable,
   and archived (Sec.1.1). The sensor-based minutiae matcher remains in the repository
   as an artefact but is not part of the delivered system.
 - **Scale beyond ~100,000 identities per tenant.** The exact-search index is tuned
@@ -510,65 +508,65 @@ record as JSON and CSV; an installable PWA; and a signed Android APK.
 
 Stated plainly, because a system's honest limits are part of its specification.
 
-**L1 — Host trust in managed deployments.** Matching requires the encryption key in
+**L1: Host trust in managed deployments.** Matching requires the encryption key in
 memory, so in a hosted deployment the operator is inherently trusted and could mint
 a key for any tenant. Application-level isolation is strong (per-tenant stores,
 per-tenant keys, two-plane administration, full audit, crypto-erase), but it is not
 zero-host-trust. The genuine zero-trust configuration is the offline Android
 flavour, which holds no INTERNET permission.
 
-**L2 — Raw embeddings persist server-side.** Protected templates guarantee that
+**L2: Raw embeddings persist server-side.** Protected templates guarantee that
 exported, synced or stolen copies are unmatchable elsewhere; they do not eliminate
 the raw embedding on the server, which is retained (encrypted) so that reissue never
 forces re-enrolment. This is a deliberate trade and is disclosed rather than
 obscured.
 
-**L3 — Palm accuracy trails face accuracy.** On the pilot data, face separates far
+**L3: Palm accuracy trails face accuracy.** On the pilot data, face separates far
 more cleanly than palm: the highest cross-identity face score observed was 0.263
 against a loosest genuine score of 0.693, whereas palm requires a considerably
 tighter threshold (0.625) and a more demanding capture-quality gate. Palm is
 positioned as the inclusion fallback and second factor, not as the primary
 modality.
 
-**L4 — The palm calibration dataset is small and confounded.** The input-normalisation
+**L4: The palm calibration dataset is small and confounded.** The input-normalisation
 study rests on 191 real pilot frames in which every long-gap genuine pair is also a
 different-device pair, so elapsed time and capture device cannot be separated. The
 recalibrated mode is therefore available but **not** the default, because switching
 it invalidates every stored palm template and its calibrated threshold.
 
-**L5 — Presentation-attack resistance is argued, not certified.** Active liveness
+**L5: Presentation-attack resistance is argued, not certified.** Active liveness
 demonstrably defeats printed photographs and screen replays and includes an
 anti-splice identity check, but without a physical attack set no APCER/BPCER figures
 can be reported, and no claim is made against sophisticated 3D masks or injected
 deepfake video streams.
 
-**L6 — Latency on commodity cloud CPU.** On the deployed 2-vCPU container, one
+**L6: Latency on commodity cloud CPU.** On the deployed 2-vCPU container, one
 ArcFace recognition pass costs ~1,799 ms, detection ~198 ms and 3D-landmark
 extraction ~75 ms, so a default five-frame liveness burst costs approximately
 **5.0 s**, of which recognition is 72%. This is acceptable for attendance and
 welfare queues and unacceptable for a turnstile. GPU or batched inference is the
 documented remedy.
 
-**L7 — Geofence trust in the demonstrator.** The attendance geofence is evaluated
+**L7: Geofence trust in the demonstrator.** The attendance geofence is evaluated
 server-side against the device's reported GPS fix, with an accuracy floor
 (±120 m on the live deployment). A determined attacker with a rooted device and a
-mock-location provider can still falsify position. Mitigation is layered — the
+mock-location provider can still falsify position. Mitigation is layered: the
 biometric bound to the specific student, the two-window START/END requirement, the
-device binding, and an audited record — but GPS itself remains advisory.
+device binding, and an audited record, but GPS itself remains advisory.
 
-**L8 — Small evaluation population.** The live pilot involves a small number of
+**L8: Small evaluation population.** The live pilot involves a small number of
 enrolled identities. Scale figures (5,000 and 100,000 identities) are measured on
 synthetic embeddings that exercise the real store, index and matcher code paths;
 they are honest measurements of the *system*, not of population-level biometric
 accuracy, and are labelled as such.
 
-**L9 — Model licensing and provenance.** The system depends on openly available
+**L9: Model licensing and provenance.** The system depends on openly available
 pre-trained weights (InsightFace `buffalo_l`/`buffalo_s`, MediaPipe hand landmarker,
 a CCNet-family palm encoder). Their training-set demographics are not fully
 documented upstream, so demographic differential performance cannot be characterised
 from first principles.
 
-**L10 — Free-tier deployment constraints.** The Hugging Face Spaces deployment path
+**L10: Free-tier deployment constraints.** The Hugging Face Spaces deployment path
 is memory-constrained (512 MB), which forced a smaller face model and the removal of
 passive-liveness binaries. The production deployment on Azure Container Apps
 (2 vCPU / 4 GB) removes this, but scale-to-zero introduces a ~15 s cold-start wake
@@ -586,7 +584,7 @@ curriculum.
   embedding (ArcFace's additive angular margin objective; competitive-coding
   convolutional architectures for palm-print), geometric normalisation by Umeyama
   similarity transform on five landmarks, and the practical consequences of input
-  distribution mismatch — the palm study in Sec.4.7.4 is a textbook demonstration that
+  distribution mismatch: the palm study in Sec.4.7.4 is a textbook demonstration that
   feeding a network an input distribution its weights never saw silently degrades
   the embedding space.
 - **Information security and applied cryptography.** Authenticated encryption at
@@ -594,16 +592,16 @@ curriculum.
   Keystore on Android), key derivation (PBKDF2, 200,000 iterations, per-database
   salt), key-encryption-key wrapping, Ed25519 digital signatures for issued
   credentials, HMAC-SHA256 verdict signing with challenge binding, and
-  **cancelable biometrics** via seeded orthogonal projection — a research topic
+  **cancelable biometrics** via seeded orthogonal projection: a research topic
   rarely implemented in student work and here implemented, measured and shipped.
 - **Distributed systems and software architecture.** Multi-tenant isolation, an
   incrementally-maintained encrypted search index with sequence-watermark replay on
   restart, idempotency keys, signed outbound webhooks, rate limiting, health and
   readiness probes, Prometheus metrics, and durable state on ephemeral hosts.
 - **Database systems.** Schema design in which invariants are expressed as database
-  constraints rather than application conventions — the demonstrator's replay guard
+  constraints rather than application conventions: the demonstrator's replay guard
   is a unique index on the signature nonce precisely because a check-then-insert
-  loses the race — plus query-cost regression testing to prevent N+1 patterns.
+  loses the race: plus query-cost regression testing to prevent N+1 patterns.
 - **Software engineering.** Incremental delivery across 379 commits in the platform
   and 65 in the demonstrator, 1,549 automated tests over 231 test files, continuous
   integration, and an explicit API-versioning and deprecation posture.
@@ -619,9 +617,8 @@ are published as skipped. That the project also publishes a finding which
 
 ### 1.8.2 Practical relevance
 
-The system addresses a live, quantified failure in deployed national infrastructure
-— roughly 20.3 million monthly authentication failures in one programme alone,
-concentrated among the poorest — with an intervention whose marginal hardware cost
+The system addresses a live, quantified failure in deployed national infrastructure: roughly 20.3 million monthly authentication failures in one programme alone,
+concentrated among the poorest: with an intervention whose marginal hardware cost
 is **zero**, because the sensor is a phone that is already in the user's hand.
 
 - **Immediate deployability.** Both systems are running on public HTTPS
@@ -646,7 +643,7 @@ is **zero**, because the sensor is a phone that is already in the user's hand.
 
 | Beneficiary                                                                                                                          | Benefit delivered                                                                                                                                                                                                          |
 | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **People with worn, damaged or unreadable fingerprints** — farmers, builders, cleaners, traders, textile workers, the elderly | Enrolment and verification succeed where fingerprint systems fail. If one modality cannot be read, the other is used. This is the project's central beneficiary group.                                                     |
+| **People with worn, damaged or unreadable fingerprints**: farmers, builders, cleaners, traders, textile workers, the elderly | Enrolment and verification succeed where fingerprint systems fail. If one modality cannot be read, the other is used. This is the project's central beneficiary group.                                                     |
 | **Students and lecturers**                                                                                                     | Attendance that cannot be delegated; a verifiable record; an end-of-semester register produced automatically; and for students without a phone, a shared classroom kiosk that requires no credential to be spoken aloud.   |
 | **Employers with manual workforces** (factories, farms, facility management)                                                   | Contactless, hardware-free time and attendance that eliminates buddy-punching, in exactly the workforces where fingerprint clocks fail most.                                                                               |
 | **Governments and NGOs running cash transfers and welfare**                                                                    | Duplicate and ghost-beneficiary elimination via one-biometric-one-identity,**without** excluding worn-fingerprint citizens; offline operation for rural disbursement; cryptographic erasure on programme closure.    |
@@ -654,9 +651,9 @@ is **zero**, because the sensor is a phone that is already in the user's hand.
 | **Clinics and hospitals**                                                                                                      | Instant patient record retrieval when the card is lost; duplicate-record avoidance; operation during outages; guardian proxy verification for children, the elderly and incapacitated patients.                            |
 | **Banks, microfinance institutions and mobile-money agents**                                                                   | Member verification and multi-branch fraud prevention in villages with no connectivity.                                                                                                                                    |
 | **Events, sites and checkpoints**                                                                                              | Printed or on-phone passes that any staff member can verify on the spot, offline, including passes issued by a partner organisation.                                                                                       |
-| **Software teams and integrators**                                                                                             | Trustworthy identity added to their own product through a documented API and SDKs, with no biometric expertise required — the platform absorbs threshold tuning, liveness protocol, template lifecycle and verdict trust. |
+| **Software teams and integrators**                                                                                             | Trustworthy identity added to their own product through a documented API and SDKs, with no biometric expertise required: the platform absorbs threshold tuning, liveness protocol, template lifecycle and verdict trust. |
 | **Data subjects generally**                                                                                                    | No photograph retained; templates encrypted and cancelable; consent recorded against the exact text agreed; a self-service page to view, export and withdraw; erasure that destroys keys rather than merely deleting rows. |
-| **The academic community**                                                                                                     | An open, documented, measured implementation of cancelable biometric templates and offline verifiable biometric credentials — including a published negative result and a published honest skip.                          |
+| **The academic community**                                                                                                     | An open, documented, measured implementation of cancelable biometric templates and offline verifiable biometric credentials: including a published negative result and a published honest skip.                          |
 
 ## 1.10 Project Activity Planning
 
@@ -720,7 +717,7 @@ the version-control history: **379 commits** in the platform repository (62 in J
 ## 1.11 Definitions and Explanations of Terms
 
 **Active liveness.** A presentation-attack countermeasure that requires the subject
-to perform a challenged action — here, a head turn — proving a real, three-dimensional
+to perform a challenged action  (here, a head turn)  proving a real, three-dimensional
 person is present. Contrast with *passive liveness*.
 
 **Adaptive enrolment.** Folding confidently-matched live captures into a person's
@@ -735,8 +732,8 @@ not.
 producing embeddings in which cosine similarity separates identities well. Used here
 via the InsightFace `buffalo_l` / `buffalo_s` model packs.
 
-**Biometric template.** The stored mathematical representation of a biometric — here
-an embedding vector — never a photograph.
+**Biometric template.** The stored mathematical representation of a biometric, here
+an embedding vector,  never a photograph.
 
 **Buddy punching / proxy attendance.** One person recording presence on behalf of an
 absent other.
@@ -756,7 +753,7 @@ for face and 0.625 for palm.
 encoding a protected template plus issuer signature, expiry and revocation reference.
 
 **Crypto-erase.** Rendering data permanently unreadable by destroying the key rather
-than the ciphertext — used when offboarding a tenant, so that leftover copies and
+than the ciphertext: used when offboarding a tenant, so that leftover copies and
 backups become unrecoverable.
 
 **Embedding.** A fixed-length vector encoding a biometric's identity-bearing
@@ -766,8 +763,8 @@ be reconstructed from it.
 **Enrolment.** Registering a person by capturing their biometric and storing the
 resulting template under a `user_id`.
 
-**Entitlement.** Per-tenant commercial limits — enabled/disabled, plan, maximum keys,
-permitted roles — that gate API access.
+**Entitlement.** Per-tenant commercial limits  (enabled/disabled, plan, maximum keys,
+permitted roles)  that gate API access.
 
 **Fernet.** An authenticated symmetric encryption construction (AES-128-CBC with
 HMAC-SHA256) used for encryption at rest on the server.
@@ -804,10 +801,10 @@ verification burst, binding that burst to a specific challenge and preventing re
 **MediaPipe Hands.** Google's hand-landmark model, used to locate the palm and extract
 a normalised region of interest before encoding.
 
-**Modality.** Which biometric trait is used — here `face` or `palm`.
+**Modality.** Which biometric trait is used: here `face` or `palm`.
 
 **Modality router.** The component deciding, per image, whether it contains a face, a
-palm, or both, and dispatching to the correct profile — so callers never declare one.
+palm, or both, and dispatching to the correct profile, so callers never declare one.
 
 **Nonce.** A single-use value in a signed verdict; the demonstrator stores it under a
 unique database index, so the same signed verdict can never be counted twice.
@@ -816,7 +813,7 @@ unique database index, so the same signed verdict can never be counted twice.
 engine, used to run the same model weights on server CPU and on Android.
 
 **PAD (Presentation Attack Detection).** Countermeasures against artefacts presented
-to the sensor — photographs, screens, masks. See *active liveness*.
+to the sensor: photographs, screens, masks. See *active liveness*.
 
 **Protected template / protection domain.** A template held under a seeded orthogonal
 projection; templates in different domains cannot be matched against each other.
@@ -825,8 +822,8 @@ Changing the seed (*reissue*) cancels every previously exported copy.
 **PWA (Progressive Web Application).** A web application installable to a phone's home
 screen with offline caching via a service worker.
 
-**Reissue.** Moving every template to a new protection domain — a biometric password
-reset — without requiring anyone to re-enrol.
+**Reissue.** Moving every template to a new protection domain: a biometric password
+reset: without requiring anyone to re-enrol.
 
 **Tenant.** An isolated customer organisation with its own encrypted store, index,
 keys, settings, audit trail and usage accounting.
@@ -841,41 +838,40 @@ canonical landmark positions before embedding.
 one identity's stored template.
 
 **Verdict signature.** The HMAC over a verification outcome, allowing a downstream
-application to trust a result it did not compute — the mechanism on which the
+application to trust a result it did not compute: the mechanism on which the
 demonstrator's attendance integrity rests.
 
 ## 1.12 Structure of Report
 
-**Chapter 1 — Introduction** establishes the background of camera-only biometrics
+**Chapter 1: Introduction** establishes the background of camera-only biometrics
 and the documented exclusion failure of fingerprint-based identity, states the
 problem in eight parts, gives the aim, sets out five novel contributions, enumerates
 fifteen measurable objectives, bounds the scope, declares ten limitations honestly,
 argues academic and practical relevance, identifies beneficiaries, presents the
 schedule and risk register, and defines terminology.
 
-**Chapter 2 — Review of Related Systems** reviews five existing systems in depth —
-Aadhaar (UIDAI) biometric authentication, Amazon One palm recognition, AWS
+**Chapter 2: Review of Related Systems** reviews five existing systems in depth: Aadhaar (UIDAI) biometric authentication, Amazon One palm recognition, AWS
 Rekognition Face Liveness, Truein face-recognition attendance, and the KNUST
-Attendance application — each by description, architecture, modules, features,
+Attendance application: each by description, architecture, modules, features,
 underlying theory, development environment, good features, bad features and summary.
 It closes with a comparative matrix and the conceptual design of the proposed
 system, showing which reviewed weakness each design decision answers.
 
-**Chapter 3 — Methodology** presents the architecture of both the platform and the
+**Chapter 3: Methodology** presents the architecture of both the platform and the
 demonstrator, the requirements elicitation process, functional and non-functional
 requirements, the UML models (use case diagrams for front-end and back-end, activity
 diagrams, sequence diagrams and class diagrams), the users and their characteristics,
 the security concepts, the project method and the justification for the incremental
-process model, and the logical design — interface wireframes and database schemas.
+process model, and the logical design: interface wireframes and database schemas.
 
-**Chapter 4 — Implementation, Testing and Results** maps the logical design onto the
+**Chapter 4: Implementation, Testing and Results** maps the logical design onto the
 physical deployment platform, describes each implemented module and how the modules
-integrate — including the full third-party integration of Attendance-Verify — then
+integrate: including the full third-party integration of Attendance-Verify, then
 sets out the test plan, verification testing, validation testing and security
 testing, the recommendations testers made and the responses to them, and finally the
 measured results.
 
-**Chapter 5 — Findings, Conclusions and Recommendations** states what was found,
+**Chapter 5: Findings, Conclusions and Recommendations** states what was found,
 concludes against the objectives of Sec.1.5, records the challenges encountered and the
 lessons learnt, recommends future work, and lists the references.
 
@@ -883,17 +879,17 @@ lessons learnt, recommends future work, and lists the references.
 
 ---
 
-# CHAPTER 2 — REVIEW OF RELATED SYSTEMS
+# CHAPTER 2: REVIEW OF RELATED SYSTEMS
 
 Five existing systems were selected for review because between them they define the
 design space this project occupies. **Aadhaar** is the largest deployed biometric
 identity programme in the world and the clearest documented case of the exclusion
 problem this project exists to solve. **Amazon One** is the most accurate deployed
-contactless palm system and shows what palm biometrics can achieve — and what
+contactless palm system and shows what palm biometrics can achieve, and what
 hardware dependence costs. **AWS Rekognition** represents the cloud face-verification
 API model, the closest commercial analogue to this project's `/v1` service.
 **Truein** is a commercial face-recognition attendance product combining face
-matching with GPS geofencing — the exact product category of the demonstrator.
+matching with GPS geofencing: the exact product category of the demonstrator.
 **KNUST Attendance** is the specific application whose flow the demonstrator clones,
 and whose PIN-based presence proof it replaces.
 
@@ -903,14 +899,14 @@ and a summary.
 
 ---
 
-## 2.1 Review of System 1 — Aadhaar (UIDAI Biometric Authentication, India)
+## 2.1 Review of System 1: Aadhaar (UIDAI Biometric Authentication, India)
 
 ### 2.1.1 Description of system
 
 Aadhaar is India's national biometric identity programme, operated by the Unique
 Identification Authority of India (UIDAI). It assigns each resident a 12-digit
-identity number linked to demographic data and biometrics — **ten fingerprints, two
-iris scans and a facial photograph** — captured at enrolment. Aadhaar is not itself a
+identity number linked to demographic data and biometrics (**ten fingerprints, two
+iris scans and a facial photograph**) captured at enrolment. Aadhaar is not itself a
 service; it is an identity *substrate* against which other services authenticate.
 Banks, telecom operators, the Public Distribution System (subsidised food rations),
 the Mahatma Gandhi National Rural Employment Guarantee Scheme, pension schemes and
@@ -966,7 +962,7 @@ AUAs and ASAs may connect.
 | Registered Device framework           | Sensor-level encryption and device certification, added to counter replay of captured biometric packets                                |
 | Aadhaar-enabled Payment System (AePS) | Micro-ATM banking transactions authenticated by fingerprint                                                                            |
 | Face Authentication (added later)     | Face-based authentication introduced explicitly to mitigate fingerprint failure                                                        |
-| mAadhaar / Offline eKYC (XML/QR)      | A signed, offline-verifiable demographic document — notably**without** a biometric match                                        |
+| mAadhaar / Offline eKYC (XML/QR)      | A signed, offline-verifiable demographic document: notably**without** a biometric match                                        |
 
 ### 2.1.4 Features of the system
 
@@ -994,9 +990,9 @@ AUAs and ASAs may connect.
 ### 2.1.6 Development tools and development environment
 
 Aadhaar's backend is built predominantly on **Java** running on commodity Linux
-clusters, using open-source distributed infrastructure — Hadoop/HDFS for storage,
+clusters, using open-source distributed infrastructure  (Hadoop/HDFS for storage,
 HBase and MySQL for structured data, Solr/Lucene for search, and messaging middleware
-for the authentication pipeline — deliberately assembled from open components to
+for the authentication pipeline)  deliberately assembled from open components to
 avoid vendor lock-in at national scale. Biometric matching is performed by
 **proprietary third-party ABIS engines** integrated behind an abstraction layer.
 Client-side enrolment and authentication SDKs are distributed for Java, Windows and
@@ -1010,11 +1006,11 @@ Android, and the device layer is governed by STQC certification.
 - **De-duplication genuinely works.** Population-scale 1:N de-duplication has removed
   large numbers of ghost and duplicate beneficiaries from welfare rolls.
 - **A real API ecosystem.** By exposing authentication and eKYC as services, UIDAI
-  enabled an entire industry of downstream applications — the same architectural
+  enabled an entire industry of downstream applications: the same architectural
   insight this project adopts with its `/v1` API.
 - **Offline eKYC shows the right instinct.** A signed, self-contained artefact the
   resident carries, verifiable without contacting the authority, is precisely the
-  right primitive for low-connectivity environments — and directly inspired this
+  right primitive for low-connectivity environments, and directly inspired this
   project's credential design.
 - **Sensor-level encryption and device registration.** The Registered Device
   framework is a serious response to the replay threat.
@@ -1023,7 +1019,7 @@ Android, and the device layer is governed by STQC certification.
 
 ### 2.1.8 Review of the bad features
 
-- **Structural exclusion — the defining flaw.** The authentication failure rate has
+- **Structural exclusion: the defining flaw.** The authentication failure rate has
   remained at approximately **6.5%** for a decade (success 93.5–95%), producing
   roughly **20.3 million failed authentications per month**. Failures concentrate at
   **6–12% among agricultural, construction and domestic workers** whose ridges are
@@ -1055,7 +1051,7 @@ Android, and the device layer is governed by STQC certification.
 ### 2.1.9 Summary of the system review
 
 Aadhaar demonstrates that biometric identity can operate at national scale and that
-exposing it as an API creates an ecosystem — two lessons this project adopts
+exposing it as an API creates an ecosystem: two lessons this project adopts
 directly. It equally demonstrates the cost of three decisions this project inverts:
 choosing a **contact modality that wears out on working hands**, requiring a
 **live connection to a central matcher**, and storing **irrevocable** templates. Its
@@ -1066,7 +1062,7 @@ project's problem statement.
 
 ---
 
-## 2.2 Review of System 2 — Amazon One (Contactless Palm Recognition)
+## 2.2 Review of System 2: Amazon One (Contactless Palm Recognition)
 
 ### 2.2.1 Description of system
 
@@ -1155,8 +1151,8 @@ accuracy and its hardware dependency.
 - **Palm-print recognition**: identity from principal lines, wrinkles and ridge
   texture of the palmar surface.
 - **Palm-vein (subcutaneous vascular) biometrics**: near-infrared light is absorbed by
-  deoxygenated haemoglobin, rendering the vein network as a stable, internal — and
-  therefore inherently spoof-resistant — pattern.
+  deoxygenated haemoglobin, rendering the vein network as a stable, internal, and
+  therefore inherently spoof-resistant,  pattern.
 - **Multi-spectral fusion**: combining an external and an internal trait, which both
   raises accuracy and provides intrinsic liveness (a printed palm has no veins).
 - **Vector embedding and nearest-neighbour identification** in a learned space.
@@ -1173,8 +1169,7 @@ public API, no published model, no self-hosting path.
 
 ### 2.2.7 Review of the good features
 
-- **It proves the palm is a first-class biometric.** The reported operating point —
-  no observed false positive across millions of interactions — is the strongest
+- **It proves the palm is a first-class biometric.** The reported operating point, no observed false positive across millions of interactions,  is the strongest
   public validation that palm biometrics can carry high-assurance decisions, and it
   directly justifies this project's choice of palm as its second modality.
 - **Genuinely contactless and hygienic**, with a natural hover gesture that requires
@@ -1185,24 +1180,24 @@ public API, no published model, no self-hosting path.
 - **Generative augmentation for robustness** is a genuine methodological
   contribution, and an honest acknowledgement that collected biometric data
   under-represents real conditions.
-- **Remote enrolment from a phone camera** — added later — is a tacit admission that
+- **Remote enrolment from a phone camera**, added later,  is a tacit admission that
   the enrolment hardware requirement was a barrier, and evidence that camera-based
   palm capture is viable.
 - **Explicit deletion** treats biometric data as the liability it is.
 
 ### 2.2.8 Review of the bad features
 
-- **Dedicated hardware at every point of use — the disqualifying constraint.** The
+- **Dedicated hardware at every point of use: the disqualifying constraint.** The
   NIR vein imaging that produces the accuracy is exactly what makes the system
   undeployable in the environments this project targets. A rural clinic or a Ghanaian
   lecture hall cannot install a custom multi-spectral reader; it already has phones.
 - **Cloud dependency.** Matching is remote, so the system does not function offline.
 - **Wholly proprietary and closed.** No API, no SDK, no self-hosting, no published
   evaluation methodology. The 99.9999% figure is a vendor claim on an undisclosed
-  protocol and population, not an independently reproducible measurement — a
+  protocol and population, not an independently reproducible measurement: a
   contrast this project answers with a public benchmark harness and honest skips.
 - **Single-modality by trait.** Despite fusing two spectra, it reads only the hand.
-  A person whose palm cannot be imaged — bandaging, injury, certain disabilities —
+  A person whose palm cannot be imaged  (bandaging, injury, certain disabilities)
   has no alternative. There is no face fallback.
 - **Irrevocable signature.** No published cancelable-template or reissue mechanism;
   a compromised palm signature cannot be reset.
@@ -1226,13 +1221,12 @@ vendor-controlled**, a risk realised concretely when the service was withdrawn i
 2026 and enrolments deleted. This project pursues the same contactless, hygienic,
 palm-based verification using **only the camera already present in a commodity
 phone**, pairs it with a **face fallback** so that no single trait can exclude a
-person, runs it **offline and self-hosted**, and makes every template **cancelable** —
-accepting a lower accuracy ceiling in exchange for deployability, inclusion and
+person, runs it **offline and self-hosted**, and makes every template **cancelable**: accepting a lower accuracy ceiling in exchange for deployability, inclusion and
 institutional control.
 
 ---
 
-## 2.3 Review of System 3 — AWS Rekognition (Face Liveness & Face Comparison)
+## 2.3 Review of System 3: AWS Rekognition (Face Liveness & Face Comparison)
 
 ### 2.3.1 Description of system
 
@@ -1240,7 +1234,7 @@ Amazon Rekognition is AWS's managed computer-vision service. Its face capabiliti
 are the closest commercial analogue to this project's `/v1` API: an application
 sends images or short videos to a hosted endpoint and receives face detection,
 1:1 comparison (`CompareFaces`), collection-based 1:N search (`IndexFaces`,
-`SearchFacesByImage`, `SearchUsersByImage`), and **Face Liveness** — a
+`SearchFacesByImage`, `SearchUsersByImage`), and **Face Liveness**: a
 presentation-attack check that analyses a short selfie video to determine whether a
 real person is present rather than a photograph, replayed video, 3D mask or deepfake.
 
@@ -1251,8 +1245,8 @@ while Face Liveness establishes that the selfie came from a live person.
 Pricing is per call. Face Liveness is billed at **US$0.015 per check**, separately
 from the tiered pricing of the other face APIs. As of **30 April 2026**, Streaming
 Events and Batch Image Content Moderation entered maintenance mode and are closed to
-new customers, while the core APIs — `DetectLabels`, `DetectFaces`, `CompareFaces`,
-`DetectText`, `DetectModerationLabels`, Custom Labels and Face Liveness — remain
+new customers, while the core APIs  (`DetectLabels`, `DetectFaces`, `CompareFaces`,
+`DetectText`, `DetectModerationLabels`, Custom Labels and Face Liveness)  remain
 fully supported.
 
 ### 2.3.2 Architecture of the system
@@ -1307,23 +1301,23 @@ run the models locally.
 ### 2.3.5 Theories, concepts and models employed
 
 - **Deep CNN face embedding** with similarity-threshold decisioning.
-- **Face collections as vector indexes** — the same architectural primitive as this
+- **Face collections as vector indexes**: the same architectural primitive as this
   project's per-tenant index, hosted rather than self-managed.
 - **Challenge–response active liveness**: guided head/face movement and a screen
   colour sequence whose reflection off the face is analysed for consistency with a
-  real three-dimensional surface — the same family of countermeasure as this
+  real three-dimensional surface: the same family of countermeasure as this
   project's head-turn challenge.
 - **Managed-service abstraction**: the customer supplies data and consumes a verdict;
   thresholds, models and tuning are the provider's concern.
 - **Multi-vector identity modelling**: several faces per user improve recall under
-  pose and ageing variation — analogous to this project's anchors-plus-adaptive
+  pose and ageing variation: analogous to this project's anchors-plus-adaptive
   template.
 
 ### 2.3.6 Development tools and development environment
 
 The service itself is proprietary, built on AWS's internal deep-learning
 infrastructure. Consumption is through the **AWS SDKs** (Python/boto3, JavaScript,
-Java, .NET, Go and others), the AWS CLI, CloudFormation/CDK for provisioning, and
+Java,.NET, Go and others), the AWS CLI, CloudFormation/CDK for provisioning, and
 the **Amplify UI** libraries for React, SwiftUI and Jetpack Compose liveness capture.
 Development is done against live AWS endpoints with IAM credentials; there is no
 local emulator for the face models.
@@ -1340,7 +1334,7 @@ local emulator for the face models.
 - **Zero operational burden and elastic scale.** No models to host, no index to
   maintain, no capacity planning.
 - **Excellent developer experience.** Multi-language SDKs, drop-in UI components and
-  thorough documentation make integration genuinely fast — a standard this project
+  thorough documentation make integration genuinely fast: a standard this project
   attempts to meet with its Python and JavaScript SDKs, OpenAPI specification and
   sandbox key.
 - **Enterprise security and governance** through IAM, KMS and CloudTrail.
@@ -1355,7 +1349,7 @@ local emulator for the face models.
   project, this alone is disqualifying.
 - **Per-call cost that scales with usage.** At US$0.015 per liveness check, a
   university verifying 5,000 students twice per class, three classes per week, incurs
-  roughly US$450 per week in liveness charges alone — before comparison calls. For
+  roughly US$450 per week in liveness charges alone: before comparison calls. For
   a public university or a welfare programme in Ghana this is not affordable at
   scale, whereas this project's marginal cost per verification is effectively zero.
 - **No palm modality.** Face only. Every face-only system inherits the face's failure
@@ -1385,18 +1379,18 @@ and validates both this project's protocol design and its decision to ship SDKs 
 an OpenAPI specification. Its weaknesses are, however, structural for the target
 context: it is **online-only**, **billed per call**, **face-only**, **opaque**, and
 **offshore**. This project replicates the API ergonomics that make Rekognition
-pleasant to integrate while inverting each of those five properties — offline-capable,
+pleasant to integrate while inverting each of those five properties: offline-capable,
 zero marginal cost, dual-modality, threshold-transparent, and self-hostable inside
 the jurisdiction that regulates the data.
 
 ---
 
-## 2.4 Review of System 4 — Truein (Face Recognition Attendance with Geofencing)
+## 2.4 Review of System 4: Truein (Face Recognition Attendance with Geofencing)
 
 ### 2.4.1 Description of system
 
 Truein is a commercial cloud time-and-attendance product built specifically for
-contractual, distributed and multi-site workforces — facility management, security
+contractual, distributed and multi-site workforces: facility management, security
 services, construction, manufacturing and field teams. Employees mark attendance by
 taking a selfie on a phone or at a shared tablet kiosk; the system matches the face
 against the enrolled employee, checks that the device is inside a configured
@@ -1435,7 +1429,7 @@ and physical clocks.
 ```
 
 Notably, the client **queues face-and-GPS-verified entries locally when the network
-is unavailable and synchronises automatically when connectivity returns** — a
+is unavailable and synchronises automatically when connectivity returns**: a
 pragmatic concession to real site conditions, though matching itself remains a cloud
 function.
 
@@ -1491,8 +1485,8 @@ published biometric SDK for third-party use.
   commercial traction validates the design.
 - **No hardware.** Running on the phones and tablets an organisation already owns is
   the right economic model, and it is the same reasoning behind this project.
-- **Kiosk mode is the right answer for shared devices.** Many workers — and many
-  students — do not have a suitable personal phone. A walk-up shared device that
+- **Kiosk mode is the right answer for shared devices.** Many workers, and many
+  students,  do not have a suitable personal phone. A walk-up shared device that
   identifies the person is strictly better than passing a logged-in handset around.
   This project's demonstrator implements the same idea and takes it further by using
   **1:N identification with an identify-margin guard**, so that nothing at all is
@@ -1507,8 +1501,8 @@ published biometric SDK for third-party use.
 
 ### 2.4.8 Review of the bad features
 
-- **Face only.** A worker whose face cannot be imaged — heavy PPE, welding masks,
-  religious face covering, facial injury — has no alternative modality. In precisely
+- **Face only.** A worker whose face cannot be imaged  (heavy PPE, welding masks,
+  religious face covering, facial injury)  has no alternative modality. In precisely
   the industrial settings Truein targets, face occlusion is common. This project's
   palm fallback addresses that gap directly.
 - **Offline capture is not offline verification.** Queueing a punch is not the same as
@@ -1526,14 +1520,14 @@ published biometric SDK for third-party use.
 - **No cancelable templates.** No published reissue or template-protection mechanism.
 - **GPS spoofing is unaddressed.** Geofencing rests on the device's self-reported
   position; a rooted device with a mock-location provider defeats it. (This project
-  shares the underlying weakness — see L7 — but mitigates it with a GPS-accuracy
+  shares the underlying weakness, see L7,  but mitigates it with a GPS-accuracy
   floor, a server-authoritative evaluation, a two-window START/END requirement, and a
   biometric bound to the specific individual.)
 - **No verdict signing.** A downstream payroll system receives an assertion it must
   simply trust; there is no cryptographic evidence that the attendance record
   originated from a genuine biometric match. This project signs every verdict with
   HMAC-SHA256 and the consuming application independently validates it before writing
-  a record — which is the single most important structural difference between the two.
+  a record, which is the single most important structural difference between the two.
 - **Per-employee subscription cost** recurring indefinitely.
 - **Attendance-specific.** The biometric capability is locked inside one product; it
   cannot be reused for examinations, welfare, clinics or access control.
@@ -1541,8 +1535,8 @@ published biometric SDK for third-party use.
 ### 2.4.9 Summary of the system review
 
 Truein confirms the commercial and operational validity of the demonstrator's
-design — face recognition plus geofencing plus device binding on commodity phones,
-with a shared kiosk mode for workers without handsets — and its emphasis on offline
+design  (face recognition plus geofencing plus device binding on commodity phones,
+with a shared kiosk mode for workers without handsets)  and its emphasis on offline
 tolerance and payroll integration reflects genuine field experience. Its limits are
 those of a closed, face-only SaaS product: no second modality for occluded faces, a
 verification decision that is still made in the cloud, no auditable liveness protocol,
@@ -1554,7 +1548,7 @@ by the consuming application.
 
 ---
 
-## 2.5 Review of System 5 — KNUST Attendance (PIN-Based Geofenced Attendance)
+## 2.5 Review of System 5: KNUST Attendance (PIN-Based Geofenced Attendance)
 
 ### 2.5.1 Description of system
 
@@ -1567,13 +1561,13 @@ physically present in the lecture venue.
 Its documented behaviour establishes the reference flow this project's demonstrator
 clones:
 
-- **Real-time location verification** — students may check in when they are within
+- **Real-time location verification**, students may check in when they are within
   **70 metres** of the class location.
-- **Smart validation** — students must **mark attendance twice per session** for full
+- **Smart validation**,  students must **mark attendance twice per session** for full
   validation.
-- **Device binding** — attendance is tied to a user's device, preventing unauthorised
+- **Device binding**  (attendance is tied to a user's device, preventing unauthorised
   multiple logins.
-- **Anti-proxy geolocation** — real-time geolocation is used to prevent proxy
+- **Anti-proxy geolocation**)  real-time geolocation is used to prevent proxy
   check-ins.
 
 Later releases (version 4.4.2) added identification of students using different
@@ -1640,8 +1634,7 @@ enters to mark attendance.
   device *and* know the session PIN.
 - **Spatial authorisation** via a circular geofence and haversine distance.
 - **Temporal sampling of presence**: requiring two marks separated in time
-  approximates presence for the duration of the class rather than at a single instant
-  — a genuinely good idea, and one this project preserves and strengthens.
+  approximates presence for the duration of the class rather than at a single instant: a genuinely good idea, and one this project preserves and strengthens.
 - **Device binding as an identity proxy**: the device stands in for the person.
 - **Behavioural reinforcement** through streaks and gamification.
 
@@ -1658,7 +1651,7 @@ commercial vendor.
 - **The flow is well designed and fits the institution.** Sign in, see what is live
   near you, mark, see your history. The demonstrator clones it deliberately because
   the interaction model is correct and familiar to students.
-- **The 70 m geofence is well chosen** — generous enough for GPS error and large
+- **The 70 m geofence is well chosen**: generous enough for GPS error and large
   lecture theatres, tight enough to exclude a neighbouring building.
 - **Two marks per session is the single strongest anti-fraud idea in the system.**
   It converts attendance from an instantaneous event into an interval, defeating the
@@ -1674,7 +1667,7 @@ commercial vendor.
 
 ### 2.5.8 Review of the bad features
 
-- **The PIN is a shared secret, and shared secrets do not prove presence — this is the
+- **The PIN is a shared secret, and shared secrets do not prove presence: this is the
   system's defining flaw.** The presence token is a number. Anything that can be
   known can be transmitted, and every property the rest of the system establishes is
   nullified by that one fact:
@@ -1682,7 +1675,7 @@ commercial vendor.
   | Attack                                                         | Why the PIN fails                                                                                               |
   | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
   | The lecturer's PIN is posted in a class WhatsApp group         | Every student in the group can mark, present or not                                                             |
-  | A friend inside the hall messages the PIN to an absent student | The absent student marks from anywhere — the geofence is the only remaining barrier, and it is the weakest one |
+  | A friend inside the hall messages the PIN to an absent student | The absent student marks from anywhere: the geofence is the only remaining barrier, and it is the weakest one |
   | One student marks for several friends on their handsets        | Nothing binds a mark to a specific person                                                                       |
   | A student marks and immediately leaves                         | Partially addressed by the two-mark rule, but both marks are still just the number                              |
   | A PIN screenshot circulates after class                        | The PIN has no cryptographic binding to time, place or person                                                   |
@@ -1713,14 +1706,14 @@ commercial vendor.
 KNUST Attendance gets the *application* right and the *proof* wrong. Its flow,
 its 70 m geofence, its two-marks-per-session rule and its device binding are sound,
 field-tested design decisions that this project's demonstrator adopts almost
-unchanged — deliberately, so that the comparison isolates a single variable. That
+unchanged: deliberately, so that the comparison isolates a single variable. That
 variable is the presence proof. A lecturer-generated PIN is a shared secret, and a
 shared secret can be forwarded; consequently the system records that *someone who
 knew a number was somewhere*, not that *a particular student was in the room*. The
 demonstrator substitutes exactly one thing: a live face or palm capture whose
 HMAC-signed verdict the attendance backend independently validates before writing a
-record. Everything else — sign-in, 70 m geofence, two marks, device binding,
-history — is preserved, so any improvement measured is attributable to the
+record. Everything else  (sign-in, 70 m geofence, two marks, device binding,
+history)  is preserved, so any improvement measured is attributable to the
 substitution alone.
 
 ---
@@ -1731,21 +1724,21 @@ substitution alone.
 | ----------------------------------- | -------------------------------------- | ------------------------ | --------------------------- | -------------------------- | ---------------- | ------------------------------------------------- |
 | Primary modality                    | Fingerprint (+iris, face)              | Palm surface + vein      | Face                        | Face                       | None (PIN)       | **Face + palm**                             |
 | Second modality if the first fails  | Added later, as mitigation             | None                     | None                        | None                       | n/a              | **Yes, by design, auto-routed**             |
-| Dedicated hardware required         | Yes (certified sensors)                | Yes (NIR reader)         | No (any camera)             | No                         | No               | **No — commodity camera**                  |
+| Dedicated hardware required         | Yes (certified sensors)                | Yes (NIR reader)         | No (any camera)             | No                         | No               | **No: commodity camera**                  |
 | Works fully offline                 | No                                     | No                       | No                          | Capture only, not decision | Partially        | **Yes (on-device flavour)**                 |
 | Presentation-attack countermeasure  | Device certification                   | Intrinsic (vein imaging) | Face Liveness (challenge)   | Undocumented               | n/a              | **Active head-turn + anti-splice**          |
-| Cancelable / revocable template     | No                                     | No                       | No                          | No                         | n/a              | **Yes — reissue, no re-enrolment**         |
-| Portable offline credential         | Demographic only, no biometric binding | No                       | No                          | No                         | No               | **Yes — signed QR + live match**           |
+| Cancelable / revocable template     | No                                     | No                       | No                          | No                         | n/a              | **Yes: reissue, no re-enrolment**         |
+| Portable offline credential         | Demographic only, no biometric binding | No                       | No                          | No                         | No               | **Yes: signed QR + live match**           |
 | On-device 1:N identification        | No                                     | No                       | No                          | No                         | n/a              | **Yes (Glance)**                            |
-| Cryptographically signed verdict    | Within the protocol                    | n/a                      | No                          | No                         | No               | **Yes — HMAC, integrator-verified**        |
-| Self-hostable / data sovereignty    | State-operated, centralised            | No                       | No                          | No                         | Institutional    | **Yes — fully self-hostable**              |
+| Cryptographically signed verdict    | Within the protocol                    | n/a                      | No                          | No                         | No               | **Yes: HMAC, integrator-verified**        |
+| Self-hostable / data sovereignty    | State-operated, centralised            | No                       | No                          | No                         | Institutional    | **Yes: fully self-hostable**              |
 | Open API for third-party products   | Yes (regulated)                        | No                       | Yes                         | Limited                    | No               | **Yes, documented + SDKs**                  |
 | Marginal cost per verification      | State-borne                            | Vendor-borne             | US$0.015 per liveness check | Per-seat subscription      | Zero             | **Effectively zero**                        |
-| Published, reproducible evaluation  | Partial                                | Vendor claim only        | Vendor claim only           | Vendor claim only          | No               | **Yes — benchmark harness + honest skips** |
+| Published, reproducible evaluation  | Partial                                | Vendor claim only        | Vendor claim only           | Vendor claim only          | No               | **Yes: benchmark harness + honest skips** |
 | Binds a presence record to a person | Yes                                    | Yes                      | Yes                         | Yes                        | **No**     | **Yes**                                     |
 
 Three conclusions follow. First, **no reviewed system offers a second modality as a
-first-class inclusion path** — every one of them inherits its chosen trait's failure
+first-class inclusion path**: every one of them inherits its chosen trait's failure
 population, which is exactly the mechanism that excludes 2–5% of Aadhaar's residents.
 Second, **no reviewed system offers cancelable templates**, so every one of them is
 accumulating a permanent, unresettable liability. Third, **the systems that are
@@ -1828,7 +1821,7 @@ comparison isolates one variable.
 | Marks per session        | Two                              | Two, made explicit as**START and END phases**, with an admin-opened END window                 |
 | Device binding           | One active device                | Enrolment-device binding; re-enrolment requires an admin one-time code                               |
 | Students without a phone | Hand over credentials            | **Kiosk mode**: shared device, 1:N identification, nothing typed or spoken                     |
-| Replay of a proof        | PIN reusable by anyone           | **Signature nonce unique in the database** — a signed verdict counts exactly once             |
+| Replay of a proof        | PIN reusable by anyone           | **Signature nonce unique in the database**: a signed verdict counts exactly once             |
 | Audit                    | Not exposed                      | Per-mark score, distance, modality, timestamp; admin action audit log                                |
 | Record output            | Attendance list                  | Register**and** full per-mark detail, on screen and as CSV, naming students who never enrolled |
 
@@ -1840,7 +1833,7 @@ their own live face.
 
 ---
 
-# CHAPTER 3 — METHODOLOGY
+# CHAPTER 3: METHODOLOGY
 
 ## 3.1 Introduction
 
@@ -1848,13 +1841,13 @@ This chapter sets out how the Mobile Contactless Face & Palm Verification System
 engineered: its architecture, how its requirements were obtained, what those
 requirements are, how the system is modelled in UML, who its users are, what security
 concepts govern it, which software process was used and why, and the logical designs
-— interface and database — that Chapter 4 maps onto physical infrastructure.
+, interface and database,  that Chapter 4 maps onto physical infrastructure.
 
 Two systems are described throughout, and the distinction matters:
 
-- **The platform** — the verification service itself (`contactless-fingerprint-system`),
+- **The platform**  (the verification service itself (`contactless-fingerprint-system`),
   which is the project's primary deliverable.
-- **The demonstrator** — Attendance-Verify, an independent application built against
+- **The demonstrator**)  Attendance-Verify, an independent application built against
   the platform's public API, which is the project's integration proof.
 
 Where a section applies to only one, it says so. Diagrams are given in **Mermaid**
@@ -1869,16 +1862,16 @@ The platform is a **layered, modular monolith** exposing a **versioned REST API*
 with a **modality-plugin** structure at its recognition layer and a
 **multi-tenant** data layer. Four decisions define it.
 
-**A modular monolith, not microservices.** Every request that matters — enrol,
-verify, identify — needs the model in memory and the index in memory. Splitting those
+**A modular monolith, not microservices.** Every request that matters  (enrol,
+verify, identify)  needs the model in memory and the index in memory. Splitting those
 across services would introduce a network hop into the hot path and a second copy of
 a 90 MB model, purchasing operational complexity with latency. The module boundaries
 are enforced by package structure and dependency direction rather than by process
 boundaries, which preserves the option to split later without paying for it now.
 
 **A modality-agnostic core with modality profiles.** Rather than writing a face
-system and then a palm system, the generic machinery — store, index, matcher,
-crypto, protection — was extracted to operate on `(user_id, embedding)` plus cosine
+system and then a palm system, the generic machinery  (store, index, matcher,
+crypto, protection)  was extracted to operate on `(user_id, embedding)` plus cosine
 similarity, parameterised by a `Profile` carrying the embedding dimension,
 thresholds, storage directory and liveness policy. Face and palm are two profiles.
 Adding a third modality means adding a profile and an encoder, not a subsystem.
@@ -1894,7 +1887,7 @@ encrypted index and its own encryption key. Isolation is therefore a property of
 where the bytes are, not of a `WHERE tenant_id = ?` clause that a future query might
 forget.
 
-### 3.2.2 Platform architecture — layered view
+### 3.2.2 Platform architecture: layered view
 
 ```mermaid
 graph TB
@@ -1934,7 +1927,7 @@ graph TB
     PWA --> MW
     ADM --> MW
     POR --> MW
-    AND -. "hybrid sync only" .-> MW
+    AND -. "hybrid sync only".-> MW
     TP --> MW
     MW --> V1 --> AUTH --> TEN
     V1 --> ROUTER
@@ -1953,7 +1946,7 @@ graph TB
     V1 --> KEYS
 ```
 
-**ASCII equivalent — the two products sharing one core:**
+**ASCII equivalent: the two products sharing one core:**
 
 ```
                     ┌───────────────────────────────────────────┐
@@ -2063,9 +2056,9 @@ cannot be re-evaluated when circumstances change.
 ### 3.3.1 Literature and incident analysis
 
 The primary source of the problem requirements was documented failure in deployed
-systems. Published reporting on Aadhaar authentication — a decade-stable ~6.5%
+systems. Published reporting on Aadhaar authentication  (a decade-stable ~6.5%
 failure rate, ~20.3 million monthly failures, 6–12% failure among manual workers,
-2–5% structural exclusion — established **FR-01 (dual modality)** and
+2–5% structural exclusion)  established **FR-01 (dual modality)** and
 **NFR-INC-01 (inclusion)** as hard requirements rather than nice-to-haves. Studies
 of biometric template compromise established **FR-19 (cancelable templates)**.
 
@@ -2073,8 +2066,8 @@ of biometric template compromise established **FR-19 (cancelable templates)**.
 
 The five systems reviewed in Chapter 2 were analysed feature-by-feature. Each
 identified weakness was converted into a design principle (Sec.2.7.1) and each design
-principle into one or more requirements. The offline-eKYC gap in Aadhaar — a signed
-artefact with no biometric binding — produced **FR-22** (credential verification
+principle into one or more requirements. The offline-eKYC gap in Aadhaar, a signed
+artefact with no biometric binding,  produced **FR-22** (credential verification
 must require a live capture).
 
 ### 3.3.3 Prototyping and experimental measurement
@@ -2113,7 +2106,7 @@ versioned consent pinned to the SHA-256 of the exact text agreed), the subject-r
 requirements (**FR-25**, access/export, erasure, portability) and the security
 requirement (**NFR-SEC-01**, encryption at rest with per-tenant keys).
 
-### 3.3.6 Integration-driven elicitation — the most productive technique
+### 3.3.6 Integration-driven elicitation: the most productive technique
 
 The single most effective elicitation method was **building a complete second
 product against the platform's own public API, deliberately as an outsider**. The
@@ -2123,8 +2116,8 @@ this way, including one that caused a shipped bug. Each became a requirement:
 
 | Discovered by integrating                                                                                                             | Requirement produced                                                                                                                                         |
 | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| An unretryable refusal ("this face belongs to another identity") was indistinguishable from a retryable one ("unusable photo")        | **FR-12**: the enrolment envelope must state its own verdict — `code`, `hint`, `conflict_user_id`, with `duplicate` outranking other failures |
-| The cross-user duplicate guard ran on`/v1/enroll` but not by default on `/v1/enroll/bulk` — and bulk is where nobody is watching | **FR-13**: bulk de-duplication defaults to on                                                                                                          |
+| An unretryable refusal ("this face belongs to another identity") was indistinguishable from a retryable one ("unusable photo")        | **FR-12**: the enrolment envelope must state its own verdict: `code`, `hint`, `conflict_user_id`, with `duplicate` outranking other failures |
+| The cross-user duplicate guard ran on`/v1/enroll` but not by default on `/v1/enroll/bulk`, and bulk is where nobody is watching | **FR-13**: bulk de-duplication defaults to on                                                                                                          |
 | Integrators had to mirror enrolment state locally, and the mirror drifted, so genuinely enrolled people were told to enrol again      | **FR-14**: `GET /v1/users/{id}` answers authoritatively for one person; `GET /v1/users` returns the modality map                                   |
 | Cohort imports were bounded by gateway timeouts                                                                                       | **FR-15**: queued bulk enrolment with a durable, leased job and progress polling                                                                       |
 | Every integrator was reinventing replay protection                                                                                    | **FR-16**: verdict signatures may be bound to their liveness token and request id                                                                      |
@@ -2160,7 +2153,7 @@ platform as a vendor.**
 | FR-16 | Verdict signatures shall optionally be bound to the liveness token and request id that produced them.                                                                                                | Should   |
 | FR-17 | The system shall expose the thresholds actually in force to authenticated callers.                                                                                                                   | Must     |
 | FR-18 | Idempotency keys shall distinguish operations by modality.                                                                                                                                           | Must     |
-| FR-19 | The system shall hold templates in a protected (cancelable) domain and shall support reissue — organisation-wide or per person — without requiring re-enrolment.                                   | Must     |
+| FR-19 | The system shall hold templates in a protected (cancelable) domain and shall support reissue, organisation-wide or per person,  without requiring re-enrolment.                                   | Must     |
 | FR-20 | The system shall issue signed, expiring, revocable QR credentials for an enrolled person.                                                                                                            | Must     |
 | FR-21 | The system shall verify a credential entirely offline: signature, expiry, revocation and a live biometric match inside the credential's own protection domain.                                       | Must     |
 | FR-22 | Credential verification shall require a live capture of the presenter; the credential alone shall never suffice.                                                                                     | Must     |
@@ -2169,7 +2162,7 @@ platform as a vendor.**
 | FR-25 | The system shall export what is held about a person, delete one or many people, and purge a whole tenant.                                                                                            | Must     |
 | FR-26 | The system shall record versioned consent pinned to the hash of the exact statement agreed; withdrawal shall block verification, revoke issued credentials and exclude the person from every export. | Must     |
 | FR-27 | The system shall support audited guardian proxy verification (`on_behalf_of`).                                                                                                                     | Could    |
-| FR-28 | The system shall apply post-match gates — guest expiry, consent standing, scheduled access policy — strictly after the biometric decision, narrowing but never widening a match.                   | Should   |
+| FR-28 | The system shall apply post-match gates  (guest expiry, consent standing, scheduled access policy)  strictly after the biometric decision, narrowing but never widening a match.                   | Should   |
 | FR-29 | The system shall register kiosk devices with single-use pairing codes, per-device keys, heartbeats and remote disable.                                                                               | Could    |
 | FR-30 | A native Android build shall perform enrol, verify, credential check and Glance entirely on-device, with a flavour holding no INTERNET permission.                                                   | Must     |
 | FR-31 | Creating an API key shall also return a sandbox key against the same contract.                                                                                                                       | Should   |
@@ -2195,7 +2188,7 @@ platform as a vendor.**
 | FR-D12 | The system shall reconcile its cached enrolment state against the biometric service, so that a genuinely enrolled student is never told to enrol again.                                                        | Must     |
 | FR-D13 | An administrator shall create courses, students and geofenced sessions; open the END window; and extend a running session.                                                                                     | Must     |
 | FR-D14 | An administrator shall bulk-import a cohort's biometrics from a folder organised one sub-folder per student ID.                                                                                                | Should   |
-| FR-D15 | The system shall produce the end-of-semester record in two shapes — a register and per-mark detail — on screen and as CSV, naming students who never enrolled.                                               | Must     |
+| FR-D15 | The system shall produce the end-of-semester record in two shapes, a register and per-mark detail,  on screen and as CSV, naming students who never enrolled.                                               | Must     |
 | FR-D16 | The system shall record and allow withdrawal of consent, and expose a data-subject page.                                                                                                                       | Must     |
 | FR-D17 | Every administrative action altering an academic record shall be written to an audit log with actor, action, target and address.                                                                               | Must     |
 | FR-D18 | The system shall read the biometric tenant's configured thresholds and report whether the locally configured floor is a real additional margin or inert configuration.                                         | Should   |
@@ -2244,7 +2237,7 @@ platform as a vendor.**
 
 ## 3.6 UML Diagrams
 
-### 3.6.1 Use case diagram — front-end models
+### 3.6.1 Use case diagram: front-end models
 
 Actors interacting through the client-facing surfaces (phone client, PWA, Android
 app, kiosk, self-enrol page, credential card, `/my-data`).
@@ -2267,8 +2260,8 @@ graph LR
     STU --- U7["See live classes near me"]
     STU --- U8["Enrol face (required)"]
     STU --- U9["Enrol palm (optional)"]
-    STU --- U10["Check in — START"]
-    STU --- U11["Check in — END"]
+    STU --- U10["Check in: START"]
+    STU --- U11["Check in: END"]
     STU --- U12["View attendance history"]
     STU --- U13["View my devices"]
 
@@ -2291,7 +2284,7 @@ graph LR
     U16 -.->|includes| U17
 ```
 
-### 3.6.2 Use case diagram — back-end models
+### 3.6.2 Use case diagram: back-end models
 
 Actors interacting through the administrative and machine-facing surfaces.
 
@@ -2342,7 +2335,7 @@ graph LR
     D3 -.->|extends| D6
 ```
 
-### 3.6.3 Activity diagram — biometric check-in (the core flow)
+### 3.6.3 Activity diagram: biometric check-in (the core flow)
 
 ```mermaid
 flowchart TD
@@ -2364,13 +2357,13 @@ flowchart TD
     L -- No --> X5[/"not_in_geofence<br/>You are N m away"/] --> E
     L -- Yes --> M[POST /v1/verify to biometric service<br/>1:1 against this student]
     M --> N{HMAC signature<br/>valid?}
-    N -- No --> X6[/"bad_signature — 502"/] --> E
+    N -- No --> X6[/"bad_signature: 502"/] --> E
     N -- Yes --> O{Granted AND<br/>returned id == claimed id?}
     O -- No --> X7[/"biometric_mismatch"/] --> E
     O -- Yes --> P{Score >= effective floor?}
     P -- No --> X8[/"low_confidence<br/>Try again in better light"/] --> E
     P -- Yes --> Q{Signature nonce<br/>already recorded?}
-    Q -- Yes --> X9[/"duplicate — counted once"/] --> E
+    Q -- Yes --> X9[/"duplicate: counted once"/] --> E
     Q -- No --> R{This phase<br/>already marked?}
     R -- Yes --> X10[/"already_marked"/] --> E
     R -- No --> S1[Write AttendanceMark<br/>unique nonce index]
@@ -2379,7 +2372,7 @@ flowchart TD
     T -- No --> V[/"status = partial"/] --> E
 ```
 
-### 3.6.4 Activity diagram — enrolment with the one-biometric-one-identity guard
+### 3.6.4 Activity diagram: enrolment with the one-biometric-one-identity guard
 
 ```mermaid
 flowchart TD
@@ -2393,11 +2386,11 @@ flowchart TD
     D --> F[Router: face or palm?]
     F --> G[Quality gates:<br/>detection, size, pose,<br/>sharpness, ROI, brightness]
     G --> H{Passed?}
-    H -- No --> X2[/"unusable capture —<br/>retry in better light"/] --> E
+    H -- No --> X2[/"unusable capture: <br/>retry in better light"/] --> E
     H -- Yes --> I[Extract embedding]
     I --> J[1:N duplicate guard<br/>against the whole tenant]
     J --> K{Belongs to a<br/>different user_id?}
-    K -- Yes --> X3[/"duplicate_biometric —<br/>NEVER retry; see an admin"/] --> E
+    K -- Yes --> X3[/"duplicate_biometric: <br/>NEVER retry; see an admin"/] --> E
     K -- No --> L[Self-consistency check<br/>against this person's<br/>existing captures]
     L --> M[Store as ANCHOR<br/>encrypted + protected]
     M --> N[index.on_add]
@@ -2405,7 +2398,7 @@ flowchart TD
     O --> P[/"enrolled"/] --> E
 ```
 
-### 3.6.5 Sequence diagram — verification with active liveness and signed verdict
+### 3.6.5 Sequence diagram: verification with active liveness and signed verdict
 
 ```mermaid
 sequenceDiagram
@@ -2432,7 +2425,7 @@ sequenceDiagram
     AB->>AB: haversine(gps, session) <= radius_m
     AB->>BV: POST /v1/verify {user_id, frames, token} (X-API-Key)
 
-    BV->>BV: liveness_active.analyze — real 3D turn?
+    BV->>BV: liveness_active.analyze: real 3D turn?
     BV->>BV: same person across the burst? (anti-splice)
     BV->>BV: embed frontal frame -> matcher.verify (1:1)
     BV->>BV: maybe_adapt (confident + unambiguous + live)
@@ -2449,7 +2442,7 @@ sequenceDiagram
     APP->>ST: "Start check-in recorded. Come back for the END check-in."
 ```
 
-### 3.6.6 Sequence diagram — offline credential verification (no network, no database)
+### 3.6.6 Sequence diagram: offline credential verification (no network, no database)
 
 ```mermaid
 sequenceDiagram
@@ -2475,13 +2468,13 @@ sequenceDiagram
     PE->>PE: Cosine match against the credential's template
     PE-->>AND: score
     alt All checks pass
-        AND->>V: VERIFIED — holder name + issuing organisation
+        AND->>V: VERIFIED: holder name + issuing organisation
     else Any check fails
-        AND->>V: DENIED — expired / revoked / not the card holder /<br/>tampered / issuer not trusted
+        AND->>V: DENIED: expired / revoked / not the card holder /<br/>tampered / issuer not trusted
     end
 ```
 
-### 3.6.7 Sequence diagram — template reissue (cancelable biometrics)
+### 3.6.7 Sequence diagram: template reissue (cancelable biometrics)
 
 ```mermaid
 sequenceDiagram
@@ -2502,11 +2495,11 @@ sequenceDiagram
     TS-->>POR: {reissued: N, seedref: new}
     Note over TS: Every previously exported, synced or<br/>stolen copy is now unmatchable.<br/>NOBODY re-enrols.
     DEV->>TS: Next sync: seedref changed?
-    TS-->>DEV: Yes — full re-pull in the new domain
+    TS-->>DEV: Yes: full re-pull in the new domain
     Note over DEV: Air-gapped devices need a fresh<br/>bundle export instead
 ```
 
-### 3.6.8 Class diagram — recognition core (platform)
+### 3.6.8 Class diagram: recognition core (platform)
 
 ```mermaid
 classDiagram
@@ -2623,7 +2616,7 @@ classDiagram
     Index --> Protection
 ```
 
-### 3.6.9 Class diagram — service layer (platform)
+### 3.6.9 Class diagram: service layer (platform)
 
 ```mermaid
 classDiagram
@@ -2712,16 +2705,16 @@ classDiagram
     Tenant "1" *-- "many" ConsentRecord
     Tenant "1" *-- "many" GuestPass
     Tenant "1" -- "0..1" AccessPolicy
-    VerifyRequestHandler --> ApiKey : authenticates
-    VerifyRequestHandler --> GuestPass : gate 1
-    VerifyRequestHandler --> ConsentRecord : gate 2
-    VerifyRequestHandler --> AccessPolicy : gate 3
-    VerifyRequestHandler --> VerdictSignature : signs
-    VerifyRequestHandler --> AuditEntry : records
-    VerifyRequestHandler --> UsageCounter : meters
+    VerifyRequestHandler --> ApiKey: authenticates
+    VerifyRequestHandler --> GuestPass: gate 1
+    VerifyRequestHandler --> ConsentRecord: gate 2
+    VerifyRequestHandler --> AccessPolicy: gate 3
+    VerifyRequestHandler --> VerdictSignature: signs
+    VerifyRequestHandler --> AuditEntry: records
+    VerifyRequestHandler --> UsageCounter: meters
 ```
 
-### 3.6.10 Class diagram — demonstrator domain model
+### 3.6.10 Class diagram: demonstrator domain model
 
 ```mermaid
 classDiagram
@@ -2874,13 +2867,13 @@ classDiagram
 | Device                 | Any phone, possibly none                                                  | Own phone or a shared handset                                     | Laptop or phone                                 | Laptop                                      | Any phone, often offline                            | Server                                         |
 | Training expected      | None                                                                      | None                                                              | Brief                                           | Documentation                               | Minutes                                             | API docs + SDK                                 |
 | Network                | May have none                                                             | Campus Wi-Fi / mobile data                                        | Campus network                                  | Campus network                              | **Frequently none**                           | Server-grade                                   |
-| Literacy assumption    | Cannot be assumed — outcomes are colour and icon coded as well as worded | Literate                                                          | Literate                                        | Literate                                    | Literate                                            | Expert                                         |
-| Failure tolerance      | Very low — a false rejection may deny a wage or a benefit                | Low — a failed mark is an academic dispute                       | Low                                             | Moderate                                    | Very low                                            | Low                                            |
+| Literacy assumption    | Cannot be assumed: outcomes are colour and icon coded as well as worded | Literate                                                          | Literate                                        | Literate                                    | Literate                                            | Expert                                         |
+| Failure tolerance      | Very low: a false rejection may deny a wage or a benefit                | Low: a failed mark is an academic dispute                       | Low                                             | Moderate                                    | Very low                                            | Low                                            |
 | Key design consequence | Two modalities; plain-language outcomes; self-service data rights         | Face compulsory but palm available; kiosk path for the phone-less | Bulk tools; one artefact at semester end; audit | Two-plane admin; entitlements; crypto-erase | Full offline operation; unambiguous verdict screens | SDKs, OpenAPI, visible thresholds, sandbox key |
 
 The most important characteristic in the table is the **failure tolerance of U1**.
 The entire inclusion argument of this project rests on the observation that in the
-target deployments, a false rejection is not a retry — it is a person turned away
+target deployments, a false rejection is not a retry: it is a person turned away
 from something they are entitled to. That is why two modalities exist, why the
 duplicate-versus-quality distinction in enrolment feedback matters, and why the
 system prefers to ask for a second capture rather than to lower its threshold.
@@ -2901,8 +2894,8 @@ system prefers to ask for a second capture rather than to lower its threshold.
 - **Complete mediation.** Every `/v1` request passes the same middleware: request id,
   CORS, rate limit, authentication, entitlement, then the handler.
 - **Constraints over conventions.** Invariants that must not be violated are database
-  constraints — one attendance row per (session, student), one mark per signed
-  verdict, one enrolment row per (student, course) — because a check-then-insert
+  constraints  (one attendance row per (session, student), one mark per signed
+  verdict, one enrolment row per (student, course))  because a check-then-insert
   loses a race that a unique index cannot.
 - **Honest cryptographic claims.** The system states what protection does *not* do
   (raw embeddings persist server-side) alongside what it does.
@@ -2912,7 +2905,7 @@ system prefers to ask for a second capture rather than to lower its threshold.
 | Surface                               | Mechanism                                                                                                                              |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | Server template store                 | Fernet (AES-128-CBC + HMAC-SHA256); key from`FACE_DB_KEY` via PBKDF2, 200,000 iterations, per-database salt, or a generated key file |
-| Server search index                   | Same cipher and key as the store — the index matrix and user list are encrypted blobs on disk, not plaintext                          |
+| Server search index                   | Same cipher and key as the store: the index matrix and user list are encrypted blobs on disk, not plaintext                          |
 | Android embeddings                    | AES-256-GCM with a non-exportable Android Keystore key, hardware-backed where available                                                |
 | Per-tenant data keys                  | KEK-wrapped: with a master passphrase set, each tenant's data key is stored encrypted under a key derived from that passphrase         |
 | Issued credentials and export bundles | Ed25519 signatures under a per-tenant issuer keypair                                                                                   |
@@ -2921,8 +2914,7 @@ system prefers to ask for a second capture rather than to lower its threshold.
 | Transport                             | HTTPS everywhere; TLS verification enforced on the demonstrator's calls to the platform                                                |
 
 **Key separation is operationally mandated**: `FACE_DB_KEY` must be backed up
-*separately* from the data, because without it an encrypted backup is unrecoverable —
-which is also precisely what makes crypto-erase a real erasure.
+*separately* from the data, because without it an encrypted backup is unrecoverable, which is also precisely what makes crypto-erase a real erasure.
 
 ### 3.8.3 Anti-spoofing (presentation attack detection)
 
@@ -2937,7 +2929,7 @@ The primary countermeasure is an **active head-turn challenge**:
    across the burst of at least 18°; and a same-person cosine of at least 0.45
    across the sequence.
 4. **The anti-splice check**: the most-turned frame is independently embedded and
-   confirmed to be the same person as the frontal frame — so an attacker cannot pair
+   confirmed to be the same person as the frontal frame, so an attacker cannot pair
    their own live head turn with a victim's frontal photograph. This costs a second
    recognition pass (~1.8 s on the deployment target) and is a deliberate,
    documented security-versus-latency trade that may be disabled only for an attended
@@ -2968,7 +2960,7 @@ has not measured.
 - **Consent** is recorded on every enrolment path against the tenant's versioned
   statement, pinned to the SHA-256 of the exact text agreed. Withdrawal blocks
   verification immediately, auto-revokes issued credentials, and removes the person
-  from every export — sync pulls, Glance indexes and provisioning bundles.
+  from every export: sync pulls, Glance indexes and provisioning bundles.
 - **Subject access**: `POST /v1/users/export` returns what is held (counts,
   dimensions, recent audit) and never the raw template. People self-serve at
   `/my-data`, gated by verifying themselves with full liveness.
@@ -2987,7 +2979,7 @@ has not measured.
 | Photograph or screen spoof                               | Active head-turn liveness with anti-splice identity check                                                                                |
 | Splice attack (attacker's turn + victim's frontal photo) | Second recognition pass on the most-turned frame                                                                                         |
 | Enrolment by an unauthorised party                       | Admin login or`admin`-role key required; one-time grants for re-enrolment                                                              |
-| Enrolling one's own face under a classmate's ID          | One biometric, one identity — cross-user duplicate guard at`dupe_threshold` 0.55                                                      |
+| Enrolling one's own face under a classmate's ID          | One biometric, one identity: cross-user duplicate guard at`dupe_threshold` 0.55                                                      |
 | Look-alike false accept in 1:N                           | Identify requires the top candidate to beat the runner-up by`identify_margin` 0.06                                                     |
 | Tampered verdict in transit                              | HMAC-signed results, independently validated by the consuming application                                                                |
 | Replayed verdict                                         | Single-use liveness token; optional signature binding; unique nonce index in the consuming application's database                        |
@@ -2997,7 +2989,7 @@ has not measured.
 | Template drift toward another identity                   | Adaptive enrolment with permanent anchors, confidence and margin gates, and a dedicated anti-drift regression test                       |
 | Credential theft                                         | A stolen QR is useless without the live holder; credentials expire and can be revoked                                                    |
 | Shared programme password guessed                        | Failure-counted lockout per identity and client address (8 failures / 300 s → 900 s lockout; 5 / 300 s → 1,800 s for the console)      |
-| Falsified GPS position                                   | GPS-accuracy floor, server-authoritative evaluation, two-window requirement, biometric bound to the individual (residual risk — see L7) |
+| Falsified GPS position                                   | GPS-accuracy floor, server-authoritative evaluation, two-window requirement, biometric bound to the individual (residual risk: see L7) |
 | Compromised student handset                              | The handset holds no biometric API key and no signing secret; it cannot call the biometric service or forge a verdict                    |
 
 ## 3.9 Project Method Employed
@@ -3013,8 +3005,7 @@ following practices, applied consistently across both systems.
   a system that could be run and demonstrated, which is what made the ordering
   flexible.
 - **Test-defended change.** Behaviour that matters is covered by an automated test
-  before or alongside the change. Regression tests were added for each field defect —
-  camera freeze, adaptive drift, concurrent check-in, replay, query cost.
+  before or alongside the change. Regression tests were added for each field defect: camera freeze, adaptive drift, concurrent check-in, replay, query cost.
 - **Small, single-purpose modules.** Typically 200–400 lines, with the recognition
   core kept free of web concerns so it could be ported.
 - **Mirror configuration rather than duplicate logic.** Server and Android
@@ -3033,11 +3024,11 @@ following practices, applied consistently across both systems.
 
 | Model                             | Fit for this project                                                                                                                                                                                                                                                                                                           | Verdict                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| **Waterfall**               | Requires requirements to be knowable and stable before design. Here the central requirement —*which modality is even viable on a phone camera* — could only be answered by building and measuring. A Waterfall project would have completed a full design for contactless fingerprint before discovering it does not work. | **Rejected**                                                                         |
+| **Waterfall**               | Requires requirements to be knowable and stable before design. Here the central requirement, *which modality is even viable on a phone camera*,  could only be answered by building and measuring. A Waterfall project would have completed a full design for contactless fingerprint before discovering it does not work. | **Rejected**                                                                         |
 | **V-Model**                 | Excellent verification discipline, but inherits Waterfall's assumption of stable up-front requirements.                                                                                                                                                                                                                        | **Rejected as the overall model; its verification discipline was adopted** (Sec.4.5) |
 | **Prototyping**             | Well suited to the discovery phase, and in fact used within increments; but as a whole-project model it lacks the delivery and regression discipline needed for a deployed, security-sensitive system.                                                                                                                         | **Adopted as a technique, not as the model**                                         |
 | **Scrum**                   | Its ceremonies, velocity tracking and role separation presuppose a team larger than two and a customer available for sprint review. The overhead would exceed the benefit at this size.                                                                                                                                        | **Rejected; its backlog and increment concepts adopted**                             |
-| **Spiral**                  | Risk-driven iteration matches the project's risk profile well, and its risk-analysis phase is genuinely reflected in Sec.1.10.3. Its heavyweight documentation cycle per spiral is disproportionate for a two-person project.                                                                                                  | **Partially adopted — the risk-driven ordering**                                    |
+| **Spiral**                  | Risk-driven iteration matches the project's risk profile well, and its risk-analysis phase is genuinely reflected in Sec.1.10.3. Its heavyweight documentation cycle per spiral is disproportionate for a two-person project.                                                                                                  | **Partially adopted: the risk-driven ordering**                                    |
 | **Incremental development** | Builds and delivers the system in successive working increments, each adding capability, each deployable, with requirements for later increments informed by earlier ones.                                                                                                                                                     | **CHOSEN**                                                                           |
 
 ### 3.10.2 Chosen model and justification
@@ -3048,8 +3039,8 @@ increments and V-Model verification discipline applied to each**.
 The justification rests on six properties of this specific project.
 
 **1. The riskiest requirement was unknowable in advance.** The project's founding
-question — can a commodity phone camera support a biometric modality accurate enough
-to carry an identity decision? — is empirical. The first increment answered it for
+question, can a commodity phone camera support a biometric modality accurate enough
+to carry an identity decision?,  is empirical. The first increment answered it for
 fingerprint (no) and the second answered it for face (yes). No planning-first model
 survives a first increment that invalidates the premise; an incremental model
 absorbs it as information. The pivot occurred **within a single day** and the
@@ -3084,7 +3075,7 @@ grew to 1,549 tests rather than being written at the end.
 **6. It suited a two-person team with a fixed deadline.** Incremental delivery meant
 that at any point the project had a working, demonstrable system. Had the schedule
 been cut short at the end of July 2026, the project would still have delivered a
-deployed dual-modality verification platform — without the trust layer and without
+deployed dual-modality verification platform: without the trust layer and without
 the demonstrator, but complete and working. No plan-driven model offers that
 property.
 
@@ -3135,7 +3126,7 @@ generic core with byte-for-byte unchanged behaviour.
 | Modality**auto-routing**                                    | Caller declares the modality               | Every integrator would otherwise have to implement modality detection, and every one would get it slightly wrong. Routing it once, correctly, in the platform is the whole value proposition.                                                                 |
 | Separate vector spaces per modality,**never cross-matched** | One shared space                           | A face embedding and a palm embedding are not comparable quantities; mixing them would produce meaningless scores.                                                                                                                                            |
 | **Protection on by default**                                | Opt-in                                     | A security property that must be switched on is a security property most deployments will not have. Measured cost is 0.0 TAR delta, so there is no reason to charge for it.                                                                                   |
-| Retain raw embeddings server-side under encryption                | Discard them after projection              | Discarding them would make reissue require re-enrolment of every person — the single most expensive operation in a biometric system. The trade is disclosed rather than hidden.                                                                              |
+| Retain raw embeddings server-side under encryption                | Discard them after projection              | Discarding them would make reissue require re-enrolment of every person: the single most expensive operation in a biometric system. The trade is disclosed rather than hidden.                                                                              |
 | Verdicts**HMAC-signed**                                     | Plain JSON response                        | The consuming application must be able to trust a result it did not compute. This is the mechanism the demonstrator's entire attendance integrity rests on.                                                                                                   |
 | **Per-tenant directories** for isolation                    | A`tenant_id` column with query filtering | A forgotten`WHERE` clause is a cross-tenant breach. A wrong directory is a missing file.                                                                                                                                                                    |
 | Post-match gates strictly**after** the biometric decision   | Gates woven into matching                  | A gate can then only narrow a granted match, never widen one, so the recognition pipeline's security properties are provably untouched by authorisation logic.                                                                                                |
@@ -3149,7 +3140,7 @@ The design system is a single shared stylesheet (deep ink and iris violet, Inter
 typography) across every surface, so the phone client, admin console, portal, docs
 and Trust Center are visibly one system.
 
-### 3.12.1 Platform — phone verification client (`/`)
+### 3.12.1 Platform: phone verification client (`/`)
 
 ```
 ┌──────────────────────────────┐   ┌──────────────────────────────┐
@@ -3161,7 +3152,7 @@ and Trust Center are visibly one system.
 │    │   live camera      │    │   │    │                    │    │
 │    │   preview          │    │   │    │   GRANTED          │    │
 │    │                    │    │   │    │                    │    │
-│    │   ( face oval )    │    │   │    │   Ama Mensah       │    │
+│    │   (face oval)    │    │   │    │   Ama Mensah       │    │
 │    │                    │    │   │    │   score 0.71       │    │
 │    └────────────────────┘    │   │    └────────────────────┘    │
 │                              │   │                              │
@@ -3174,11 +3165,11 @@ and Trust Center are visibly one system.
 └──────────────────────────────┘   └──────────────────────────────┘
 ```
 
-### 3.12.2 Platform — admin console (`/admin`)
+### 3.12.2 Platform: admin console (`/admin`)
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│  Biometric Verify — Admin                        operator: alice  ⏻   │
+│  Biometric Verify - Admin                        operator: alice  ⏻   │
 ├───────────────────────────────────────────────────────────────────────┤
 │ Overview │ Enrol │ People │ Invites │ Keys │ Access │ Security │ Audit │
 ├───────────────────────────────────────────────────────────────────────┤
@@ -3202,7 +3193,7 @@ and Trust Center are visibly one system.
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.12.3 Demonstrator — student mobile application
+### 3.12.3 Demonstrator: student mobile application
 
 ```
   LOGIN                      HOME (live near me)         CHECK-IN
@@ -3220,13 +3211,13 @@ and Trust Center are visibly one system.
 │ ┌──────────────┐ │      │ ┌──────────────────┐ │    │ ↻ Turn your head │
 │ │ ••••••••     │ │      │ │ MATH151          │ │    │   slowly         │
 │ └──────────────┘ │      │ │ ○ 310 m away  ✗  │ │    │                  │
-│                  │      │ │ Move closer      │ │    │  ( ● ● ● ○ ○ ○ ) │
+│                  │      │ │ Move closer      │ │    │  (● ● ● ○ ○ ○) │
 │ [   Sign in    ] │      │ └──────────────────┘ │    │                  │
 │                  │      ├──────────────────────┤    │  [ ] use palm    │
 └──────────────────┘      │ 🏠  📋  👤  ⚙︎       │    └──────────────────┘
                           └──────────────────────┘
 
-  RESULT — PARTIAL              RESULT — PRESENT            ENROL
+  RESULT - PARTIAL              RESULT - PRESENT            ENROL
 ┌──────────────────┐      ┌──────────────────────┐    ┌──────────────────┐
 │                  │      │                      │    │  Enrol your face │
 │       ✓          │      │        ✓✓            │    │                  │
@@ -3244,11 +3235,11 @@ and Trust Center are visibly one system.
 └──────────────────┘      └──────────────────────┘    └──────────────────┘
 ```
 
-### 3.12.4 Demonstrator — kiosk (shared classroom device)
+### 3.12.4 Demonstrator: kiosk (shared classroom device)
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│              CS101 — Intro to Computing                   │
+│              CS101 - Intro to Computing                   │
 │              START check-in is open                       │
 ├───────────────────────────────────────────────────────────┤
 │                                                           │
@@ -3264,17 +3255,17 @@ and Trust Center are visibly one system.
 │         Step up and look at the camera.                   │
 │                                                           │
 │   ┌─────────────────────────────────────────────────┐     │
-│   │  ✓  AMA MENSAH — start recorded                 │     │
+│   │  ✓  AMA MENSAH - start recorded                 │     │
 │   │     20512345 · score 0.69 · 12 m                │     │
 │   └─────────────────────────────────────────────────┘     │
 └───────────────────────────────────────────────────────────┘
 ```
 
-### 3.12.5 Demonstrator — lecturer console (`/admin`)
+### 3.12.5 Demonstrator: lecturer console (`/admin`)
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  Attendance Verify — Console                                    admin ⏻  │
+│  Attendance Verify - Console                                    admin ⏻  │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ Sessions │ Courses │ Students │ Attendance │ End of semester │ Verification│
 ├──────────────────────────────────────────────────────────────────────────┤
@@ -3292,12 +3283,12 @@ and Trust Center are visibly one system.
 │  │        [ Open END window ]   [ Extend +15 min ]   [ Close ]        │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 │                                                                          │
-│  End of semester — CS101                     [ Download register CSV ]   │
+│  End of semester - CS101                     [ Download register CSV ]   │
 │  ┌────────────────────────────────────────────────────────────────────┐  │
 │  │ Student        │L1 │L2 │L3 │L4 │L5 │ Present │ Rate               │  │
 │  │ Ama Mensah     │ ✓ │ ✓ │ ~ │ ✓ │ ✓ │  4/5    │ 80%                │  │
 │  │ Kofi Boateng   │ ✓ │ ✗ │ ✓ │ ✓ │ ~ │  3/5    │ 60%                │  │
-│  │ Yaa Asantewaa  │ — never enrolled — flagged separately             │  │
+│  │ Yaa Asantewaa  │ - never enrolled - flagged separately             │  │
 │  └────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
@@ -3307,7 +3298,7 @@ and Trust Center are visibly one system.
 - **Every failure states its own remedy.** `not_in_geofence` reports the actual
   distance and the required radius; `low_confidence` says "try again in better
   light"; `duplicate_biometric` says the biometric is already registered and to see
-  an administrator — and deliberately **never names the other student**.
+  an administrator, and deliberately **never names the other student**.
 - **A refusal that must not be retried never looks like one that should.** This is a
   UI rule with a security origin (Sec.3.3.6).
 - **Progress is visible during capture.** Frame counters and head-turn guidance,
@@ -3327,7 +3318,7 @@ biometric material. Its storage is:
 | Store               | Form                                                                                          | Contents                                                                                                                         |
 | ------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | Template store      | Encrypted SQLite, one per tenant at`<db>/tenants/<tenant>/faces.db` (and `palm/palms.db`) | `(user_id, embedding, kind, seq, created_at)` in a compact binary format, Fernet-encrypted, with a monotonic `seq` watermark |
-| Search index        | Encrypted files at`<db>/tenants/<tenant>/index/`                                            | `mat.npy` (the stacked matrix), `users.json`, metadata — all encrypted blobs                                                |
+| Search index        | Encrypted files at`<db>/tenants/<tenant>/index/`                                            | `mat.npy` (the stacked matrix), `users.json`, metadata: all encrypted blobs                                                |
 | API keys            | `apikeys.json`                                                                              | `key_id`, SHA-256 key hash, tenant, role, expiry, revoked                                                                      |
 | Operators           | `admins.json`                                                                               | username, PBKDF2 password hash                                                                                                   |
 | Tenants             | `tenants.json`                                                                              | entitlements, match policy, CORS origins, webhooks, signing secret                                                               |
@@ -3366,15 +3357,15 @@ Constraints / invariants
 
 ```mermaid
 erDiagram
-    STUDENT ||--o{ DEVICE : "registers"
-    STUDENT ||--o{ ENROLLMENT : "takes"
-    STUDENT ||--o{ ATTENDANCE : "has"
-    STUDENT ||--o{ ENROLLGRANT : "granted"
-    COURSE  ||--o{ ENROLLMENT : "has roll"
-    COURSE  ||--o{ CLASSSESSION : "runs"
-    CLASSSESSION ||--o{ ATTENDANCE : "records"
-    ATTENDANCE ||--o{ ATTENDANCEMARK : "accumulates"
-    PROGRAMMECREDENTIAL ||--o{ STUDENT : "signs in"
+    STUDENT ||--o{ DEVICE: "registers"
+    STUDENT ||--o{ ENROLLMENT: "takes"
+    STUDENT ||--o{ ATTENDANCE: "has"
+    STUDENT ||--o{ ENROLLGRANT: "granted"
+    COURSE  ||--o{ ENROLLMENT: "has roll"
+    COURSE  ||--o{ CLASSSESSION: "runs"
+    CLASSSESSION ||--o{ ATTENDANCE: "records"
+    ATTENDANCE ||--o{ ATTENDANCEMARK: "accumulates"
+    PROGRAMMECREDENTIAL ||--o{ STUDENT: "signs in"
 
     STUDENT {
         int id PK
@@ -3475,7 +3466,7 @@ erDiagram
     }
 ```
 
-### 3.13.3 Constraints — the invariants that are enforced by the database
+### 3.13.3 Constraints: the invariants that are enforced by the database
 
 The schema's most important property is that the rules which must not be violated
 are **database constraints, not application conventions**, because application code
@@ -3487,16 +3478,15 @@ can lose a race with itself while a unique index cannot.
 | `UNIQUE(device_uid)`             | `Device`         | One physical device claimed by two students                                                                                                                                                                  |
 | `UNIQUE(code, semester)`         | `Course`         | The same course entered twice for one semester, while allowing a legitimate re-offering in another                                                                                                           |
 | `UNIQUE(student_id, course_id)`  | `Enrollment`     | Duplicate roll entries when the console is double-clicked                                                                                                                                                    |
-| `UNIQUE(session_id, student_id)` | `Attendance`     | Two attendance rows for one student in one class — and the losing request of a concurrent pair reads the winner's row instead of returning a 500                                                            |
-| **`UNIQUE(sig_nonce)`**    | `AttendanceMark` | **Replay.** A signed verdict submitted twice — fast enough to clear an application-level check — is refused by the database and counted once. This constraint is the entire reason the table exists. |
+| `UNIQUE(session_id, student_id)` | `Attendance`     | Two attendance rows for one student in one class, and the losing request of a concurrent pair reads the winner's row instead of returning a 500                                                            |
+| **`UNIQUE(sig_nonce)`**    | `AttendanceMark` | **Replay.** A signed verdict submitted twice, fast enough to clear an application-level check,  is refused by the database and counted once. This constraint is the entire reason the table exists. |
 | `UNIQUE(token)`                  | `EnrollGrant`    | Token collision on one-time enrolment codes                                                                                                                                                                  |
 
 Two further design notes:
 
 - **`programme_key` is derived on every write** by a database event listener rather
   than maintained by call sites. A normalised copy that callers are trusted to
-  maintain goes stale the first time a row is written by a script, a seed or a test —
-  and a stale key means a cohort lookup silently returns nobody.
+  maintain goes stale the first time a row is written by a script, a seed or a test, and a stale key means a cohort lookup silently returns nobody.
 - **`AttendanceMark` is append-only.** It is the audit trail behind every figure in
   the end-of-semester register: each row carries the time, the score, the distance,
   the modality and the phase, so a disputed mark can be examined rather than merely
@@ -3506,14 +3496,14 @@ Two further design notes:
 
 ---
 
-# CHAPTER 4 — IMPLEMENTATION, TESTING AND RESULTS
+# CHAPTER 4: IMPLEMENTATION, TESTING AND RESULTS
 
 ## 4.1 Introduction
 
 This chapter records what was actually built, where it runs, how it was tested, and
 what was measured. It maps the logical design of Chapter 3 onto real infrastructure,
-describes each implemented module, explains how the modules integrate — including the
-end-to-end integration of the demonstrator against the platform's public API — and
+describes each implemented module, explains how the modules integrate, including the
+end-to-end integration of the demonstrator against the platform's public API,  and
 then presents the test plan, the verification, validation and security testing
 performed, the recommendations testers made and the responses to them, and finally
 the measured results.
@@ -3550,7 +3540,7 @@ Scale of the delivered artefacts:
               │ HTTPS
               ▼
   ┌────────────────────────────────────────────────────────────────────┐
-  │ ATTENDANCE BACKEND — Heroku                                        │
+  │ ATTENDANCE BACKEND - Heroku                                        │
   │  app: attendance-verify-api                                        │
   │  https://attendance-verify-api-fd04b68b7941.herokuapp.com          │
   │  FastAPI + uvicorn, Python 3.12, deployed as a git subtree         │
@@ -3580,7 +3570,7 @@ Scale of the delivered artefacts:
 | Logical component (Ch. 3) | Physical realisation                                                                                                                                                                             |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Recognition core          | Python 3.12 package`face/` + generic `biometric/core/`, ONNX Runtime CPU execution provider                                                                                                  |
-| Face profile              | InsightFace model pack —`buffalo_l` locally, **`buffalo_s`** on the deployed container (`FACE_MODEL_NAME=buffalo_s`), modules limited to detection, 3D-68 landmarks and recognition |
+| Face profile              | InsightFace model pack: `buffalo_l` locally, **`buffalo_s`** on the deployed container (`FACE_MODEL_NAME=buffalo_s`), modules limited to detection, 3D-68 landmarks and recognition |
 | Palm profile              | MediaPipe`hand_landmarker.task` + `palm_ccnet.onnx`, `PALM_MATCH_THRESHOLD=0.625`, `PALM_INPUT_NORM=roi` on the deployment                                                               |
 | Encrypted template store  | Fernet-encrypted SQLite per tenant under the persisted`/data` volume; `BIO_SQLITE_JOURNAL=DELETE` for volume compatibility                                                                   |
 | Encrypted search index    | Encrypted numpy artefacts under`<tenant>/index/`, replayed from the `seq` watermark on restart                                                                                               |
@@ -3595,7 +3585,7 @@ Scale of the delivered artefacts:
 | Attendance mobile client  | React Native / Expo,`com.kyere.attendanceverify`, Gradle release assembly                                                                                                                      |
 | Attendance PWA            | Static assets served from the backend at`/app` with a versioned service worker                                                                                                                 |
 | Container image supply    | GitHub Container Registry, pulled by Azure with a`read:packages` token                                                                                                                         |
-| Source of truth           | GitHub —`cLLeB/verification-system`, `cLLeB/attendance-verify`                                                                                                                              |
+| Source of truth           | GitHub: `cLLeB/verification-system`, `cLLeB/attendance-verify`                                                                                                                              |
 
 ### 4.2.3 Deployment decisions and why they changed
 
@@ -3605,14 +3595,14 @@ The deployment path is itself a result. Three hosts were used in sequence:
    memory ceiling forced a smaller face model and required stripping the ONNX
    passive-liveness binaries from the pushed tree, the disk was ephemeral (requiring
    a 60-second state-sync loop to a private dataset), and the embedded iframe on the
-   Space page caused desktop browsers to block the admin session cookie — so
+   Space page caused desktop browsers to block the admin session cookie, so
    enrolment failed unless the direct host URL was used.
 2. **Oracle Cloud Always Free** was evaluated and documented as a container path. The
    ARM (Ampere) architecture exposed a real dependency problem: MediaPipe publishes
    no `linux-aarch64` wheel after 0.10.18 and no source distribution, so without a
    per-architecture pin the build fails **and the palm modality disappears with it**.
 3. **Azure Container Apps (chosen).** 2 vCPU / 4 GB removes the memory ceiling,
-   restores full-accuracy configuration, and gives dedicated CPU — which matters
+   restores full-accuracy configuration, and gives dedicated CPU, which matters
    because verification is CPU-bound and the throttled shared cores of the free tier
    were the direct cause of slow enrol and verify. Scale-to-zero keeps pilot cost near
    zero, at the price of a ~15 s cold-start wake covered by a loading screen.
@@ -3657,7 +3647,7 @@ on the deployment):
 
 The face `dupe_threshold` of 0.55 was not chosen by intuition. On the live pilot
 store, **the highest observed cross-identity face score was 0.263** while **the
-loosest genuine template still held together at 0.693** — so 0.55 sits in open space
+loosest genuine template still held together at 0.693**, so 0.55 sits in open space
 between the two populations.
 
 ### 4.3.2 Palm profile
@@ -3672,7 +3662,7 @@ tighter than face's, because a poor palm capture is far more damaging:
 `PALM_MIN_FINGER_SPREAD=0.40`.
 
 When either model asset is absent, `PalmEngine.available()` returns false and the
-system runs face-only rather than failing — which is why the ARM wheel problem in
+system runs face-only rather than failing, which is why the ARM wheel problem in
 Sec.4.2.3 mattered: without the pin, palm would have silently disappeared.
 
 ### 4.3.3 Modality router
@@ -3688,11 +3678,11 @@ Which of the two suffices at verification time is the tenant's `match_policy`
 ### 4.3.4 Active liveness
 
 Implemented exactly as specified in Sec.3.8.3. The burst is subsampled to at most five
-analysed frames — a decision driven by measurement rather than convention. Per-model
+analysed frames: a decision driven by measurement rather than convention. Per-model
 timings on the 2-vCPU deployment target are: **detector 198 ms, 3D-landmark 75 ms,
 ArcFace r50 recognition 1,799 ms**. A default burst therefore costs
 5 × (198 + 75) + 2 × 1,799 ≈ **5.0 s**, and **recognition is 72% of it**. The
-consequence — recorded in the code where the constant is set — is that trimming
+consequence, recorded in the code where the constant is set,  is that trimming
 frames barely helps while halving the recognition count does, which is why exactly
 two recognition passes are performed: the frontal frame, and the most-turned frame
 for the anti-splice check.
@@ -3701,7 +3691,7 @@ for the anti-splice check.
 
 Confident live verifications are folded into the person's template. Adaptation
 requires a score of at least 0.55 (well above the 0.40 accept threshold), a 1:N
-margin of at least 0.10 over the runner-up, and novelty — a capture with cosine ≥
+margin of at least 0.10 over the runner-up, and novelty: a capture with cosine ≥
 0.92 against an existing sample is skipped as a near-duplicate. Anchors are permanent
 and never evicted; the total is capped at eight embeddings per identity.
 
@@ -3725,7 +3715,7 @@ security property that must be switched on is one most deployments will not have
 
 An FV1 credential is a signed envelope containing the issuer identity, the subject,
 a protected template, an expiry and an Ed25519 signature, encoded as a QR of
-**1,202 characters** — small enough for QR version 25. Offline verification checks
+**1,202 characters**: small enough for QR version 25. Offline verification checks
 the signature against a trust list (root key pinned on first use and refreshed from
 `/v1/trust-store`), checks expiry, checks the revocation list, then live-captures the
 holder and matches **inside the credential's own protection domain**. On Android this
@@ -3736,18 +3726,18 @@ camera for the live check, and the whole flow is demonstrable in airplane mode.
 
 | Concern                      | Implementation                                                                                                                      |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| API keys, roles, scopes      | `face_service/keys.py`, `auth.py` — SHA-256 hashed, `key_id`, expiry, per-key revoke                                         |
-| Operator accounts, sessions  | `face_service/admins.py`, `admin.py` — PBKDF2 hashes, signed time-limited cookies                                              |
-| Audit                        | `face_service/audit.py` — actions, never biometrics                                                                              |
-| Usage and quotas             | `face_service/usage.py` — per-tenant, per-month, `@billable` decorator                                                         |
-| Rate limiting, headers, CORS | `face_service/security.py` — `X-RateLimit-*`, 429 with `Retry-After`, CSP `frame-ancestors`, `Permissions-Policy` camera |
-| Per-tenant settings          | `face_service/tenants.py` — entitlements, match policy, origins, webhooks                                                        |
-| Webhooks                     | `face_service/webhooks.py` — signed outbound events                                                                              |
+| API keys, roles, scopes      | `face_service/keys.py`, `auth.py`: SHA-256 hashed, `key_id`, expiry, per-key revoke                                         |
+| Operator accounts, sessions  | `face_service/admins.py`, `admin.py`: PBKDF2 hashes, signed time-limited cookies                                              |
+| Audit                        | `face_service/audit.py`: actions, never biometrics                                                                              |
+| Usage and quotas             | `face_service/usage.py`: per-tenant, per-month, `@billable` decorator                                                         |
+| Rate limiting, headers, CORS | `face_service/security.py`: `X-RateLimit-*`, 429 with `Retry-After`, CSP `frame-ancestors`, `Permissions-Policy` camera |
+| Per-tenant settings          | `face_service/tenants.py`: entitlements, match policy, origins, webhooks                                                        |
+| Webhooks                     | `face_service/webhooks.py`: signed outbound events                                                                              |
 | Idempotency                  | `face_service/idempotency.py`                                                                                                     |
 | Metrics and health           | `/metrics` (Prometheus), `/healthz`, `/readyz` (503 until the model is warm)                                                  |
-| Post-match gates             | `policies.py`, `guests.py`, `consent.py` — applied strictly after the biometric decision                                     |
-| Device registry              | `devices.py` — single-use 15-minute pairing codes stored hashed, per-device keys, heartbeats, disable-revokes-the-key            |
-| Guardianship                 | `guardians.py` — audited proxy verification via `on_behalf_of`                                                                 |
+| Post-match gates             | `policies.py`, `guests.py`, `consent.py`: applied strictly after the biometric decision                                     |
+| Device registry              | `devices.py`: single-use 15-minute pairing codes stored hashed, per-device keys, heartbeats, disable-revokes-the-key            |
+| Guardianship                 | `guardians.py`: audited proxy verification via `on_behalf_of`                                                                 |
 
 Every API request passes the same middleware: `before_request` assigns a request id,
 answers CORS preflight and applies the rate limit; `after_request` adds security
@@ -3786,7 +3776,7 @@ credential verifier, Glance, and ID-document detection during enrolment.
 Consent is recorded automatically on every enrolment path, pinned to the SHA-256 of
 the exact statement text agreed. Withdrawal blocks verification immediately
 (`consent_withdrawn`), auto-revokes issued credentials, and drops the person from
-every export — sync pulls, Glance indexes and provisioning bundles. `/my-data` lets a
+every export: sync pulls, Glance indexes and provisioning bundles. `/my-data` lets a
 person verify themselves with full liveness, view their record, download a report and
 withdraw. Deletion erases a person and cancels their credentials in one operation;
 tenant offboarding destroys the store **and its keys**.
@@ -3795,10 +3785,10 @@ tenant offboarding destroys the store **and its keys**.
 
 | Module                         | Responsibility                                                                                                                                                                                                                   |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `config.py`                  | Pydantic settings with a`startup_problems()` audit that names unusable configuration **at boot** — an unset signing secret means every check-in is refused, and nobody should discover that when a lecture hall is full |
+| `config.py`                  | Pydantic settings with a`startup_problems()` audit that names unusable configuration **at boot**: an unset signing secret means every check-in is refused, and nobody should discover that when a lecture hall is full |
 | `models.py`                  | SQLModel tables; rules expressed as database constraints (Sec.3.13.3)                                                                                                                                                            |
 | `bioclient.py`               | HTTP transport to the platform: pooling, retries, idempotency-key generation                                                                                                                                                     |
-| `biometric.py`               | The integration core: challenge, 1:1 verify, bulk enrol, roster, tenant config — and HMAC signature reconstruction                                                                                                              |
+| `biometric.py`               | The integration core: challenge, 1:1 verify, bulk enrol, roster, tenant config, and HMAC signature reconstruction                                                                                                              |
 | `policy.py`                  | Reads the platform's live thresholds, caches for 300 s, survives an outage on the last known answer, and reports whether the local floor is a real margin or inert                                                               |
 | `enrolment.py`               | Reconciles cached enrolment state against the service so a genuinely enrolled student is never told to enrol again                                                                                                               |
 | `geo.py`                     | Haversine distance and geofence evaluation, server-authoritative                                                                                                                                                                 |
@@ -3806,7 +3796,7 @@ tenant offboarding destroys the store **and its keys**.
 | `routers/kiosk.py`           | Shared-device marking by 1:N identification under a session-scoped token                                                                                                                                                         |
 | `routers/enroll.py`          | In-app enrolment with the grant gate and the duplicate-biometric distinction                                                                                                                                                     |
 | `routers/admin.py`           | 30 administrative endpoints: sessions, courses, students, bulk enrol, grants, consent, audit, reporting                                                                                                                          |
-| `reporting.py`               | The end-of-semester record in two shapes — register and per-mark detail — assembled once and served as both JSON and CSV so the two always agree                                                                               |
+| `reporting.py`               | The end-of-semester record in two shapes, register and per-mark detail,  assembled once and served as both JSON and CSV so the two always agree                                                                               |
 | `guard.py`, `ratelimit.py` | Failure-counted login lockout per identity and client address                                                                                                                                                                    |
 | `audit.py`                   | Every administrative action that alters an academic record                                                                                                                                                                       |
 
@@ -3841,7 +3831,7 @@ logic exists in two languages. Consistency is maintained by mirrored configurati
 **golden-vector tests** that check the Kotlin implementation reproduces the Python
 implementation's outputs for the trust-platform features.
 
-### 4.4.2 The third-party integration — Attendance-Verify against `/v1`
+### 4.4.2 The third-party integration: Attendance-Verify against `/v1`
 
 This is the project's integration proof, and it was performed **as an outsider**:
 using only the published documentation, the OpenAPI specification and the SDKs, with
@@ -3851,7 +3841,7 @@ no privileged access to platform internals.
 
 | Platform endpoint                         | Used by the demonstrator for                                                                                                                                                                                      |
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/health`                        | The demonstrator's own readiness probe — deliberately**not** `GET /v1/challenge`, because minting a liveness token bills a call, and a probe running every thirty seconds should cost the tenant nothing |
+| `GET /v1/health`                        | The demonstrator's own readiness probe: deliberately**not** `GET /v1/challenge`, because minting a liveness token bills a call, and a probe running every thirty seconds should cost the tenant nothing |
 | `GET /v1/config`                        | Reading the thresholds actually in force, to report whether the local floor is a real margin                                                                                                                      |
 | `GET /v1/challenge`                     | Obtaining a liveness token per check-in attempt                                                                                                                                                                   |
 | `POST /v1/verify`                       | 1:1 verification of the claimed student                                                                                                                                                                           |
@@ -3895,7 +3885,7 @@ Student phone ──► Heroku attendance backend ──► Azure verification p
 | Score-floor reconciliation                          | `score_source: service`, `local_floor: 0.40`, **`local_floor_is_inert: true`**                                                 |
 
 That last row is the integration working as designed. The demonstrator is reporting,
-in its own console, that its locally configured floor of 0.40 is **inert** — every
+in its own console, that its locally configured floor of 0.40 is **inert**: every
 verdict reaching it has already cleared the service's identical 0.40 threshold, so
 the local setting never rejects anything. Before `GET /v1/config` existed, two
 systems were making one decision with no way to tell whether they agreed, and a local
@@ -3906,16 +3896,16 @@ floor that did nothing looked in the console exactly like a working safety setti
 Cross-boundary behaviour is tested without depending on a live service, by
 substituting the biometric client at the seam:
 
-- `test_biometric_signature.py` — signature reconstruction, including **forged and
+- `test_biometric_signature.py`  (signature reconstruction, including **forged and
   tampered signatures**, which must be rejected.
-- `test_bioclient.py` — transport behaviour: retries, idempotency-key generation,
+- `test_bioclient.py`)  transport behaviour: retries, idempotency-key generation,
   queued bulk enrolment.
-- `test_checkin.py`, `test_concurrent_checkin.py` — the full check-in path with a
+- `test_checkin.py`, `test_concurrent_checkin.py`  (the full check-in path with a
   substituted service, including two simultaneous check-ins racing for one attendance
   row.
-- `test_one_biometric_one_identity.py` — the platform's duplicate refusal propagating
+- `test_one_biometric_one_identity.py`)  the platform's duplicate refusal propagating
   correctly through the demonstrator's user-facing messages.
-- `test_frontend_contract.py` — the PWA's expectations of the API held to the API's
+- `test_frontend_contract.py`: the PWA's expectations of the API held to the API's
   actual shape.
 
 ### 4.4.4 Continuous integration and deployment
@@ -3961,14 +3951,14 @@ meets the non-functional targets.
 | Property / regression | A test written for every field defect                                                              | Camera freeze, adaptive drift, query cost                         |
 | Acceptance            | End-to-end use on deployed infrastructure with real people                                         | Pilot enrolments and verifications                                |
 
-**Environment isolation.** `tests/conftest.py` redirects all state — keys, audit,
-usage, database — into a per-session scratch directory that is wiped between runs, so
+**Environment isolation.** `tests/conftest.py` redirects all state  (keys, audit,
+usage, database)  into a per-session scratch directory that is wiped between runs, so
 results are deterministic and no test can contaminate real data.
 
 **Entry and exit criteria.** A change is complete when the full suite passes, any
 defect it fixes has a regression test, and no performance gate has regressed.
 
-### 4.5.2 Verification testing — "are we building the product right?"
+### 4.5.2 Verification testing: "are we building the product right?"
 
 Verification confirms each implemented unit satisfies its specification.
 
@@ -3989,7 +3979,7 @@ Representative areas:
 **Demonstrator: 196 tests, all passing.** Verified as the final run for this report:
 
 ```
-$ ./venv/Scripts/python.exe -m pytest tests -q
+$./venv/Scripts/python.exe -m pytest tests -q
 ........................................................................ [ 36%]
 ........................................s............................... [ 73%]
 .....................................................                    [100%]
@@ -4015,36 +4005,36 @@ $ ./venv/Scripts/python.exe -m pytest tests -q
 
 **A verification finding recorded honestly.** The first full run for this report
 produced **17 failures**. All 17 were traced to a single cause: an earlier fix that
-added a per-modality `modality` keyword to the enrolment call — the correct fix for a
-real production defect (Sec.4.6, R7) — had left four test doubles with the **old**
+added a per-modality `modality` keyword to the enrolment call  (the correct fix for a
+real production defect (Sec.4.6, R7))  had left four test doubles with the **old**
 signature, so they raised `TypeError` when the router passed the new argument. The
 production code was correct; the mocks were stale. The mocks were updated to the
 current signature and the suite returned to **196 passed, 1 skipped**. This is
 recorded rather than quietly repaired because it is a genuine finding about test
 doubles: **a hand-written mock is a second, unversioned copy of a signature, and it
-does not fail when the real signature changes — it fails later, and blames the wrong
+does not fail when the real signature changes: it fails later, and blames the wrong
 component.**
 
-### 4.5.3 Validation testing — "are we building the right product?"
+### 4.5.3 Validation testing: "are we building the right product?"
 
 Validation confirms the system satisfies the user needs of Sec.3.7 and the requirements
 of Sec.3.4, exercised end to end on deployed infrastructure with real people.
 
 | Validation scenario                                                       | Outcome                                                                                                            |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| A person enrols with face and is subsequently recognised                  | Passed — 4 enrolments and 14 verifications recorded against the live tenant                                       |
+| A person enrols with face and is subsequently recognised                  | Passed: 4 enrolments and 14 verifications recorded against the live tenant                                       |
 | A person whose face is enrolled adds a palm and can verify with either    | Passed after the defect in Sec.4.6 R7 was fixed; before the fix, palm enrolment silently replayed the face verdict |
 | A student marks START, leaves, returns, marks END, and is`present`      | Passed                                                                                                             |
 | A student marks START only and is`partial`, not `present`             | Passed                                                                                                             |
-| A student outside the geofence is refused with the actual distance stated | Passed — message names the distance and the required radius                                                       |
-| A student who has never enrolled is told to enrol, not merely refused     | Passed —`face_required`                                                                                         |
-| A student tries to enrol their face under a second student ID             | Passed — refused as`duplicate_biometric`, and the message does **not** name the other student             |
-| A student without a phone marks at a shared kiosk                         | Passed — 1:N identification, nothing typed, nothing spoken                                                        |
+| A student outside the geofence is refused with the actual distance stated | Passed: message names the distance and the required radius                                                       |
+| A student who has never enrolled is told to enrol, not merely refused     | Passed: `face_required`                                                                                         |
+| A student tries to enrol their face under a second student ID             | Passed: refused as`duplicate_biometric`, and the message does **not** name the other student             |
+| A student without a phone marks at a shared kiosk                         | Passed: 1:N identification, nothing typed, nothing spoken                                                        |
 | A held-up photograph is presented instead of a live face                  | Rejected by the head-turn challenge                                                                                |
-| A lecturer produces the semester record at the end of a course            | Passed — register and detail, on screen and as CSV, with never-enrolled students listed                           |
-| A credential is verified in airplane mode                                 | Passed — signature, expiry, revocation and live match, no network                                                 |
-| A person withdraws consent and can no longer be verified                  | Passed — verification blocked, credentials revoked, excluded from exports                                         |
-| An integrator implements check-in from published documentation alone      | Passed, with eight contract defects found — see Sec.4.6                                                           |
+| A lecturer produces the semester record at the end of a course            | Passed: register and detail, on screen and as CSV, with never-enrolled students listed                           |
+| A credential is verified in airplane mode                                 | Passed: signature, expiry, revocation and live match, no network                                                 |
+| A person withdraws consent and can no longer be verified                  | Passed: verification blocked, credentials revoked, excluded from exports                                         |
+| An integrator implements check-in from published documentation alone      | Passed, with eight contract defects found: see Sec.4.6                                                           |
 
 **Acceptance criteria.** Each of FR-01 … FR-34 and FR-D01 … FR-D20 was checked
 against a corresponding automated test or a deployed demonstration. The requirements
@@ -4057,26 +4047,26 @@ technique it exists to stop.
 
 | Attack attempted                                                                    | Control tested                                                                 | Result                                                                                                                    |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| Submit a verdict with a**forged HMAC**                                        | Signature validation                                                           | **Rejected** — `502 bad_signature`; no attendance record written                                                 |
-| Submit a verdict with a**modified score** but the original signature          | Signature covers the score                                                     | **Rejected** — the HMAC does not reconstruct                                                                       |
-| **Replay** a genuine signed verdict a second time                             | `UNIQUE(sig_nonce)`                                                          | **Counted once** — the second insert is refused by the database and reported as `duplicate`                      |
-| Replay two identical verdicts**simultaneously**, racing the application check | Database constraint rather than check-then-insert                              | **Counted once** — the losing request lands on `IntegrityError` and reports state rather than failing            |
-| Present a**printed photograph** to the camera                                 | Active head-turn liveness                                                      | **Rejected** — no genuine yaw span                                                                                 |
+| Submit a verdict with a**forged HMAC**                                        | Signature validation                                                           | **Rejected**: `502 bad_signature`; no attendance record written                                                 |
+| Submit a verdict with a**modified score** but the original signature          | Signature covers the score                                                     | **Rejected**: the HMAC does not reconstruct                                                                       |
+| **Replay** a genuine signed verdict a second time                             | `UNIQUE(sig_nonce)`                                                          | **Counted once**: the second insert is refused by the database and reported as `duplicate`                      |
+| Replay two identical verdicts**simultaneously**, racing the application check | Database constraint rather than check-then-insert                              | **Counted once**: the losing request lands on `IntegrityError` and reports state rather than failing            |
+| Present a**printed photograph** to the camera                                 | Active head-turn liveness                                                      | **Rejected**: no genuine yaw span                                                                                 |
 | Present a**screen replay** of a face                                          | Active head-turn liveness                                                      | **Rejected**                                                                                                        |
-| **Splice** an attacker's head turn onto a victim's frontal photo              | Anti-splice second recognition pass                                            | **Rejected** — the turned frame is not the same person as the frontal frame                                        |
+| **Splice** an attacker's head turn onto a victim's frontal photo              | Anti-splice second recognition pass                                            | **Rejected**: the turned frame is not the same person as the frontal frame                                        |
 | Enrol**one's own face under another student's ID**                            | Cross-user duplicate guard at 0.55                                             | **Refused** as `duplicate_biometric`                                                                              |
-| Use an**admin grant** to force through a duplicate biometric                  | Grant authorises re-enrolment of*your own* biometric, never another identity | **Refused** — the guard is not purchasable                                                                         |
+| Use an**admin grant** to force through a duplicate biometric                  | Grant authorises re-enrolment of*your own* biometric, never another identity | **Refused**: the guard is not purchasable                                                                         |
 | Reuse a**one-time enrolment grant**                                           | Single-use, expiring                                                           | **Refused** on second use and after expiry                                                                          |
 | **Brute-force** the shared programme password                                 | Failure-counted lockout (8 / 300 s → 900 s; console 5 / 300 s → 1,800 s)     | **Locked out**; a student who mistypes twice is unaffected because failures, not requests, are counted              |
 | Mark attendance**from an unregistered device**                                | Device binding                                                                 | **Refused**                                                                                                         |
-| Check in with a**deliberately inaccurate GPS fix**                            | Accuracy floor (±120 m on the live deployment)                                | **Refused** — `low_gps_accuracy`                                                                                 |
+| Check in with a**deliberately inaccurate GPS fix**                            | Accuracy floor (±120 m on the live deployment)                                | **Refused**: `low_gps_accuracy`                                                                                 |
 | Check in**outside the geofence** with a client-supplied "in range" flag       | Geofence evaluated**server-side**; the client value is advisory          | **Refused**                                                                                                         |
-| Call the biometric service**directly from the mobile application**            | The app holds no API key                                                       | **Impossible** — no credential exists on the device                                                                |
-| Read another tenant's templates through the API                                     | Per-tenant directories, keys, indexes                                          | **Impossible** — storage resolves per tenant, not by query filter                                                  |
-| Retrieve a raw template through the subject-access export                           | Export returns metadata only                                                   | **Not exposed** — counts, dimensions and recent audit, never the template                                          |
+| Call the biometric service**directly from the mobile application**            | The app holds no API key                                                       | **Impossible**: no credential exists on the device                                                                |
+| Read another tenant's templates through the API                                     | Per-tenant directories, keys, indexes                                          | **Impossible**: storage resolves per tenant, not by query filter                                                  |
+| Retrieve a raw template through the subject-access export                           | Export returns metadata only                                                   | **Not exposed**: counts, dimensions and recent audit, never the template                                          |
 | Use a**revoked or expired credential** offline                                | Trust list and expiry checked before the live match                            | **Rejected** with the specific reason                                                                               |
-| Present a**credential belonging to someone else**                             | The live capture must match the credential's own protected template            | **Rejected** — `not the card holder`                                                                             |
-| Present a credential from an**untrusted issuer**                              | Trust list                                                                     | **Rejected** — `issuer not trusted`                                                                              |
+| Present a**credential belonging to someone else**                             | The live capture must match the credential's own protected template            | **Rejected**: `not the card holder`                                                                             |
+| Present a credential from an**untrusted issuer**                              | Trust list                                                                     | **Rejected**: `issuer not trusted`                                                                              |
 | Boot the service with**no signing secret configured**                         | `startup_problems()` fail-closed audit                                       | **Named at boot**; a generated per-process secret locks the console rather than opening it with a published default |
 
 **Static and configuration review.** No secret is committed to version control;
@@ -4095,22 +4085,22 @@ problem.
 The most valuable "tester" of the platform was the demonstrator integration itself,
 which used the API as an outsider and found what documentation could not. Eight
 findings were raised and all eight were fixed **at the source** rather than
-documented as gotchas — one of them only after it had already caused a shipped bug.
+documented as gotchas: one of them only after it had already caused a shipped bug.
 Further recommendations came from field use during the pilot.
 
 | #             | Recommendation from testing                                                                                                                                                                                                                                                                                                                                                                      | Response implemented                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **R1**  | *"The enrolment envelope must say what happened."* A face already enrolled under another name and an unusable photograph were **both** `success:false, enrolled:0`, with the difference buried inside `results[]` — so the refusal that must **never** be retried was indistinguishable from the one that **should** be. The integrator shipped a bug because of this.  | `code`, `hint` and `conflict_user_id` moved onto the response envelope, with `duplicate` outranking other failures. The demonstrator now shows "already registered — see an administrator" for one and "try again in better light" for the other, and a test asserts the two messages differ.                                                                                                                                                                                                                                |
-| **R2**  | *"Bulk enrolment must de-duplicate by default."* `/v1/enroll` always ran the cross-user guard; `/v1/enroll/bulk` ran it only when asked — and bulk is precisely where nobody is watching each face go by.                                                                                                                                                                                 | `dedupe` now defaults to true on bulk. `dedupe:false` remains available for a migration the operator already trusts.                                                                                                                                                                                                                                                                                                                                                                                                              |
-| **R3**  | *"Give me an authoritative answer for one person."* Integrators were mirroring enrolment state locally, and the mirror drifted — which reaches the person as being asked to enrol again for a template the platform still holds.                                                                                                                                                              | `GET /v1/users/{user_id}` answers for one person (enrolled, modalities, samples, consent, guest expiry), and `GET /v1/users` now returns the modality map it had already computed. The demonstrator's `enrolment.sync()` uses both.                                                                                                                                                                                                                                                                                             |
+| **R1**  | *"The enrolment envelope must say what happened."* A face already enrolled under another name and an unusable photograph were **both** `success:false, enrolled:0`, with the difference buried inside `results[]`, so the refusal that must **never** be retried was indistinguishable from the one that **should** be. The integrator shipped a bug because of this.  | `code`, `hint` and `conflict_user_id` moved onto the response envelope, with `duplicate` outranking other failures. The demonstrator now shows "already registered: see an administrator" for one and "try again in better light" for the other, and a test asserts the two messages differ.                                                                                                                                                                                                                                |
+| **R2**  | *"Bulk enrolment must de-duplicate by default."* `/v1/enroll` always ran the cross-user guard; `/v1/enroll/bulk` ran it only when asked, and bulk is precisely where nobody is watching each face go by.                                                                                                                                                                                 | `dedupe` now defaults to true on bulk. `dedupe:false` remains available for a migration the operator already trusts.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **R3**  | *"Give me an authoritative answer for one person."* Integrators were mirroring enrolment state locally, and the mirror drifted, which reaches the person as being asked to enrol again for a template the platform still holds.                                                                                                                                                              | `GET /v1/users/{user_id}` answers for one person (enrolled, modalities, samples, consent, guest expiry), and `GET /v1/users` now returns the modality map it had already computed. The demonstrator's `enrolment.sync()` uses both.                                                                                                                                                                                                                                                                                             |
 | **R4**  | *"A cohort import must not be bounded by a gateway timeout."*                                                                                                                                                                                                                                                                                                                                  | Queued bulk enrolment:`"async": true` returns `202 {job_id}`, with `GET /v1/jobs/{id}` for live progress and per-person results. Durable and leased, so a restart resumes rather than loses a cohort; spooled images are deleted the moment the job ends.                                                                                                                                                                                                                                                                       |
-| **R5**  | *"Every integrator is reinventing replay protection."*                                                                                                                                                                                                                                                                                                                                         | `signature.binding` now covers the liveness token and the request id, chained onto the original `hmac` — which is unchanged, so existing verifiers keep working. SDK: `verify_signature(r, expect_token=...)`.                                                                                                                                                                                                                                                                                                                 |
+| **R5**  | *"Every integrator is reinventing replay protection."*                                                                                                                                                                                                                                                                                                                                         | `signature.binding` now covers the liveness token and the request id, chained onto the original `hmac`, which is unchanged, so existing verifiers keep working. SDK: `verify_signature(r, expect_token=...)`.                                                                                                                                                                                                                                                                                                                 |
 | **R6**  | *"I cannot see the numbers that decide."* The demonstrator was applying its own score floor to a score the service had already judged, with no way to know whether the two agreed.                                                                                                                                                                                                             | `GET /v1/config` exposes the operating thresholds, including the `dupe_threshold` that "one biometric, one identity" rests on. The demonstrator now reads them, caches for 300 s, survives an outage on the last known answer, and reports in its console whether the local floor is a real additional margin or **inert configuration**.                                                                                                                                                                                   |
-| **R7**  | *"Palm enrolment silently replays the face verdict."* Found during pilot use: a student enrolled a face successfully, then enrolled a palm and received the face enrolment's cached result — so the palm appeared enrolled but no palm template existed, and palm verification then failed. Root cause: the idempotency key was derived per user and per attempt, not **per modality**. | The idempotency key now separates a palm enrolment from the same user's face enrolment, and separates a fresh enrolment from an earlier cached one. A diagnostic log line was added naming the modality, the enrolled count and the raw service result, because the only visible symptom had been "not counted".                                                                                                                                                                                                                      |
+| **R7**  | *"Palm enrolment silently replays the face verdict."* Found during pilot use: a student enrolled a face successfully, then enrolled a palm and received the face enrolment's cached result, so the palm appeared enrolled but no palm template existed, and palm verification then failed. Root cause: the idempotency key was derived per user and per attempt, not **per modality**. | The idempotency key now separates a palm enrolment from the same user's face enrolment, and separates a fresh enrolment from an earlier cached one. A diagnostic log line was added naming the modality, the enrolled count and the raw service result, because the only visible symptom had been "not counted".                                                                                                                                                                                                                      |
 | **R8**  | *"Test against the contract, not against a mock of it."* Integrators were hand-writing mocks of the API and testing against their own assumptions.                                                                                                                                                                                                                                             | `/openapi.json` now serves the spec where generators look, `/v1/health` points at it, and **minting a key returns a sandbox twin** so an integrator can test against the real contract.                                                                                                                                                                                                                                                                                                                                     |
 | **R9**  | *"The enrolment camera freezes and records the same frame three times."* Reported from field use on iOS Safari: the preview froze on the just-captured frame and never resumed, so the same image was recorded as samples 2/3 and 3/3; only a full page refresh recovered it, in roughly 15 of 20 attempts on phones.                                                                          | Root-caused: a paused`<video>` keeps re-drawing its last decoded frame, so `drawImage()` returned byte-identical images. Fixed on the main client, the invite self-enrol page and the admin console with a resume-on-pause watchdog plus a fresh-frame gate before every capture. The cache-first service worker was bumped and every script's cache-busting version incremented, so the fix reaches returning devices instead of being stranded behind a stale cache. Regression-guarded by `tests/test_camera_freeze_fix.py`. |
 | **R10** | *"A recognised person who is blocked must not be told they were not recognised."* Raised when the post-match gates were added: a person whose consent had been withdrawn, or whose guest pass had expired, saw the same "not recognised" screen as a genuine non-match.                                                                                                                        | Honest kiosk and client result screens for the new codes:`identity_expired`, `consent_withdrawn`, `consent_missing` and `access_denied` are each surfaced distinctly from a biometric non-match.                                                                                                                                                                                                                                                                                                                              |
-| **R11** | *"The refusal must not tell a student who else owns that face."* Raised in review of R1's messaging: naming the conflicting identity would leak one student's biometric association to another.                                                                                                                                                                                                | The user-facing message states that the biometric is already registered and to see an administrator, and**never names the other student**; the `conflict_user_id` is available only to administrators. `test_one_biometric_one_identity.py::test_it_never_names_the_other_student_to_a_student` enforces this.                                                                                                                                                                                                              |
+| **R11** | *"The refusal must not tell a student who else owns that face."* Raised in review of R1's messaging: naming the conflicting identity would leak one student's biometric association to another.                                                                                                                                                                                                | The user-facing message states that the biometric is already registered and to see an administrator, and**never names the other student**; the `conflict_user_id` is available only to administrators. `test_one_biometric_one_identity.py:test_it_never_names_the_other_student_to_a_student` enforces this.                                                                                                                                                                                                              |
 | **R12** | *"Reporting must not degrade as a course grows."* Raised on review of the end-of-semester record, which reads every session and every mark.                                                                                                                                                                                                                                                    | Queries scoped to the course and batched by identifier rather than iterated per student, with`test_query_cost.py` asserting the query count so an N+1 regression fails the build rather than the semester.                                                                                                                                                                                                                                                                                                                          |
 | **R13** | *"A restart must not invalidate every credential ever issued."* Found in production: after a container restart, issued credentials failed with `unknown_issuer`.                                                                                                                                                                                                                             | Root-caused to`BIO_ISSUER_KEY_DIR` and `BIO_CREDENTIALS_DIR` living on ephemeral disk, so a restart regenerated the issuer keys and emptied the revocation list. Both now default to paths under the persisted volume in the container image, and it is a documented production-checklist item.                                                                                                                                                                                                                                   |
 | **R14** | *"A student who marks the same window twice should not become present."* Raised in review of the two-mark rule: counting marks rather than distinct windows would let a student complete attendance from the START window alone.                                                                                                                                                               | Attendance status is computed from the set of**distinct phases** marked, not from a mark counter, and marking an already-marked phase returns `already_marked` with an explanatory message.                                                                                                                                                                                                                                                                                                                                   |
@@ -4140,8 +4130,8 @@ Extrapolated and separately measured at the design scale:
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | Identities per tenant (design target) | **~100,000**                                                                                       |
 | 1:N search at 100,000 identities      | **~40 ms**, exact (not approximate)                                                                |
-| Accuracy of the exact backend         | **100%** — it is a brute-force maximum, not an approximation                                      |
-| Index reload after restart            | **~0.3 s** — the saved index loads and only rows changed since the `seq` watermark are replayed |
+| Accuracy of the exact backend         | **100%**: it is a brute-force maximum, not an approximation                                      |
+| Index reload after restart            | **~0.3 s**: the saved index loads and only rows changed since the `seq` watermark are replayed |
 
 **Interpretation.** The exact backend was retained rather than replaced with
 approximate nearest-neighbour search precisely *because* of this measurement: at the
@@ -4166,7 +4156,7 @@ therefore no reason to make the security property optional.
 **Stated honestly:** raw embeddings still exist, encrypted at rest on the server
 only, solely so that a reissue never requires re-enrolment. Protection guarantees
 that copies taken from the database, from a device sync, or from an export bundle
-cannot be matched anywhere else — not that no raw embedding exists anywhere. The
+cannot be matched anywhere else, not that no raw embedding exists anywhere. The
 behaviour can be disabled entirely with `BIO_PROTECT_TEMPLATES=0`.
 
 ### 4.7.3 Portable offline credentials
@@ -4185,11 +4175,11 @@ scannable QR code cannot be printed on a card, and a printed card is the only fo
 that works for a person with no phone at all. At 1,202 characters the credential
 fits, prints, and verifies in about a millisecond on the device doing the checking.
 
-### 4.7.4 Palm input-normalisation study — including a negative result
+### 4.7.4 Palm input-normalisation study: including a negative result
 
 The CCNet palm encoder is **trained** through `NormSingleROI`, which standardises each
 region of interest to zero mean and unit standard deviation over its non-zero pixels.
-The implementation had been feeding it `unit` normalisation (ROI ÷ 255) instead — a
+The implementation had been feeding it `unit` normalisation (ROI ÷ 255) instead: a
 different input distribution from the one the weights were trained on. With no
 per-image standardisation, the embedding retains the frame's absolute brightness and
 contrast, so captures taken under one lighting condition stay close together and
@@ -4208,7 +4198,7 @@ the right direction at the same time.
 **The negative result, stated plainly.** Those hard pairs are **not** evidence that
 palm-prints age. In this dataset **every long-gap pair is also a different-device
 pair**, so elapsed time and capture device are perfectly confounded. Within
-different-device pairs, more elapsed time does **not** lower the score — 0.600 under
+different-device pairs, more elapsed time does **not** lower the score: 0.600 under
 an hour versus 0.651 over a day. The data must not be described as palm decay, and it
 is not.
 
@@ -4216,8 +4206,8 @@ is not.
 despite `roi` measuring better, because the two are **different embedding spaces**:
 switching invalidates every stored palm template and the calibrated threshold with
 it. Adopting `roi` requires re-enrolling every palm and recalibrating. The mode is
-therefore available behind `PALM_INPUT_NORM=roi` — and is in fact set on the live
-deployment, whose palm population was enrolled under it — while the library default
+therefore available behind `PALM_INPUT_NORM=roi`  (and is in fact set on the live
+deployment, whose palm population was enrolled under it)  while the library default
 stays conservative for existing installations.
 
 ### 4.7.5 Face threshold calibration from pilot data
@@ -4233,7 +4223,7 @@ stays conservative for existing installations.
 wide empty band between 0.263 and 0.693. The duplicate threshold of 0.55 sits inside
 that band, which is what makes the one-biometric-one-identity guard safe: it is high
 enough that no genuine person is falsely accused of being a duplicate, and low enough
-that a real duplicate is caught. This also quantifies Sec.1.7 L3 — face separates far
+that a real duplicate is caught. This also quantifies Sec.1.7 L3: face separates far
 more cleanly than palm, which is why palm is positioned as the inclusion fallback
 rather than the primary modality.
 
@@ -4253,7 +4243,7 @@ threads):
 **Interpretation and the design consequence.** Because recognition dominates,
 trimming analysed frames barely helps while halving the number of recognition passes
 does. The burst is therefore subsampled to at most five analysed frames but performs
-exactly **two** recognition passes — the frontal frame and the most-turned frame. The
+exactly **two** recognition passes: the frontal frame and the most-turned frame. The
 second pass costs ~1.8 s and buys the anti-splice guarantee; it is a real, documented
 security-versus-latency trade, and disabling it is only reasonable at an attended
 kiosk where an operator can see who is standing there. Against **NFR-PERF-02
@@ -4280,7 +4270,7 @@ an offline test environment.
 | Result                                            | Evidence                                                                                                              |
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Verification platform reachable over public HTTPS | `GET https://verify.kyere.me/v1/health` → `{"status":"ok","success":true,"version":"v1","active_liveness":true}` |
-| Attendance backend reachable over public HTTPS    | `GET .../health` → `{"ok":true,"service":"attendance-verify","version":"0.2.0"}`                                 |
+| Attendance backend reachable over public HTTPS    | `GET.../health` → `{"ok":true,"service":"attendance-verify","version":"0.2.0"}`                                 |
 | Both modalities enabled in production             | `palm_enabled: true`, `active_liveness: true`                                                                     |
 | Cross-system integration functioning              | Demonstrator reads the platform's live thresholds and reports its own floor as inert                                  |
 | Real usage recorded                               | 4 enrolments, 14 verifications against tenant`t_2c8123c2c109` in August 2026                                        |
@@ -4310,9 +4300,9 @@ an offline test environment.
 | Not claimed                                                             | Why                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | APCER / BPCER presentation-attack rates                                 | No physical attack set (printed masks, replay devices) was assembled. The PAD benchmark suite is published as**skipped, with the reason stated**, rather than estimated.                                                                          |
-| Population-level FAR / FRR                                              | The pilot population is small. The 5,000- and 100,000-identity figures are measurements of the**system** on synthetic embeddings through the real code paths, and are labelled as such — not measurements of biometric accuracy on a population. |
+| Population-level FAR / FRR                                              | The pilot population is small. The 5,000- and 100,000-identity figures are measurements of the**system** on synthetic embeddings through the real code paths, and are labelled as such, not measurements of biometric accuracy on a population. |
 | Demographic differential performance                                    | Upstream training-set demographics are not fully documented for the pre-trained weights used, and the pilot population is too small to characterise it independently.                                                                                   |
-| That palm-prints degrade over time                                      | The data that might suggest it is**confounded** — every long-gap pair is also a different-device pair (Sec.4.7.4).                                                                                                                               |
+| That palm-prints degrade over time                                      | The data that might suggest it is**confounded**: every long-gap pair is also a different-device pair (Sec.4.7.4).                                                                                                                               |
 | Passive-liveness effectiveness                                          | The model ships**disabled** because it is untuned; the project does not enable or claim defences it has not measured.                                                                                                                             |
 | Resistance to injected deepfake video streams or sophisticated 3D masks | Not tested. The active head-turn challenge is validated against printed photographs, screen replays and splice attacks only.                                                                                                                            |
 
@@ -4320,7 +4310,7 @@ an offline test environment.
 
 ---
 
-# CHAPTER 5 — FINDINGS, CONCLUSIONS AND RECOMMENDATIONS
+# CHAPTER 5: FINDINGS, CONCLUSIONS AND RECOMMENDATIONS
 
 ## 5.1 Introduction
 
@@ -4334,7 +4324,7 @@ whether the project achieved what it set out to achieve.
 
 ### 5.2.1 Technical findings
 
-**F1 — Camera-based fingerprint capture is not viable; camera-based face and palm
+**F1: Camera-based fingerprint capture is not viable; camera-based face and palm
 capture are.** The project's first increment built and proved a fingerprint minutiae
 matcher, then failed to feed it usable input from a phone camera: ridge contrast at
 phone-camera resolution under uncontrolled lighting is insufficient for reliable
@@ -4344,8 +4334,8 @@ Sec.4.7.5. **The choice of modality, not the choice of algorithm, is what makes
 camera-only biometrics work.** This finding is preserved rather than discarded, and
 it redirected the entire project within a single day.
 
-**F2 — A modality-agnostic core makes a second modality a profile, not a subsystem.**
-Extracting the generic machinery — store, index, matcher, crypto, protection — to
+**F2: A modality-agnostic core makes a second modality a profile, not a subsystem.**
+Extracting the generic machinery  (store, index, matcher, crypto, protection)  to
 operate on `(user_id, embedding)` plus cosine similarity, parameterised by a
 `Profile`, reduced the addition of palm from "build a second system" to "add an
 encoder and a set of thresholds". The face module became a thin shim over the generic
@@ -4353,46 +4343,45 @@ core with **byte-for-byte unchanged behaviour**, and the existing face test suit
 the instrument that proved it. A third modality would now cost an encoder and a
 profile.
 
-**F3 — Cancelable biometric templates cost nothing measurable in accuracy.** A seeded
+**F3: Cancelable biometric templates cost nothing measurable in accuracy.** A seeded
 orthogonal projection produced **0.0 absolute TAR delta** at the benchmark gate's 1%
 false-accept operating point (Sec.4.7.2). Cancelable biometrics are commonly framed as
 an accuracy trade; on this system, at this operating point, there is no trade. The
-practical consequence is that the security property can be — and is — **on by
+practical consequence is that the security property can be, and is,  **on by
 default**, which matters because a protection that must be switched on is a protection
 most deployments will not have.
 
-**F4 — Recognition dominates verification latency, which changes how you optimise.**
+**F4: Recognition dominates verification latency, which changes how you optimise.**
 On the 2-vCPU deployment target, ArcFace recognition costs 1,799 ms against 198 ms for
 detection and 75 ms for landmarks, making recognition **72%** of a five-frame liveness
-burst (Sec.4.7.6). The intuitive optimisation — analyse fewer frames — barely helps; the
+burst (Sec.4.7.6). The intuitive optimisation, analyse fewer frames,  barely helps; the
 effective one is to reduce the number of recognition passes. The system therefore
 performs exactly two, and the second one exists to buy a specific security property
 (anti-splice), not for accuracy.
 
-**F5 — Exact search beats approximate search at this scale, and the measurement is
+**F5: Exact search beats approximate search at this scale, and the measurement is
 what settled it.** At 5,000 identities the encrypted, protected store searches at a
-**p50 of 0.66 ms with 100/100 top-1 accuracy**, and at 100,000 identities in ~40 ms —
-fully accurate, because a brute-force maximum is not an approximation. Approximate
+**p50 of 0.66 ms with 100/100 top-1 accuracy**, and at 100,000 identities in ~40 ms: fully accurate, because a brute-force maximum is not an approximation. Approximate
 nearest-neighbour search would have added build cost and recall tuning for no benefit
 below the design scale. **The right architectural decision here was to not adopt the
 more sophisticated technique**, and only a measurement could establish that.
 
-**F6 — Feeding a network a different input distribution from the one it was trained on
+**F6: Feeding a network a different input distribution from the one it was trained on
 silently degrades the embedding space.** The palm encoder is trained through
 per-image standardisation; it had been receiving simple `[0,1]` scaling. Correcting
 this **doubled** acceptance of hard cross-session genuine pairs, from 25.5% to 52.4%,
 while slightly *lowering* the impostor ceiling (Sec.4.7.4). There was no crash and no
-error — only quietly worse separation. **A preprocessing mismatch is invisible until
+error: only quietly worse separation. **A preprocessing mismatch is invisible until
 measured.**
 
-**F7 — A negative result about the same data.** The hard pairs in F6 are **not**
+**F7: A negative result about the same data.** The hard pairs in F6 are **not**
 evidence that palm-prints age. Every long-gap pair in the dataset is also a
 different-device pair, so elapsed time and capture device are perfectly confounded,
 and within different-device pairs more elapsed time does not lower the score (0.600
-under an hour versus 0.651 over a day). The appealing narrative — "palms drift, so
-adaptation is needed" — is not supported, and is not claimed.
+under an hour versus 0.651 over a day). The appealing narrative  ("palms drift, so
+adaptation is needed")  is not supported, and is not claimed.
 
-**F8 — Correctness properties that must not be violated belong in the database, not
+**F8: Correctness properties that must not be violated belong in the database, not
 in application code.** The demonstrator's replay guard is a unique index on the
 signature nonce because a check-then-insert loses the race against a request arriving
 in the gap between the check and the insert. The same applies to one attendance row
@@ -4400,22 +4389,22 @@ per (session, student) and one enrolment row per (student, course). Under concur
 load, the constraint holds and the losing request reads the winner's row rather than
 turning a successful verification into a 500 (Sec.4.5.4).
 
-**F9 — Ephemeral disk is more dangerous for keys than for data.** Losing enrolments to
+**F9: Ephemeral disk is more dangerous for keys than for data.** Losing enrolments to
 an ephemeral filesystem is recoverable by re-enrolling. Losing the **issuer signing
 keys** silently invalidates **every credential ever issued** (`unknown_issuer`) and
 empties the revocation list, which is unrecoverable for the holders. Key directories
 must be on the persisted volume, and this is now enforced in the container image
 rather than left to a deployment note.
 
-**F10 — Dependency availability is a modality-availability risk.** On ARM hosts,
+**F10: Dependency availability is a modality-availability risk.** On ARM hosts,
 MediaPipe publishes no `linux-aarch64` wheel after 0.10.18 and no source
-distribution. Without a per-architecture pin, the build does not fail loudly — the
+distribution. Without a per-architecture pin, the build does not fail loudly: the
 palm modality simply **disappears**, because the engine correctly reports itself
 unavailable. A graceful degradation path can mask a deployment defect.
 
 ### 5.2.2 Findings about biometric system design
 
-**F11 — Inclusion has to be architectural, not compensatory.** Aadhaar added face
+**F11: Inclusion has to be architectural, not compensatory.** Aadhaar added face
 authentication *after* a decade of ~6.5% fingerprint failure concentrated at 6–12%
 among manual workers. Treating the excluded population as an exception to be handled
 later produces exactly the outcome observed: the mitigation arrives after the harm.
@@ -4423,102 +4412,102 @@ Building two modalities into the core from the start, auto-routed so that caller
 never choose, is what converts "we support a fallback" into "no single trait can
 exclude anyone".
 
-**F12 — Face separates far more cleanly than palm, and the honest response is
+**F12: Face separates far more cleanly than palm, and the honest response is
 asymmetric roles.** On the pilot store the highest cross-identity face score was
-0.263 against a loosest genuine score of 0.693 — a wide empty band that makes the 0.55
+0.263 against a loosest genuine score of 0.693: a wide empty band that makes the 0.55
 duplicate threshold safe. Palm requires a tighter threshold (0.625) and considerably
 stricter capture gates. The correct design response is not to pretend parity but to
 make **face compulsory and palm additional** in a high-stakes application, while
 keeping palm a genuine primary path where faces cannot be imaged.
 
-**F13 — A refusal's category matters more than its message.** The most damaging API
+**F13: A refusal's category matters more than its message.** The most damaging API
 defect found was not a wrong answer but an **undifferentiated** one: "this face
 already belongs to another identity" and "this photograph is unusable" were both
 `success:false, enrolled:0`. One must never be retried and one always should be, and
 conflating them caused a shipped bug. **An error taxonomy is a functional
 requirement, not documentation.**
 
-**F14 — The security-relevant failure mode of a good message is what it reveals.**
+**F14: The security-relevant failure mode of a good message is what it reveals.**
 Distinguishing a duplicate refusal correctly (F13) creates a second problem: naming
 the conflicting identity would leak one person's biometric association to another. The
-resolution — tell the person it is already registered and to see an administrator,
-expose the conflicting identity only to administrators, and enforce that with a test —
+resolution  (tell the person it is already registered and to see an administrator,
+expose the conflicting identity only to administrators, and enforce that with a test)
 is a case where usability and privacy pull in opposite directions and both must be
 satisfied.
 
-**F15 — Post-match gates must be strictly post-match.** Placing guest expiry, consent
+**F15: Post-match gates must be strictly post-match.** Placing guest expiry, consent
 standing and access policy **after** the biometric decision means a gate can only
 narrow a granted match, never widen one. This keeps the recognition pipeline's
 security properties provably untouched by authorisation logic, and it made the same
 gates portable to the on-device implementation via a mirrored service-state document.
 
-**F16 — A recognised-but-blocked person must not be told they were not recognised.**
+**F16: A recognised-but-blocked person must not be told they were not recognised.**
 When the gates were added, a person whose consent had been withdrawn saw the same
 screen as a genuine non-match. That is both a usability failure and a
 misrepresentation of what the system knows.
 
 ### 5.2.3 Findings about the presence-proof substitution
 
-**F17 — A shared secret cannot prove presence, and no amount of surrounding control
+**F17: A shared secret cannot prove presence, and no amount of surrounding control
 repairs it.** The reviewed incumbent has a well-chosen 70 m geofence, a
-two-marks-per-session rule and device binding — and all of it is nullified by a PIN
+two-marks-per-session rule and device binding, and all of it is nullified by a PIN
 that can be posted in a group chat. The system records that *someone who knew a number
 was somewhere*. Replacing the PIN with a live biometric changes what is recorded to
 *this specific person was here*, and it is the only change that does so.
 
-**F18 — Two windows are a better presence model than two marks.** Counting marks lets
+**F18: Two windows are a better presence model than two marks.** Counting marks lets
 a student complete attendance from the START window alone. Computing status from the
 set of **distinct phases** marked, with an administrator opening the END window,
-converts attendance from an instant into an interval — which is what "attended the
+converts attendance from an instant into an interval, which is what "attended the
 class" actually means.
 
-**F19 — A shared classroom device is better served by 1:N identification than by
+**F19: A shared classroom device is better served by 1:N identification than by
 sign-in.** The existing workaround for students without phones was: sign out, sign in
 as the next student with the programme password everyone knows, mark, hand it on.
 Every step of that reads a credential aloud in a lecture hall. Kiosk mode with
-identification — where the token can do nothing but mark attendance, for one class,
-for as long as that class runs — removes credentials from the room entirely.
+identification  (where the token can do nothing but mark attendance, for one class,
+for as long as that class runs)  removes credentials from the room entirely.
 
-**F20 — The consuming application must be able to distrust the biometric service.**
+**F20: The consuming application must be able to distrust the biometric service.**
 The demonstrator does not accept a verdict because it came from the platform; it
 accepts it because the HMAC over `{success, match, user_id, score, best_score}`
 reconstructs under a secret only the two backends hold. This is what makes an
 attendance record defensible in a dispute, and it is the single largest structural
 difference between this design and the commercial attendance products reviewed.
 
-**F21 — Two systems must not make one decision without being able to compare notes.**
+**F21: Two systems must not make one decision without being able to compare notes.**
 The demonstrator applied its own score floor to a score the platform had already
 judged against its own threshold, and neither side could see the other's number.
 Exposing `GET /v1/config` let the demonstrator report, correctly, that its local floor
-of 0.40 is **inert** — every verdict reaching it has already cleared an identical
+of 0.40 is **inert**: every verdict reaching it has already cleared an identical
 threshold. Configuration that looks like a safety setting and does nothing is worse
 than no setting at all.
 
 ### 5.2.4 Methodological findings
 
-**F22 — Building a real product against your own API is the most productive
+**F22: Building a real product against your own API is the most productive
 requirements-elicitation technique available.** Eight defects in the public contract
-surfaced from one integration — including one that caused a shipped bug — and none of
+surfaced from one integration, including one that caused a shipped bug,  and none of
 them were visible from inside the platform or from reading its own documentation. Each
 became a requirement (FR-12 … FR-18, FR-31) and each was fixed at the source. No
 amount of internal review substitutes for **using your own interface as an
 outsider**.
 
-**F23 — Hand-written test doubles are unversioned copies of a signature.** Seventeen
+**F23: Hand-written test doubles are unversioned copies of a signature.** Seventeen
 tests failed during the final verification run for this report, all from one cause: a
 correct production fix added a `modality` keyword, and four mock lambdas still had the
 old signature. The mocks did not fail when the real signature changed; they failed
 later and blamed the wrong component (Sec.4.5.2). A mock that does not track the
 interface it stands in for is a latent false failure.
 
-**F24 — Publishing evidence disciplines the engineering, not just the report.**
+**F24: Publishing evidence disciplines the engineering, not just the report.**
 Requiring every published number to come from a benchmark that ran against the real
 serving path meant the presentation-attack suite had to be published as **skipped,
 with a stated reason**, because no physical attack set existed. That is a less
-impressive Trust Center page and a more honest one — and the discipline is what
+impressive Trust Center page and a more honest one, and the discipline is what
 prevented the palm study of F6 from being reported as the flattering claim in F7.
 
-**F25 — Incremental delivery kept a wrong premise from becoming a wrong project.** The
+**F25: Incremental delivery kept a wrong premise from becoming a wrong project.** The
 founding assumption was falsified in the first increment. Under a plan-driven model
 that would have been discovered after a complete design had been produced for a
 system that cannot work. Under incremental delivery it was information, absorbed in a
@@ -4565,14 +4554,14 @@ The eight problems of Sec.1.2 are addressed as follows.
 | **P4** Data sovereignty and privacy exposure | **Solved.** Fully self-hostable; no photograph persisted; templates and index encrypted with per-tenant keys; erasure destroys keys. Residual: host trust in a managed deployment (L1).                                                                                     |
 | **P5** Irrevocability                        | **Solved, at zero measured accuracy cost.** Reissue cancels every exported copy without anyone re-enrolling. Residual and disclosed: raw embeddings persist server-side under encryption so that reissue never forces re-enrolment (L2).                                    |
 | **P6** No portable proof                     | **Solved.** A signed QR, printable for people with no phone at all, verifiable offline by any authorised party, bound to a live capture, expiring and revocable, and acceptable across organisations via trust lists.                                                       |
-| **P7** Proxy fraud in presence systems       | **Solved for the substituted mechanism.** The presence token becomes the student's own live face — untransmittable — with a signed verdict the consuming application independently validates and a nonce that can be counted only once. Residual: GPS falsification (L7). |
+| **P7** Proxy fraud in presence systems       | **Solved for the substituted mechanism.** The presence token becomes the student's own live face, untransmittable,  with a signed verdict the consuming application independently validates and a nonce that can be counted only once. Residual: GPS falsification (L7). |
 | **P8** Integration difficulty                | **Solved, and proved by construction.** A complete second product was built against the published contract alone, and the eight defects that surfaced were fixed at the source. Thresholds are visible, verdicts are signed, and a sandbox key ships with every key.        |
 
 ### 5.3.3 Overall conclusion
 
 The project set out to determine whether accurate, trustworthy biometric identity can
 be delivered **without a scanner, without a network, and without creating a permanent
-liability out of the biometric itself** — and to establish that it can be consumed by
+liability out of the biometric itself**, and to establish that it can be consumed by
 ordinary software rather than only by specialists.
 
 It can. The Mobile Contactless Face & Palm Verification System verifies people from
@@ -4588,7 +4577,7 @@ was built against the platform's public contract by treating it as an external v
 and in the process the contract itself was improved eight times over. That
 demonstrator also settles a narrower institutional question. An attendance system
 whose presence proof is a lecturer-generated PIN records that **someone who knew a
-number was somewhere**. Substituting a live biometric — and nothing else — changes the
+number was somewhere**. Substituting a live biometric, and nothing else,  changes the
 record to **this specific person was here**, with a cryptographically signed verdict
 behind it and a nonce ensuring it counts exactly once.
 
@@ -4603,12 +4592,12 @@ meeting it produced a less impressive report and a more useful one.
 
 ## 5.4 Challenges
 
-**C1 — The founding premise was wrong.** The project began as a contactless
+**C1: The founding premise was wrong.** The project began as a contactless
 *fingerprint* system. The matcher worked; the capture did not. Discovering this
 required building enough of the system to measure it, and then accepting the result
 rather than tuning around it.
 
-**C2 — Deployment constraints repeatedly dictated engineering.** The free hosting tier
+**C2: Deployment constraints repeatedly dictated engineering.** The free hosting tier
 imposed a 512 MB memory ceiling that forced a smaller face model and the removal of
 model binaries the host rejected; its ephemeral disk required a state-sync loop; and
 its embedded iframe caused desktop browsers to block the admin session cookie so that
@@ -4616,128 +4605,128 @@ enrolment failed in a way that looked like an application bug. Each of these was
 diagnosed and worked around before the migration to Azure Container Apps removed the
 underlying cause.
 
-**C3 — The issuer-key incident.** After a container restart in production, every
+**C3: The issuer-key incident.** After a container restart in production, every
 issued credential began failing with `unknown_issuer`, and the revocation list was
 empty. Diagnosing this meant recognising that the failure was not in the credential
 format or the verifier but in **where the signing keys lived**. It was the single most
 instructive operational failure of the project.
 
-**C4 — A cross-platform camera bug that corrupted enrolment data.** On iOS Safari the
+**C4: A cross-platform camera bug that corrupted enrolment data.** On iOS Safari the
 enrolment preview froze on the just-captured frame and never resumed, so the same
-image was silently recorded as samples 2/3 and 3/3 — an enrolment that looked
+image was silently recorded as samples 2/3 and 3/3: an enrolment that looked
 successful and produced a degenerate template. It reproduced in roughly 15 of 20
 attempts on phones and required a full page refresh to clear. Root-causing it meant
 discovering that a paused `<video>` keeps re-drawing its last decoded frame, so
 `drawImage()` legitimately returned byte-identical images. Fixing it required a
 resume watchdog, a fresh-frame gate before every capture, **and** a service-worker
-cache bump — because otherwise the fix would never reach the returning devices that
+cache bump, because otherwise the fix would never reach the returning devices that
 had the problem.
 
-**C5 — Palm was substantially harder than face.** Locating a stable region of interest
+**C5: Palm was substantially harder than face.** Locating a stable region of interest
 on a hand held freely at an arbitrary distance, under arbitrary lighting, with
 arbitrary finger spread, required a landmark model, five separate capture-quality
 gates and a much tighter threshold. The input-normalisation mismatch (F6) was then
 found only by systematic measurement, having produced no error of any kind.
 
-**C6 — Confounded evaluation data.** The palm dataset available was small and, worse,
+**C6: Confounded evaluation data.** The palm dataset available was small and, worse,
 structurally confounded: every long-gap pair was also a different-device pair.
-Recognising the confound — rather than reporting the appealing conclusion it appeared
-to support — was a discipline problem, not a technical one.
+Recognising the confound, rather than reporting the appealing conclusion it appeared
+to support,  was a discipline problem, not a technical one.
 
-**C7 — Two implementations of one algorithm.** Porting the recognition logic to Kotlin
+**C7: Two implementations of one algorithm.** Porting the recognition logic to Kotlin
 created two places where thresholds, decision rules, adaptive policy and liveness
 rules must agree. Mirrored configuration files and golden-vector tests keep them
 aligned, but the risk of divergence is permanent and structural.
 
-**C8 — A latency floor set by CPU inference.** ArcFace recognition at 1,799 ms per
+**C8: A latency floor set by CPU inference.** ArcFace recognition at 1,799 ms per
 pass on the deployment target sets a ~5 s floor for a liveness burst that cannot be
 optimised away in software; only reducing the number of recognition passes moves it,
 and each pass removed costs a security property.
 
-**C9 — An ARM dependency that silently removed a modality.** MediaPipe's absent
+**C9: An ARM dependency that silently removed a modality.** MediaPipe's absent
 `linux-aarch64` wheel meant that on an ARM host the palm modality disappeared without
 an error, because the engine correctly reported itself unavailable. Graceful
 degradation concealed a deployment defect.
 
-**C10 — Integrating with one's own API without privileged knowledge.** Building the
+**C10: Integrating with one's own API without privileged knowledge.** Building the
 demonstrator required deliberately *not* using internal knowledge of the platform.
 This is uncomfortable and slow, and it is exactly what made the exercise valuable
 (F22).
 
-**C11 — Scope discipline against a fixed deadline.** The platform accumulated genuine
-capability quickly — credentials, Glance, policies, guest passes, device registry,
+**C11: Scope discipline against a fixed deadline.** The platform accumulated genuine
+capability quickly: credentials, Glance, policies, guest passes, device registry,
 guardianship, consent. Deciding what **not** to build (FAISS scaling, tuned passive
 liveness, an iOS native app, a physical PAD evaluation) and recording those decisions
 as documented limitations rather than silent gaps was a continuous effort.
 
-**C12 — Stale test doubles at the worst moment.** The final verification run for this
+**C12: Stale test doubles at the worst moment.** The final verification run for this
 report produced 17 failures from four out-of-date mock signatures, which had to be
 diagnosed and corrected before any test result could be reported honestly (F23).
 
 ## 5.5 Lessons Learnt
 
-**L1 — Measure the assumption before designing around it.** The project's most
+**L1: Measure the assumption before designing around it.** The project's most
 valuable single action was measuring camera fingerprint capture early enough that
 being wrong cost one day instead of one semester.
 
-**L2 — Publish the negative result.** The palm confound (F7) would have gone
+**L2: Publish the negative result.** The palm confound (F7) would have gone
 unnoticed, and the flattering conclusion would have been easy to state. Writing down
 why the data cannot support it is what makes the rest of the numbers trustworthy.
 
-**L3 — Extract the generic core before you need it twice.** Generalising the store,
+**L3: Extract the generic core before you need it twice.** Generalising the store,
 index and matcher before palm existed is what made palm a profile rather than a
-project — and the requirement that face behaviour be byte-for-byte unchanged made the
+project, and the requirement that face behaviour be byte-for-byte unchanged made the
 refactor verifiable.
 
-**L4 — An error taxonomy is a functional requirement.** The most damaging defect found
+**L4: An error taxonomy is a functional requirement.** The most damaging defect found
 was an *undifferentiated* failure, not a wrong one. Two failures requiring opposite
 responses must never share a code, a message, or a shape.
 
-**L5 — Put invariants in the database.** Every rule that must not be violated became a
+**L5: Put invariants in the database.** Every rule that must not be violated became a
 constraint, and every one of those constraints subsequently caught something a race
 condition would otherwise have produced.
 
-**L6 — Default to the secure configuration when it costs nothing.** Protection is on
+**L6: Default to the secure configuration when it costs nothing.** Protection is on
 by default because it measured at 0.0 TAR delta. Conversely, passive liveness is off
 by default because it is untuned. The rule is symmetrical: **measure, then default
 accordingly.**
 
-**L7 — Fail closed and say why at boot.** A missing secret should lock the door, not
-leave a key under it — and the process should name exactly which configuration is
+**L7: Fail closed and say why at boot.** A missing secret should lock the door, not
+leave a key under it, and the process should name exactly which configuration is
 missing, because "an unset signing secret means every check-in is refused" is
 discovered at the worst possible moment otherwise.
 
-**L8 — Keys are more precious than data.** Lost data can be re-collected; lost issuer
+**L8: Keys are more precious than data.** Lost data can be re-collected; lost issuer
 keys invalidate every credential ever issued and cannot be recovered by anyone.
 
-**L9 — A fix that cannot reach the affected devices is not a fix.** The camera-freeze
+**L9: A fix that cannot reach the affected devices is not a fix.** The camera-freeze
 repair needed a service-worker cache bump to reach the returning devices that had the
 problem. Cache invalidation is part of the fix, not part of the deployment.
 
-**L10 — Be your own most hostile integrator.** One outsider integration found eight
+**L10: Be your own most hostile integrator.** One outsider integration found eight
 contract defects that no internal review had surfaced. Consuming your own interface
 without privileged knowledge is the cheapest high-yield quality practice available.
 
-**L11 — Do not let two components decide one thing without letting them compare
+**L11: Do not let two components decide one thing without letting them compare
 notes.** Configuration that looks like a safety setting and silently does nothing is
 worse than no setting at all.
 
-**L12 — Do not adopt the sophisticated technique until measurement demands it.**
+**L12: Do not adopt the sophisticated technique until measurement demands it.**
 Exact search was retained over approximate search, and no ANN index was built,
 because at the design scale the simple approach was both fully accurate and fast
 enough.
 
-**L13 — Write the reason next to the decision.** The most useful artefacts in the
+**L13: Write the reason next to the decision.** The most useful artefacts in the
 codebase are the comments explaining why a setting is *not* the default: why the face
 anchor tether is off, why `unit` normalisation stays default despite measuring worse,
 why exactly two recognition passes are performed. Those notes are what made this
 report possible months later.
 
-**L14 — Mocks must track the interfaces they stand for.** A hand-written double is a
+**L14: Mocks must track the interfaces they stand for.** A hand-written double is a
 second, unversioned copy of a signature that fails late and blames the wrong
 component.
 
-**L15 — Inclusion is a design constraint, not a feature.** Every reviewed system that
+**L15: Inclusion is a design constraint, not a feature.** Every reviewed system that
 treated its excluded population as an exception delivered the mitigation after the
 harm. Building the second modality in from the start, auto-routed so no caller has to
 choose, is the only version of this that works.
@@ -4746,96 +4735,95 @@ choose, is the only version of this that works.
 
 ### 5.6.1 Immediate and high-value
 
-**FW1 — Conduct a physical presentation-attack evaluation.** Assemble a proper attack
-set — printed photographs at multiple qualities, screen replays across device types,
-paper and silicone masks, and injected video streams — and report APCER and BPCER
+**FW1: Conduct a physical presentation-attack evaluation.** Assemble a proper attack
+set  (printed photographs at multiple qualities, screen replays across device types,
+paper and silicone masks, and injected video streams)  and report APCER and BPCER
 against ISO/IEC 30107-3. This is the single most important outstanding gap, because it
 is the only claim in the project currently supported by argument rather than
 measurement. It would also allow the passive-liveness layer to be tuned and enabled
 with evidence rather than left disabled.
 
-**FW2 — Run a properly designed palm evaluation that decouples time from device.**
+**FW2: Run a properly designed palm evaluation that decouples time from device.**
 Capture the same palms across multiple devices at multiple intervals so that elapsed
 time and capture device are not confounded (F7), then decide on the evidence whether
 to migrate the default to `roi` normalisation. Because migration invalidates every
 stored palm template and its threshold, it must be justified by clean data.
 
-**FW3 — Characterise demographic differential performance.** Evaluate false-accept and
+**FW3: Characterise demographic differential performance.** Evaluate false-accept and
 false-reject behaviour across skin tone, age and gender on a locally representative
 population. A system whose stated purpose is inclusion has an obligation to measure
 whether it is inclusive, and pre-trained weights of undocumented provenance make this
 mandatory rather than optional.
 
-**FW4 — Run a real institutional pilot at cohort scale.** Deploy the demonstrator for
+**FW4: Run a real institutional pilot at cohort scale.** Deploy the demonstrator for
 a full semester across several courses and hundreds of students. This would yield
-genuine field statistics — enrolment success rate, per-modality verification success,
-false-rejection rate under real lighting, kiosk throughput per class — that a small
+genuine field statistics  (enrolment success rate, per-modality verification success,
+false-rejection rate under real lighting, kiosk throughput per class)  that a small
 pilot cannot.
 
 ### 5.6.2 Engineering extensions
 
-**FW5 — Scale the index to 1–2 million identities per tenant.** Implement a FAISS
+**FW5: Scale the index to 1–2 million identities per tenant.** Implement a FAISS
 backend alongside the existing exact and HNSW backends behind the same interface, and
 measure recall against exact search before switching any deployment.
 
-**FW6 — Reduce verification latency.** The ~5 s floor is set by CPU inference (F4).
+**FW6: Reduce verification latency.** The ~5 s floor is set by CPU inference (F4).
 Options in order of expected value: batched or quantised inference, a GPU or NPU
 execution provider, a smaller distilled recognition model evaluated for accuracy cost,
 and Android NNAPI or GPU delegation on-device.
 
-**FW7 — Harden the geofence.** GPS remains advisory (L7). Investigate a
+**FW7: Harden the geofence.** GPS remains advisory (L7). Investigate a
 server-issued in-hall beacon (BLE or ultrasonic), mock-location and root detection,
 velocity and teleport plausibility checks across successive marks, and cross-checking
 against a hall's Wi-Fi BSSID set.
 
-**FW8 — Native iOS application.** The PWA covers iOS today, but the on-device offline
-guarantee — the project's strongest privacy claim — is currently Android-only.
+**FW8: Native iOS application.** The PWA covers iOS today, but the on-device offline
+guarantee, the project's strongest privacy claim,  is currently Android-only.
 
-**FW9 — Formal external evaluation.** Submit the face model configuration to NIST
+**FW9: Formal external evaluation.** Submit the face model configuration to NIST
 FRVT and pursue ISO/IEC 30107 PAD evaluation, to replace self-measurement with
 independent measurement.
 
-**FW10 — Federated or split matching to reduce host trust.** Investigate architectures
-that reduce the managed deployment's inherent host trust (L1) — secure enclaves, or
+**FW10: Federated or split matching to reduce host trust.** Investigate architectures
+that reduce the managed deployment's inherent host trust (L1): secure enclaves, or
 protocols in which the server never holds a matchable template in the clear.
 
 ### 5.6.3 Research directions
 
-**FW11 — Multi-modal score fusion.** The system currently combines face and palm by
+**FW11: Multi-modal score fusion.** The system currently combines face and palm by
 policy (`or` / `fallback` / `and`). Learned score-level fusion should raise accuracy
 above either modality alone, and would be particularly valuable for palm, which
 trails face (F12).
 
-**FW12 — Quantitative evaluation of protection strength.** The 0.0 TAR delta result
+**FW12: Quantitative evaluation of protection strength.** The 0.0 TAR delta result
 establishes that protection is *free in accuracy*; it does not quantify irreversibility
 or unlinkability. Evaluate against the established cancelable-biometrics adversary
 models and report attack complexity.
 
-**FW13 — Model palm ageing properly.** Once FW2 provides unconfounded data, establish
+**FW13: Model palm ageing properly.** Once FW2 provides unconfounded data, establish
 whether palm-print templates genuinely drift, and if so parameterise the palm anchor
 tether from evidence rather than the current conservative 0.75.
 
-**FW14 — Extend to further camera-viable modalities.** Because a modality is now a
+**FW14: Extend to further camera-viable modalities.** Because a modality is now a
 profile (F2), periocular and ear recognition are cheap to evaluate and would extend
 the inclusion argument to people for whom neither face nor palm can be imaged.
 
-**FW15 — Longitudinal study of adaptive enrolment.** Track real templates over a year
+**FW15: Longitudinal study of adaptive enrolment.** Track real templates over a year
 or more to measure how far adaptation tracks genuine appearance change and whether the
 anti-drift anchors remain sufficient at that timescale.
 
 ### 5.6.4 Deployment and adoption
 
-**FW16 — Complete the entitlement layer into a biller.** The paywall hook exists
+**FW16: Complete the entitlement layer into a biller.** The paywall hook exists
 (`enabled`, `plan`, `max_keys`, `allowed_roles`); a billing integration would make the
 platform commercially operable.
 
-**FW17 — Pursue a welfare or clinic pilot.** The beneficiary group with the most to
+**FW17: Pursue a welfare or clinic pilot.** The beneficiary group with the most to
 gain (Sec.1.9) is not students but people whose fingerprints fail at a payment desk.
 A pilot with an NGO or clinic would test the inclusion claim where it matters.
 
-**FW18 — Publish the SDKs and the compliance dossier openly**, so that other
-Ghanaian institutions can adopt the platform without repeating the integration work —
-and so that the Act 843 mapping can be reviewed by people who are not its authors.
+**FW18: Publish the SDKs and the compliance dossier openly**, so that other
+Ghanaian institutions can adopt the platform without repeating the integration work, and so that the Act 843 mapping can be reviewed by people who are not its authors.
 
 ## 5.7 References
 
@@ -4873,7 +4861,7 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
     https://www.signisys.com/blog/amazon-rekognition-the-complete-guide-to-aws-computer-vision/
 14. Truein. *AI Face Recognition Attendance System.*
     https://truein.com/face-recognition-attendance-system
-15. Truein. *Geofencing Attendance System — GPS based Attendance App for Field Staff.*
+15. Truein. *Geofencing Attendance System - GPS based Attendance App for Field Staff.*
     https://truein.com/geofencing-attendance-system
 16. Truein. *Mobile Attendance System with Face Recognition.*
     https://truein.com/mobile-based-attendance-system
@@ -4906,12 +4894,11 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
     https://developers.google.com/mediapipe/solutions/vision/hand_landmarker
 27. Zhang, Y., Wang, Z. and others. *Silent-Face-Anti-Spoofing (MiniFASNet).*
     https://github.com/minivision-ai/Silent-Face-Anti-Spoofing
-28. ISO/IEC 30107-3:2023. *Information technology — Biometric presentation attack
-    detection — Part 3: Testing and reporting.*
-29. ISO/IEC 19794-2:2011. *Information technology — Biometric data interchange formats
-    — Part 2: Finger minutiae data.*
+28. ISO/IEC 30107-3:2023. *Information technology - Biometric presentation attack
+    detection: Part 3: Testing and reporting.*
+29. ISO/IEC 19794-2:2011. *Information technology - Biometric data interchange formats - Part 2: Finger minutiae data.*
 30. National Institute of Standards and Technology. *Face Recognition Vendor Test
-    (FRVT) — Ongoing.* https://www.nist.gov/programs-projects/face-recognition-vendor-test-frvt
+    (FRVT) - Ongoing.* https://www.nist.gov/programs-projects/face-recognition-vendor-test-frvt
 
 ### Cancelable biometrics and template protection
 
@@ -4925,8 +4912,7 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 34. Teoh, A.B.J., Goh, A. and Ngo, D.C.L. (2006). *Random multispace quantization as an
     analytic mechanism for BioHashing of biometric and random identity inputs.* IEEE
     Transactions on Pattern Analysis and Machine Intelligence, 28(12).
-35. ISO/IEC 24745:2022. *Information security, cybersecurity and privacy protection —
-    Biometric information protection.*
+35. ISO/IEC 24745:2022. *Information security, cybersecurity and privacy protection - Biometric information protection.*
 
 ### Cryptography, standards and platform
 
@@ -4957,11 +4943,11 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 ### Law, privacy and ethics
 
 47. Republic of Ghana. *Data Protection Act, 2012 (Act 843).* Parliament of Ghana.
-48. European Union. *Regulation (EU) 2016/679 — General Data Protection Regulation
+48. European Union. *Regulation (EU) 2016/679 - General Data Protection Regulation
     (GDPR).* Official Journal of the European Union.
 49. Data Protection Commission, Ghana. *Guidelines and Compliance Requirements.*
     https://www.dataprotection.org.gh
-50. World Bank Group. *Identification for Development (ID4D) — Practitioner's Guide.*
+50. World Bank Group. *Identification for Development (ID4D) - Practitioner's Guide.*
     https://id4d.worldbank.org
 
 ### Software engineering method
@@ -4997,17 +4983,17 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 ### Project artefacts
 
 67. Kyere Boateng, C.K. and Mensah, E.F.K. (2026). *Mobile Contactless Face & Palm
-    Verification System — source repository.*
+    Verification System: source repository.*
     https://github.com/cLLeB/verification-system
-68. Kyere Boateng, C.K. and Mensah, E.F.K. (2026). *Attendance-Verify — demonstrator
+68. Kyere Boateng, C.K. and Mensah, E.F.K. (2026). *Attendance-Verify - demonstrator
     application source repository.* https://github.com/cLLeB/attendance-verify
-69. *System guide — architecture, security, operations, deployment, development.*
+69. *System guide - architecture, security, operations, deployment, development.*
     `docs/GUIDE.md`, project repository.
 70. *Integration & API reference.* `docs/API.md` and `openapi.yaml`, project
     repository.
-71. *Compliance mapping — Ghana DPA (Act 843) and GDPR, obligation to code path.*
+71. *Compliance mapping - Ghana DPA (Act 843) and GDPR, obligation to code path.*
     `docs/trust/compliance.md`, project repository.
-72. *Trust Center — published measured evidence.* https://verify.kyere.me/trust
+72. *Trust Center - published measured evidence.* https://verify.kyere.me/trust
 73. *Benchmark harness and reports.* `bench/` and `docs/trust/reports/`, project
     repository.
 
@@ -5015,7 +5001,7 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 
 ---
 
-## APPENDIX A — Deliverables Accompanying This Report
+## APPENDIX A: Deliverables Accompanying This Report
 
 | Deliverable                              | Location                                                     |
 | ---------------------------------------- | ------------------------------------------------------------ |
@@ -5029,14 +5015,14 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 | Platform source                          | https://github.com/cLLeB/verification-system                 |
 | Demonstrator source                      | https://github.com/cLLeB/attendance-verify                   |
 
-## APPENDIX B — How to Verify the Claims in This Report
+## APPENDIX B: How to Verify the Claims in This Report
 
 | Claim                                                    | How a reader can check it                                                                                               |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Both systems are live                                    | `curl https://verify.kyere.me/v1/health` and `curl https://attendance-verify-api-fd04b68b7941.herokuapp.com/health` |
 | The thresholds stated in Sec.4.3.1 are the ones in force | `curl -H "X-API-Key: <key>" https://verify.kyere.me/v1/config`                                                        |
 | Measured evidence is published                           | Open https://verify.kyere.me/trust                                                                                      |
-| The demonstrator's tests pass                            | `cd backend && ./venv/Scripts/python.exe -m pytest tests -q`                                                          |
+| The demonstrator's tests pass                            | `cd backend &&./venv/Scripts/python.exe -m pytest tests -q`                                                          |
 | The platform's tests pass                                | `python -m pytest` in the platform repository                                                                         |
 | Scale figures are reproducible                           | `python -m bench run --suite all` and `python _scale_test.py 100000`                                                |
 | The APK builds from source                               | `bash build_apk.sh` in the demonstrator repository                                                                    |
@@ -5047,8 +5033,7 @@ and so that the Act 843 mapping can be reviewed by people who are not its author
 
 ---
 
-*Mobile Contactless Face & Palm Verification System — Computer Science Project
+*Mobile Contactless Face & Palm Verification System: Computer Science Project
 Documentation, 2025/2026. Kwame Nkrumah University of Science and Technology.*
 
-*Built to include everyone: if the palm won't read, the face will. A match is a match —
-on any phone, anywhere, online or off.*
+*Built to include everyone: if the palm won't read, the face will. A match is a match, on any phone, anywhere, online or off.*
