@@ -55,7 +55,7 @@ def _auth(client, sid):
 
 def _service_says_duplicate(monkeypatch, conflict_with):
     """What the service returns when the capture belongs to someone else."""
-    def fake(uid, images, source="auto"):
+    def fake(uid, images, source="auto", modality=None, idempotency_key=""):
         return EnrollResult(enrolled=0, of=len(images), samples=0, raw={},
                             duplicate=True, conflict_user_id=conflict_with)
     monkeypatch.setattr(biometric, "enroll_user", fake)
@@ -85,7 +85,8 @@ def test_the_refusal_does_not_read_as_a_lighting_problem(client, monkeypatch):
     dupe = _enroll(client, _auth(client, KOFI))
 
     monkeypatch.setattr(biometric, "enroll_user",
-                        lambda uid, images, source="auto": EnrollResult(enrolled=0, of=3, samples=0, raw={}))
+                        lambda uid, images, source="auto", modality=None, idempotency_key="":
+                        EnrollResult(enrolled=0, of=3, samples=0, raw={}))
     unusable = _enroll(client, _auth(client, KOFI))
 
     assert dupe["code"] != unusable["code"]

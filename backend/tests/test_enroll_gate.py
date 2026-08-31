@@ -37,7 +37,8 @@ def fresh_db():
 @pytest.fixture(autouse=True)
 def mocked_service(monkeypatch):
     monkeypatch.setattr(biometric, "enroll_user",
-                        lambda uid, images, source="auto": EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}))
+                        lambda uid, images, source="auto", modality=None, idempotency_key="":
+                        EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}))
     monkeypatch.setattr(biometric, "list_roster", lambda page=500: {})
     enrolment.reset_cache()
     yield

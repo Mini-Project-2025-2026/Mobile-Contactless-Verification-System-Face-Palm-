@@ -31,7 +31,8 @@ def fresh_db():
 def mock_enroll(monkeypatch):
     monkeypatch.setattr(
         biometric, "enroll_user",
-        lambda uid, images, source="auto": EnrollResult(enrolled=len(images), of=len(images), samples=2, raw={}),
+        lambda uid, images, source="auto", modality=None, idempotency_key="": EnrollResult(
+            enrolled=len(images), of=len(images), samples=2, raw={}),
     )
 
 
