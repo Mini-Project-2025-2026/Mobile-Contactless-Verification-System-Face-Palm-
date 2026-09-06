@@ -5,8 +5,8 @@ This repository contains two separate projects:
 ### `verification-system`
 
 The **main project** , the Mobile Contactless Verification System using face and palm verification.
-main site : verify.kyere.me 
-admin : verify.kyere.me/admin
+main site : https://verify.kyere.me/ 
+admin : https://verify.kyere.me/admin
 ### `attendance-verify`
 
 A **separate supporting project** used to test and demonstrate that the verification API works correctly and that the verification functionality can be integrated into another application.
